@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventario y Despachos - Banca de Loterías</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; color: black; }
+        }
+        .print-only { display: none; }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- TOP NAVBAR -->
+    <header class="bg-slate-900 text-white shadow-md no-print sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="p-2 bg-brand-600 rounded-lg text-white shadow-sm">
+                    <i class="fa-solid fa-ticket-simple text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-none tracking-wide text-white">LOTTO-INVENTARIO</h1>
+                    <p class="text-xs text-slate-400 mt-0.5">Control de Equipos y Agencias POS</p>
+                </div>
+            </div>
+
+            <!-- User Selector & Role Switcher -->
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                    <i class="fa-solid fa-user-shield text-brand-400 text-sm"></i>
+                    <span class="text-xs font-medium text-slate-300 hidden sm:inline">Usuario:</span>
+                    <span id="activeUserName" class="text-sm font-semibold text-white">Administrador</span>
+                </div>
+                <div id="roleBadge" class="hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    ADMINISTRADOR
+                </div>
+                <button onclick="openLoginModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1" title="Cambiar de Usuario">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden md:inline">Cambiar Usuario</span>
+                </button>
+                <button id="btnManagePasswords" onclick="openManageUsersModal()" class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-medium transition flex items-center space-x-1" title="Gestionar Claves">
+                    <i class="fa-solid fa-key"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 no-print">
+
+        <!-- DASHBOARD STATS CARDS -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Equipos</p>
+                    <h3 id="statTotal" class="text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <i class="fa-solid fa-warehouse text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">En Depósito</p>
+                    <h3 id="statWarehouse" class="text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+                    <i class="fa-solid fa-store text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Asignados / En Agencia</p>
+                    <h3 id="statAssigned" class="text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
+                    <i class="fa-solid fa-right-left text-2xl"></i>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Movimientos Totales</p>
+                    <h3 id="statMovements" class="text-2xl font-bold text-slate-800">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACTION BAR & NAVIGATION TABS -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <!-- Navigation Tabs -->
+            <div class="flex space-x-2 border-b sm:border-0 border-slate-200 pb-2 sm:pb-0 overflow-x-auto">
+                <button id="tabInventoryBtn" onclick="switchTab('inventory')" class="px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 bg-brand-600 text-white shadow-sm">
+                    <i class="fa-solid fa-list-check"></i>
+                    <span>Inventario de Equipos</span>
+                </button>
+                <button id="tabMovementsBtn" onclick="switchTab('movements')" class="px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Historial de Entradas y Salidas</span>
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-2 self-end sm:self-auto flex-wrap gap-y-2">
+                <button id="btnExport" onclick="exportData()" class="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-300 flex items-center space-x-1">
+                    <i class="fa-solid fa-file-csv text-slate-500"></i>
+                    <span class="hidden md:inline">Exportar Excel/CSV</span>
+                </button>
+                <button id="btnManageTypes" onclick="openTypesModal()" class="px-3 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition flex items-center space-x-1">
+                    <i class="fa-solid fa-tags text-purple-600"></i>
+                    <span>Gestionar Categorías</span>
+                </button>
+                <button id="btnAddEquipment" onclick="openAddModal()" class="action-btn px-4 py-2 text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow transition flex items-center space-x-2">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Registrar Entrada / Nuevo Equipo</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- SEARCH & FILTER CONTROLS BAR -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                <!-- Main Search Query -->
+                <div class="lg:col-span-2 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
+                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Buscar Serial, Agencia, Receptor, Dueño..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none">
+                </div>
+
+                <!-- Equipment Category Filter (Dynamic) -->
+                <div>
+                    <select id="filterType" onchange="applyFilters()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
+                        <!-- Populated dynamically via JS -->
+                    </select>
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
+                        <option value="">Todos los Estados</option>
+                        <option value="En Depósito">En Depósito</option>
+                        <option value="Asignado">Asignado / En Agencia</option>
+                        <option value="En Mantenimiento">En Mantenimiento</option>
+                    </select>
+                </div>
+
+                <!-- Brand Filter -->
+                <div>
+                    <input type="text" id="filterBrand" oninput="applyFilters()" placeholder="Marca (Ej: HP, Epson)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <!-- Reset Button -->
+                <div>
+                    <button onclick="resetFilters()" class="w-full py-2 px-3 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-200 flex items-center justify-center space-x-1">
+                        <i class="fa-solid fa-filter-circle-xmark"></i>
+                        <span>Limpiar Filtros</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 1: INVENTORY TABLE -->
+        <div id="inventoryView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
+                        <tr>
+                            <th class="px-4 py-3">Equipo</th>
+                            <th class="px-4 py-3">Marca / Modelo / Color</th>
+                            <th class="px-4 py-3">Serial</th>
+                            <th class="px-4 py-3">Ubicación / Agencia</th>
+                            <th class="px-4 py-3">Asignado a (Receptor/Dueño)</th>
+                            <th class="px-4 py-3">Estado</th>
+                            <th class="px-4 py-3 text-right">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="divide-y divide-slate-200 font-normal">
+                        <!-- Dynamic items loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noInventoryMsg" class="hidden p-8 text-center text-slate-400">
+                <i class="fa-solid fa-box-open text-4xl mb-2 text-slate-300"></i>
+                <p class="text-sm">No se encontraron equipos registrados con los criterios seleccionados.</p>
+            </div>
+        </div>
+
+        <!-- VIEW 2: MOVEMENTS LOG TABLE -->
+        <div id="movementsView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden">
+            <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-800 text-sm">Registro de Entradas y Salidas de Equipos</h3>
+                <span class="text-xs text-slate-500">Cronológico inverso</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-slate-600">
+                    <thead class="bg-slate-100 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
+                        <tr>
+                            <th class="px-4 py-3">Fecha y Hora</th>
+                            <th class="px-4 py-3">Tipo Movimiento</th>
+                            <th class="px-4 py-3">Equipo & Serial</th>
+                            <th class="px-4 py-3">Agencia</th>
+                            <th class="px-4 py-3">Receptor / Asignado</th>
+                            <th class="px-4 py-3">Responsable (Usuario)</th>
+                            <th class="px-4 py-3">Firma</th>
+                            <th class="px-4 py-3 text-right">Comprobante</th>
+                        </tr>
+                    </thead>
+                    <tbody id="movementsTableBody" class="divide-y divide-slate-200 font-normal">
+                        <!-- Dynamic movement history loaded here -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noMovementsMsg" class="hidden p-8 text-center text-slate-400">
+                <i class="fa-solid fa-clock-rotate-left text-4xl mb-2 text-slate-300"></i>
+                <p class="text-sm">Aún no existen registros de movimientos o despachos en el sistema.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL 1: NUEVO EQUIPO / ENTRADA -->
+    <div id="addModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200 transform transition-all">
+            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
+                <h3 class="font-bold text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-boxes-packing text-brand-500"></i>
+                    <span>Registrar Entrada de Equipo al Depósito</span>
+                </h3>
+                <button onclick="closeModal('addModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form id="addEquipmentForm" onsubmit="saveEquipment(event)" class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Equipo *</label>
+                        <select id="addType" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                            <!-- Populated dynamically via JS -->
+                        </select>
+                    </div>
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Serial *</label>
+                        <input type="text" id="addSerial" required placeholder="Ej: S/N-987654321" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono uppercase">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Marca *</label>
+                        <input type="text" id="addBrand" required placeholder="HP, Epson, LG..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Modelo *</label>
+                        <input type="text" id="addModel" required placeholder="ProBook, TM-T20..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color</label>
+                        <input type="text" id="addColor" placeholder="Negro, Gris..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Estado Físico</label>
+                    <textarea id="addObs" rows="2" placeholder="Ej: Equipo nuevo en caja, incluye cables de poder y fuente..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center space-x-1">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Guardar en Depósito</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: ASIGNACIÓN / SALIDA Y FIRMA DIGITAL -->
+    <div id="dispatchModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                    <span>Asignar Salida a Agencia / Receptor</span>
+                </h3>
+                <button onclick="closeModal('dispatchModal')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <form id="dispatchForm" onsubmit="processDispatch(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="dispatchEquipmentId">
+
+                <!-- Selected Equipment Summary -->
+                <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-xs text-emerald-900 flex justify-between items-center">
+                    <div>
+                        <p class="font-bold" id="dispatchEquipTitle">Laptop HP ProBook (S/N: 123456)</p>
+                        <p id="dispatchEquipDetails" class="text-emerald-700">Color: Negro | Estado: En Depósito</p>
+                    </div>
+                    <span class="px-2 py-1 bg-emerald-200 font-semibold rounded text-emerald-800 uppercase">Listo para salida</span>
+                </div>
+
+                <!-- Assignment Type -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Entrega *</label>
+                        <select id="dispatchTargetType" onchange="toggleReceptorField()" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                            <option value="Receptor / Subreceptor">Receptor / Subreceptor</option>
+                            <option value="Dueño Directo">Directo al Dueño de Agencia</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de la Agencia / Punto *</label>
+                        <input type="text" id="dispatchAgencyName" required placeholder="Ej: Agencia Lotería El Trebol #102" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div id="receptorContainer">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Receptor / Subreceptor *</label>
+                        <input type="text" id="dispatchReceptorName" placeholder="Ej: Carlos Mendoza (R-14)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño de la Agencia *</label>
+                        <input type="text" id="dispatchOwnerName" required placeholder="Ej: Roberto Gómez" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Accesorios Entregados</label>
+                    <input type="text" id="dispatchObs" placeholder="Ej: Se entrega con cargador, cable HDMI y 2 rollos térmicos..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+
+                <!-- DIGITAL SIGNATURE CANVAS -->
+                <div class="space-y-1">
+                    <div class="flex justify-between items-center">
+                        <label class="block text-xs font-bold text-slate-700 uppercase">
+                            <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital del Receptor / Receptora *
+                        </label>
+                        <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">
+                            Limpiar Firma
+                        </button>
+                    </div>
+                    <div class="border-2 border-dashed border-slate-300 rounded-lg bg-slate-50 relative">
+                        <canvas id="sigCanvas" width="550" height="130" class="w-full h-32 touch-none cursor-crosshair rounded-lg"></canvas>
+                        <span class="absolute bottom-2 right-2 text-[10px] text-slate-400 pointer-events-none">Firme aquí usando Mouse o Pantalla Táctil</span>
+                    </div>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('dispatchModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition flex items-center space-x-2">
+                        <i class="fa-solid fa-file-signature"></i>
+                        <span>Confirmar Entrega y Procesar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 3: COMPROBANTE / ACTA DE ENTREGA IMPRIMIBLE -->
+    <div id="receiptModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden border border-slate-200">
+            <!-- Modal Actions Bar (hidden when printing) -->
+            <div class="bg-slate-800 px-6 py-3 flex items-center justify-between text-white no-print shrink-0">
+                <span class="text-sm font-semibold flex items-center space-x-2">
+                    <i class="fa-solid fa-print text-brand-400"></i>
+                    <span>Acta de Recepción y Entrega de Equipos</span>
+                </span>
+                <div class="flex space-x-2">
+                    <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded transition flex items-center space-x-1">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Imprimir / Guardar PDF</span>
+                    </button>
+                    <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+
+            <!-- PRINTABLE RECEIPT CONTENT -->
+            <div id="receiptPrintArea" class="p-8 space-y-6 overflow-y-auto flex-1 bg-white text-slate-900">
+                <div class="border-b-2 border-slate-800 pb-4 flex justify-between items-start">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-wide">BANCA DE LOTERÍAS</h2>
+                        <p class="text-xs text-slate-600 uppercase tracking-widest font-semibold">Departamento de Tecnología e Instalaciones POS</p>
+                        <p class="text-xs text-slate-500 mt-1">Comprobante Oficial de Entrega de Equipos</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-mono font-bold rounded border border-slate-300" id="receiptId">#MOV-0000</span>
+                        <p class="text-xs text-slate-500 mt-1" id="receiptDate">Fecha: --/--/----</p>
+                    </div>
+                </div>
+
+                <!-- Details Grid -->
+                <div class="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-lg border border-slate-200">
+                    <div>
+                        <p class="font-semibold text-slate-500 uppercase">Agencia / Punto de Venta:</p>
+                        <p class="text-sm font-bold text-slate-800" id="receiptAgency">--</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-500 uppercase">Tipo de Entrega:</p>
+                        <p class="text-sm font-bold text-slate-800" id="receiptTargetType">--</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-500 uppercase">Dueño Registrado:</p>
+                        <p class="text-sm font-semibold text-slate-800" id="receiptOwner">--</p>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-slate-500 uppercase">Receptor / Subreceptor:</p>
+                        <p class="text-sm font-semibold text-slate-800" id="receiptReceptor">--</p>
+                    </div>
+                </div>
+
+                <!-- Equipment Details Box -->
+                <div class="space-y-2">
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider border-b pb-1">Detalle del Equipo Entregado</h4>
+                    <table class="w-full text-xs text-left border border-slate-200">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-bold">
+                            <tr>
+                                <th class="p-2 border-b">Equipo</th>
+                                <th class="p-2 border-b">Marca / Modelo</th>
+                                <th class="p-2 border-b">Color</th>
+                                <th class="p-2 border-b">Número de Serial</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="p-2 border-b font-semibold" id="receiptEquipType">--</td>
+                                <td class="p-2 border-b" id="receiptEquipBrandModel">--</td>
+                                <td class="p-2 border-b" id="receiptEquipColor">--</td>
+                                <td class="p-2 border-b font-mono font-bold text-slate-900" id="receiptEquipSerial">--</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider border-b pb-1">Observaciones y Accesorios</h4>
+                    <p class="text-xs text-slate-700 italic bg-slate-50 p-2.5 rounded border border-slate-200 mt-1" id="receiptObs">Sin observaciones adicionales.</p>
+                </div>
+
+                <!-- Signatures Section -->
+                <div class="pt-8 grid grid-cols-2 gap-8 items-end">
+                    <div class="text-center space-y-2">
+                        <div class="border-b border-slate-400 pb-2 h-20 flex items-center justify-center">
+                            <span class="text-xs text-slate-400 font-mono" id="receiptTechUser">Entregado por: Admin</span>
+                        </div>
+                        <p class="text-xs font-bold text-slate-800">Firma del Técnico / Instalador</p>
+                        <p class="text-[10px] text-slate-500">Banca de Lotería - Depósito Central</p>
+                    </div>
+
+                    <div class="text-center space-y-2">
+                        <div class="border-b border-slate-400 pb-2 h-20 flex items-center justify-center overflow-hidden">
+                            <img id="receiptSignatureImg" src="" alt="Firma Receptor" class="max-h-full max-w-full object-contain">
+                        </div>
+                        <p class="text-xs font-bold text-slate-800">Firma de Conformidad de Recepción</p>
+                        <p class="text-[10px] text-slate-500" id="receiptSignerName">Receptor / Dueño de Agencia</p>
+                    </div>
+                </div>
+
+                <div class="text-[10px] text-slate-400 text-center pt-6 border-t border-slate-100">
+                    Documento generado digitalmente por el Sistema de Control de Inventario POS - Lotto-Inventario
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: GESTIONAR CATEGORÍAS Y TIPOS DE EQUIPO -->
+    <div id="typesModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="bg-purple-900 px-6 py-4 flex items-center justify-between text-white">
+                <h3 class="font-bold text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-tags text-purple-400"></i>
+                    <span>Gestionar Categorías de Equipos</span>
+                </h3>
+                <button onclick="closeModal('typesModal')" class="text-purple-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <form onsubmit="addEquipmentCategory(event)" class="space-y-3">
+                    <label class="block text-xs font-bold text-slate-700 uppercase">Agregar Nueva Categoría</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="newTypeName" required placeholder="Ej: Tablet, Celular, Wipo, Router..." class="flex-1 py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition flex items-center space-x-1 shrink-0">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Agregar</span>
+                        </button>
+                    </div>
+                    <p class="text-[11px] text-slate-500">Ejemplos: Tablets, Celulares, Wipos, Routers, Scanners, Monitores.</p>
+                </form>
+
+                <div class="border-t border-slate-100 pt-3">
+                    <p class="text-xs font-bold text-slate-500 uppercase mb-2">Categorías Registradas</p>
+                    <div id="categoriesList" class="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                        <!-- Dynamic categories list -->
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 text-right">
+                <button onclick="closeModal('typesModal')" class="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 5: INICIO DE SESIÓN / AUTENTICACIÓN CON CLAVE -->
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
+            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
+                <h3 class="font-bold text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-lock text-brand-500"></i>
+                    <span>Acceso al Sistema</span>
+                </h3>
+                <button onclick="closeModal('loginModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="handleLoginSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Seleccionar Usuario / Rol *</label>
+                    <select id="loginRoleSelect" onchange="updateLoginPrompt()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
+                        <option value="admin">Administrador (Acceso Total)</option>
+                        <option value="supervisor">Supervisor (Altas y Despachos)</option>
+                        <option value="operator">Auditor (Solo Consulta)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contraseña / Clave de Acceso *</label>
+                    <div class="relative">
+                        <input type="password" id="loginPasswordInput" required placeholder="Ingresa tu clave" class="w-full py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <button type="button" onclick="togglePasswordVisibility('loginPasswordInput', 'eyeIcon')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+                            <i id="eyeIcon" class="fa-solid fa-eye text-sm"></i>
+                        </button>
+                    </div>
+                    <p id="loginErrorMsg" class="text-xs text-rose-600 font-medium mt-1 hidden"></p>
+                </div>
+
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg text-[11px] text-slate-500 space-y-1">
+                    <p class="font-bold text-slate-700">Claves predeterminadas:</p>
+                    <p>• Admin: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">admin123</code></p>
+                    <p>• Supervisor: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">super123</code></p>
+                    <p>• Auditor: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">audit123</code></p>
+                </div>
+
+                <div class="pt-2 flex justify-end space-x-2">
+                    <button type="button" onclick="closeModal('loginModal')" class="px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center space-x-1">
+                        <i class="fa-solid fa-key"></i>
+                        <span>Ingresar</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 6: GESTIÓN DE CLAVES (SOLO ADMIN) -->
+    <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="bg-amber-800 px-6 py-4 flex items-center justify-between text-white">
+                <h3 class="font-bold text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-user-lock text-amber-300"></i>
+                    <span>Gestión de Claves de Usuarios</span>
+                </h3>
+                <button onclick="closeModal('manageUsersModal')" class="text-amber-200 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="saveNewPasswords(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Administrador</label>
+                    <input type="password" id="pwdAdmin" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Supervisor</label>
+                    <input type="password" id="pwdSupervisor" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Auditor (Consulta)</label>
+                    <input type="password" id="pwdOperator" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                </div>
+
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('manageUsersModal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 rounded-lg shadow transition flex items-center space-x-1">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Actualizar Claves</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APPLICATION LOGIC & JAVASCRIPT -->
+    <script>
+        // APP STATE & DATA STORES
+        let currentRole = 'admin'; // 'admin', 'supervisor', 'operator'
+        let currentTab = 'inventory';
+
+        // Security / User Passwords Default Store
+        const defaultUserCredentials = {
+            admin: { name: 'Administrador', password: 'admin123', roleName: 'ADMINISTRADOR' },
+            supervisor: { name: 'Supervisor', password: 'super123', roleName: 'SUPERVISOR' },
+            operator: { name: 'Auditor', password: 'audit123', roleName: 'AUDITOR (SÓLO LECTURA)' }
+        };
+
+        let userCredentials = JSON.parse(localStorage.getItem('lotto_users')) || defaultUserCredentials;
+
+        // Dynamic Categories List
+        const defaultCategories = ['Laptop', 'CPU', 'Monitor', 'Impresora Térmica', 'UPS / Batería', 'Publicidad', 'Lector Código de Barras', 'Tablet', 'Celular', 'Wipo', 'Router', 'Otro'];
+        let equipmentCategories = JSON.parse(localStorage.getItem('lotto_categories')) || defaultCategories;
+
+        // Initial Seed Data if LocalStorage is empty
+        const initialInventory = [
+            { id: '1', type: 'Laptop', brand: 'HP', model: 'ProBook 440 G8', color: 'Plata', serial: 'SN-HP-998822', status: 'En Depósito', agency: '-', receptor: '-', owner: '-', obs: 'Equipo nuevo, en caja original', dateIn: '2026-08-01 09:30' },
+            { id: '2', type: 'Impresora Térmica', brand: 'Epson', model: 'TM-T20III', color: 'Negro', serial: 'EPS-771122', status: 'Asignado', agency: 'Agencia El Trebol #01', receptor: 'Juan Perez (Receptor R-05)', owner: 'Carlos Ramos', obs: 'Entregado con cable USB y transformador', dateIn: '2026-08-02 11:15' },
+            { id: '3', type: 'CPU', brand: 'Dell', model: 'OptiPlex 3080', color: 'Negro', serial: 'DEL-334455', status: 'En Depósito', agency: '-', receptor: '-', owner: '-', obs: 'Listo para instalar sistema de ventas', dateIn: '2026-08-03 14:20' },
+            { id: '4', type: 'UPS / Batería', brand: 'APC', model: '600VA', color: 'Negro', serial: 'APC-001199', status: 'Asignado', agency: 'Agencia Lotería La Suerte #12', receptor: '-', owner: 'María Fernández', obs: 'Entrega directa a dueña de agencia', dateIn: '2026-08-04 10:00' },
+            { id: '5', type: 'Tablet', brand: 'Samsung', model: 'Galaxy Tab A8', color: 'Gris', serial: 'SAM-TAB-4421', status: 'En Depósito', agency: '-', receptor: '-', owner: '-', obs: 'Incluye funda de protección', dateIn: '2026-08-05 08:00' },
+            { id: '6', type: 'Wipo', brand: 'Huawei', model: '4G Mobile WiFi', color: 'Blanco', serial: 'HW-WIPO-8833', status: 'En Depósito', agency: '-', receptor: '-', owner: '-', obs: 'Configurado con Chip de datos', dateIn: '2026-08-06 12:00' }
+        ];
+
+        const initialMovements = [
+            { id: 'MOV-1001', date: '2026-08-02 11:15', type: 'Salida / Asignación', equipId: '2', equipSerial: 'EPS-771122', equipType: 'Impresora Térmica', agency: 'Agencia El Trebol #01', receptorType: 'Receptor / Subreceptor', receptor: 'Juan Perez (Receptor R-05)', owner: 'Carlos Ramos', user: 'Admin', obs: 'Entregado con cables', signature: '' },
+            { id: 'MOV-1002', date: '2026-08-04 10:00', type: 'Salida / Asignación', equipId: '4', equipSerial: 'APC-001199', equipType: 'UPS / Batería', agency: 'Agencia Lotería La Suerte #12', receptorType: 'Dueño Directo', receptor: '-', owner: 'María Fernández', user: 'Admin', obs: 'Entrega directa', signature: '' }
+        ];
+
+        // Load data from LocalStorage
+        let inventory = JSON.parse(localStorage.getItem('lotto_inventory')) || initialInventory;
+        let movements = JSON.parse(localStorage.getItem('lotto_movements')) || initialMovements;
+
+        // Signature Canvas Vars
+        let canvas, ctx;
+        let isDrawing = false;
+
+        window.onload = function() {
+            initSignatureCanvas();
+            populateTypeDropdowns();
+            updateRoleUI(); // Apply security UI rules
+            renderAll();
+        };
+
+        function saveData() {
+            localStorage.setItem('lotto_inventory', JSON.stringify(inventory));
+            localStorage.setItem('lotto_movements', JSON.stringify(movements));
+            localStorage.setItem('lotto_categories', JSON.stringify(equipmentCategories));
+            localStorage.setItem('lotto_users', JSON.stringify(userCredentials));
+        }
+
+        // AUTHENTICATION & LOGIN LOGIC
+        function openLoginModal() {
+            document.getElementById('loginPasswordInput').value = '';
+            document.getElementById('loginErrorMsg').classList.add('hidden');
+            document.getElementById('loginRoleSelect').value = currentRole;
+            document.getElementById('loginModal').classList.remove('hidden');
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const selectedRole = document.getElementById('loginRoleSelect').value;
+            const enteredPassword = document.getElementById('loginPasswordInput').value;
+            const errorMsg = document.getElementById('loginErrorMsg');
+
+            if (userCredentials[selectedRole] && userCredentials[selectedRole].password === enteredPassword) {
+                currentRole = selectedRole;
+                updateRoleUI();
+                closeModal('loginModal');
+            } else {
+                errorMsg.innerText = '¡Contraseña incorrecta para el rol seleccionado!';
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function updateRoleUI() {
+            const badge = document.getElementById('roleBadge');
+            const activeUserName = document.getElementById('activeUserName');
+            const btnAdd = document.getElementById('btnAddEquipment');
+            const btnManageTypes = document.getElementById('btnManageTypes');
+            const btnManagePasswords = document.getElementById('btnManagePasswords');
+
+            const userInfo = userCredentials[currentRole];
+            if (activeUserName) activeUserName.innerText = userInfo.name;
+
+            if (currentRole === 'admin') {
+                badge.innerText = 'ADMINISTRADOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+                if(btnManageTypes) btnManageTypes.style.display = 'inline-flex';
+                if(btnManagePasswords) btnManagePasswords.style.display = 'inline-flex';
+            } else if (currentRole === 'supervisor') {
+                badge.innerText = 'SUPERVISOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+                if(btnManageTypes) btnManageTypes.style.display = 'none';
+                if(btnManagePasswords) btnManagePasswords.style.display = 'none';
+            } else {
+                badge.innerText = 'AUDITOR (SÓLO LECTURA)';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                if(btnAdd) btnAdd.style.display = 'none';
+                if(btnManageTypes) btnManageTypes.style.display = 'none';
+                if(btnManagePasswords) btnManagePasswords.style.display = 'none';
+            }
+
+            renderInventoryTable();
+        }
+
+        function openManageUsersModal() {
+            if (currentRole !== 'admin') return;
+            document.getElementById('pwdAdmin').value = userCredentials.admin.password;
+            document.getElementById('pwdSupervisor').value = userCredentials.supervisor.password;
+            document.getElementById('pwdOperator').value = userCredentials.operator.password;
+            document.getElementById('manageUsersModal').classList.remove('hidden');
+        }
+
+        function saveNewPasswords(e) {
+            e.preventDefault();
+            userCredentials.admin.password = document.getElementById('pwdAdmin').value;
+            userCredentials.supervisor.password = document.getElementById('pwdSupervisor').value;
+            userCredentials.operator.password = document.getElementById('pwdOperator').value;
+
+            saveData();
+            closeModal('manageUsersModal');
+            alert('¡Las claves de acceso han sido actualizadas con éxito!');
+        }
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-sm';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye text-sm';
+            }
+        }
+
+        function populateTypeDropdowns() {
+            const addTypeSelect = document.getElementById('addType');
+            const filterTypeSelect = document.getElementById('filterType');
+
+            const currentAddValue = addTypeSelect.value;
+            const currentFilterValue = filterTypeSelect.value;
+
+            // Populate Add Modal Select
+            addTypeSelect.innerHTML = '<option value="">Seleccione...</option>';
+            equipmentCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                addTypeSelect.appendChild(opt);
+            });
+            if (equipmentCategories.includes(currentAddValue)) addTypeSelect.value = currentAddValue;
+
+            // Populate Filter Select
+            filterTypeSelect.innerHTML = '<option value="">Todos los Equipos</option>';
+            equipmentCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat;
+                filterTypeSelect.appendChild(opt);
+            });
+            if (equipmentCategories.includes(currentFilterValue)) filterTypeSelect.value = currentFilterValue;
+        }
+
+        function switchUser() {
+            currentRole = document.getElementById('userSelect').value;
+            const badge = document.getElementById('roleBadge');
+            const btnAdd = document.getElementById('btnAddEquipment');
+            const btnManageTypes = document.getElementById('btnManageTypes');
+
+            if (currentRole === 'admin') {
+                badge.innerText = 'ADMINISTRADOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+                if(btnManageTypes) btnManageTypes.style.display = 'inline-flex';
+            } else if (currentRole === 'supervisor') {
+                badge.innerText = 'SUPERVISOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+                if(btnManageTypes) btnManageTypes.style.display = 'none';
+            } else {
+                badge.innerText = 'AUDITOR (SÓLO LECTURA)';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                if(btnAdd) btnAdd.style.display = 'none';
+                if(btnManageTypes) btnManageTypes.style.display = 'none';
+            }
+
+            renderInventoryTable(); // Re-render to update conditional action buttons
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const emptyMsg = document.getElementById('noInventoryMsg');
+            tbody.innerHTML = '';
+
+            const query = document.getElementById('filterSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('filterType').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const brandFilter = document.getElementById('filterBrand').value.toLowerCase();
+
+            const filtered = inventory.filter(item => {
+                const matchesQuery = !query || 
+                    item.serial.toLowerCase().includes(query) ||
+                    item.type.toLowerCase().includes(query) ||
+                    item.brand.toLowerCase().includes(query) ||
+                    item.model.toLowerCase().includes(query) ||
+                    item.agency.toLowerCase().includes(query) ||
+                    item.receptor.toLowerCase().includes(query) ||
+                    item.owner.toLowerCase().includes(query);
+
+                const matchesType = !typeFilter || item.type === typeFilter;
+                const matchesStatus = !statusFilter || item.status === statusFilter;
+                const matchesBrand = !brandFilter || item.brand.toLowerCase().includes(brandFilter);
+
+                return matchesQuery && matchesType && matchesStatus && matchesBrand;
+            });
+
+            if (filtered.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            } else {
+                emptyMsg.classList.add('hidden');
+                filtered.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+
+                    let statusBadge = '';
+                    if (item.status === 'En Depósito') {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 inline-flex items-center gap-1"><i class="fa-solid fa-house-laptop text-[10px]"></i> En Depósito</span>`;
+                    } else if (item.status === 'Asignado') {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 inline-flex items-center gap-1"><i class="fa-solid fa-store text-[10px]"></i> Asignado</span>`;
+                    } else {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">${item.status}</span>`;
+                    }
+
+                    // Action buttons according to status & roles
+                    let actionsHtml = `<div class="flex items-center justify-end space-x-1.5">`;
+                    if (currentRole !== 'operator') {
+                        if (item.status === 'En Depósito') {
+                            actionsHtml += `
+                                <button onclick="openDispatchModal('${item.id}')" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center space-x-1">
+                                    <i class="fa-solid fa-truck-arrow-right"></i>
+                                    <span>Asignar Salida</span>
+                                </button>
+                            `;
+                        } else if (item.status === 'Asignado') {
+                            actionsHtml += `
+                                <button onclick="returnToWarehouse('${item.id}')" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center space-x-1">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Reingresar</span>
+                                </button>
+                            `;
+                        }
+
+                        // Admin Delete Equipment Button
+                        if (currentRole === 'admin') {
+                            actionsHtml += `
+                                <button onclick="deleteEquipment('${item.id}')" title="Eliminar equipo del sistema" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition">
+                                    <i class="fa-solid fa-trash-can text-sm"></i>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        actionsHtml += `<span class="text-xs text-slate-400 italic">Solo lectura</span>`;
+                    }
+                    actionsHtml += `</div>`;
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-semibold text-slate-900">
+                            <div class="flex items-center space-x-2">
+                                <i class="${getEquipmentIcon(item.type)} text-slate-500 text-base"></i>
+                                <span>${item.type}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-800">${item.brand} ${item.model}</div>
+                            <div class="text-xs text-slate-400">${item.color || 'N/A'}</div>
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-700">${item.serial}</td>
+                        <td class="px-4 py-3">
+                            <span class="${item.agency !== '-' ? 'font-semibold text-slate-800' : 'text-slate-400'}">${item.agency}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-xs">
+                                ${item.receptor !== '-' ? `<p class="font-medium text-slate-800"><i class="fa-solid fa-user-tag text-slate-400 mr-1"></i> ${item.receptor}</p>` : ''}
+                                ${item.owner !== '-' ? `<p class="text-slate-500"><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i> Dueño: ${item.owner}</p>` : ''}
+                                ${item.receptor === '-' && item.owner === '-' ? '<span class="text-slate-400">-</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 text-right">${actionsHtml}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function deleteEquipment(id) {
+            if (currentRole !== 'admin') return;
+            const equip = inventory.find(i => i.id === id);
+            if (!equip) return;
+
+            if (!confirm(`¿Está seguro de que desea eliminar permanentemente el equipo "${equip.type} - ${equip.brand} ${equip.model}" con Serial: ${equip.serial}?`)) {
+                return;
+            }
+
+            inventory = inventory.filter(i => i.id !== id);
+            saveData();
+            renderAll();
+        }
+
+        function openTypesModal() {
+            if (currentRole !== 'admin') return;
+            document.getElementById('newTypeName').value = '';
+            renderCategoriesList();
+            document.getElementById('typesModal').classList.remove('hidden');
+        }
+
+        function renderCategoriesList() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = '';
+
+            equipmentCategories.forEach(cat => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700 border border-slate-200';
+                item.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <i class="${getEquipmentIcon(cat)} text-purple-600"></i>
+                        <span>${cat}</span>
+                    </div>
+                    <button onclick="removeEquipmentCategory('${cat}')" title="Eliminar categoría" class="text-slate-400 hover:text-rose-600 transition p-1">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function addEquipmentCategory(e) {
+            e.preventDefault();
+            const input = document.getElementById('newTypeName');
+            const newCat = input.value.trim();
+
+            if (!newCat) return;
+
+            if (equipmentCategories.some(c => c.toLowerCase() === newCat.toLowerCase())) {
+                alert('Esta categoría ya se encuentra en la lista.');
+                return;
+            }
+
+            equipmentCategories.push(newCat);
+            saveData();
+            populateTypeDropdowns();
+            renderCategoriesList();
+            input.value = '';
+        }
+
+        function removeEquipmentCategory(catName) {
+            if (equipmentCategories.length <= 1) {
+                alert('Debe conservar al menos una categoría.');
+                return;
+            }
+
+            if (!confirm(`¿Eliminar la categoría "${catName}"? Los equipos existentes mantendrán su categoría registrada.`)) {
+                return;
+            }
+
+            equipmentCategories = equipmentCategories.filter(c => c !== catName);
+            saveData();
+            populateTypeDropdowns();
+            renderCategoriesList();
+        }
+
+        function getEquipmentIcon(type) {
+            if (!type) return 'fa-solid fa-box-archive';
+            const t = type.toLowerCase();
+            if (t.includes('laptop')) return 'fa-solid fa-laptop';
+            if (t.includes('cpu') || t.includes('desktop') || t.includes('pc')) return 'fa-solid fa-desktop';
+            if (t.includes('monitor') || t.includes('pantalla')) return 'fa-solid fa-display';
+            if (t.includes('impresora') || t.includes('print')) return 'fa-solid fa-print';
+            if (t.includes('ups') || t.includes('batería') || t.includes('bateria')) return 'fa-solid fa-car-battery';
+            if (t.includes('publicidad') || t.includes('valla')) return 'fa-solid fa-rectangle-ad';
+            if (t.includes('lector') || t.includes('código') || t.includes('barcode') || t.includes('scanner')) return 'fa-solid fa-barcode';
+            if (t.includes('tablet') || t.includes('ipad')) return 'fa-solid fa-tablet-screen-button';
+            if (t.includes('celular') || t.includes('móvil') || t.includes('movil') || t.includes('teléfono') || t.includes('telefono')) return 'fa-solid fa-mobile-screen-button';
+            if (t.includes('wipo') || t.includes('router') || t.includes('wifi') || t.includes('modem') || t.includes('módem')) return 'fa-solid fa-wifi';
+            return 'fa-solid fa-box-archive';
+        }
+
+        function switchUser() {
+            currentRole = document.getElementById('userSelect').value;
+            const badge = document.getElementById('roleBadge');
+            const btnAdd = document.getElementById('btnAddEquipment');
+
+            if (currentRole === 'admin') {
+                badge.innerText = 'ADMINISTRADOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+            } else if (currentRole === 'supervisor') {
+                badge.innerText = 'SUPERVISOR';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
+                if(btnAdd) btnAdd.style.display = 'inline-flex';
+            } else {
+                badge.innerText = 'AUDITOR (SÓLO LECTURA)';
+                badge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
+                if(btnAdd) btnAdd.style.display = 'none';
+            }
+
+            renderInventoryTable(); // Re-render to update conditional action buttons
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const invTab = document.getElementById('tabInventoryBtn');
+            const movTab = document.getElementById('tabMovementsBtn');
+            const invView = document.getElementById('inventoryView');
+            const movView = document.getElementById('movementsView');
+
+            if (tab === 'inventory') {
+                invTab.className = 'px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 bg-brand-600 text-white shadow-sm';
+                movTab.className = 'px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100';
+                invView.classList.remove('hidden');
+                movView.classList.add('hidden');
+            } else {
+                movTab.className = 'px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 bg-brand-600 text-white shadow-sm';
+                invTab.className = 'px-4 py-2 font-medium text-sm rounded-lg transition-colors flex items-center space-x-2 text-slate-600 hover:bg-slate-100';
+                movView.classList.remove('hidden');
+                invView.classList.add('hidden');
+            }
+        }
+
+        function renderAll() {
+            updateDashboardStats();
+            renderInventoryTable();
+            renderMovementsTable();
+        }
+
+        function updateDashboardStats() {
+            document.getElementById('statTotal').innerText = inventory.length;
+            document.getElementById('statWarehouse').innerText = inventory.filter(i => i.status === 'En Depósito').length;
+            document.getElementById('statAssigned').innerText = inventory.filter(i => i.status === 'Asignado').length;
+            document.getElementById('statMovements').innerText = movements.length;
+        }
+
+        function applyFilters() {
+            renderInventoryTable();
+        }
+
+        function resetFilters() {
+            document.getElementById('filterSearch').value = '';
+            document.getElementById('filterType').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterBrand').value = '';
+            renderInventoryTable();
+        }
+
+        function renderInventoryTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const emptyMsg = document.getElementById('noInventoryMsg');
+            tbody.innerHTML = '';
+
+            const query = document.getElementById('filterSearch').value.toLowerCase();
+            const typeFilter = document.getElementById('filterType').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const brandFilter = document.getElementById('filterBrand').value.toLowerCase();
+
+            const filtered = inventory.filter(item => {
+                const matchesQuery = !query || 
+                    item.serial.toLowerCase().includes(query) ||
+                    item.type.toLowerCase().includes(query) ||
+                    item.brand.toLowerCase().includes(query) ||
+                    item.model.toLowerCase().includes(query) ||
+                    item.agency.toLowerCase().includes(query) ||
+                    item.receptor.toLowerCase().includes(query) ||
+                    item.owner.toLowerCase().includes(query);
+
+                const matchesType = !typeFilter || item.type === typeFilter;
+                const matchesStatus = !statusFilter || item.status === statusFilter;
+                const matchesBrand = !brandFilter || item.brand.toLowerCase().includes(brandFilter);
+
+                return matchesQuery && matchesType && matchesStatus && matchesBrand;
+            });
+
+            if (filtered.length === 0) {
+                emptyMsg.classList.remove('hidden');
+            } else {
+                emptyMsg.classList.add('hidden');
+                filtered.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+
+                    let statusBadge = '';
+                    if (item.status === 'En Depósito') {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 inline-flex items-center gap-1"><i class="fa-solid fa-house-laptop text-[10px]"></i> En Depósito</span>`;
+                    } else if (item.status === 'Asignado') {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 inline-flex items-center gap-1"><i class="fa-solid fa-store text-[10px]"></i> Asignado</span>`;
+                    } else {
+                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">${item.status}</span>`;
+                    }
+
+                    // Action buttons according to status & roles
+                    let actionsHtml = '';
+                    if (currentRole !== 'operator') {
+                        if (item.status === 'En Depósito') {
+                            actionsHtml = `
+                                <button onclick="openDispatchModal('${item.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center space-x-1 ml-auto">
+                                    <i class="fa-solid fa-truck-arrow-right"></i>
+                                    <span>Asignar Salida</span>
+                                </button>
+                            `;
+                        } else if (item.status === 'Asignado') {
+                            actionsHtml = `
+                                <button onclick="returnToWarehouse('${item.id}')" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-medium shadow-sm transition flex items-center space-x-1 ml-auto">
+                                    <i class="fa-solid fa-rotate-left"></i>
+                                    <span>Reingresar a Depósito</span>
+                                </button>
+                            `;
+                        }
+                    } else {
+                        actionsHtml = `<span class="text-xs text-slate-400 italic">Solo lectura</span>`;
+                    }
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-3 font-semibold text-slate-900">
+                            <div class="flex items-center space-x-2">
+                                <i class="${getEquipmentIcon(item.type)} text-slate-500 text-base"></i>
+                                <span>${item.type}</span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-800">${item.brand} ${item.model}</div>
+                            <div class="text-xs text-slate-400">${item.color || 'N/A'}</div>
+                        </td>
+                        <td class="px-4 py-3 font-mono font-bold text-slate-700">${item.serial}</td>
+                        <td class="px-4 py-3">
+                            <span class="${item.agency !== '-' ? 'font-semibold text-slate-800' : 'text-slate-400'}">${item.agency}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-xs">
+                                ${item.receptor !== '-' ? `<p class="font-medium text-slate-800"><i class="fa-solid fa-user-tag text-slate-400 mr-1"></i> ${item.receptor}</p>` : ''}
+                                ${item.owner !== '-' ? `<p class="text-slate-500"><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i> Dueño: ${item.owner}</p>` : ''}
+                                ${item.receptor === '-' && item.owner === '-' ? '<span class="text-slate-400">-</span>' : ''}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">${statusBadge}</td>
+                        <td class="px-4 py-3 text-right">${actionsHtml}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        function renderMovementsTable() {
+            const tbody = document.getElementById('movementsTableBody');
+            const emptyMsg = document.getElementById('noMovementsMsg');
+            tbody.innerHTML = '';
+
+            if (movements.length === 0) {
+                emptyMsg.classList.remove('hidden');
+                return;
+            }
+
+            emptyMsg.classList.add('hidden');
+            movements.slice().reverse().forEach(mov => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
+
+                const hasSig = mov.signature ? `<span class="text-emerald-600 font-semibold flex items-center space-x-1"><i class="fa-solid fa-signature"></i> <span>Firmado</span></span>` : `<span class="text-slate-400">Sin firma</span>`;
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-mono text-slate-600">${mov.date}</td>
+                    <td class="px-4 py-3">
+                        <span class="px-2 py-0.5 rounded font-semibold ${mov.type.includes('Entrada') || mov.type.includes('Reingreso') ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'}">
+                            ${mov.type}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3 font-medium text-slate-800">
+                        ${mov.equipType} <span class="font-mono text-slate-500">(${mov.equipSerial})</span>
+                    </td>
+                    <td class="px-4 py-3 font-semibold text-slate-800">${mov.agency || '-'}</td>
+                    <td class="px-4 py-3 text-slate-700">${mov.receptor !== '-' ? mov.receptor : mov.owner}</td>
+                    <td class="px-4 py-3 text-slate-500"><i class="fa-solid fa-user text-[10px] mr-1"></i> ${mov.user}</td>
+                    <td class="px-4 py-3">${hasSig}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="viewReceipt('${mov.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 font-medium text-xs transition">
+                            <i class="fa-solid fa-receipt mr-1"></i> Ver Acta
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openAddModal() {
+            if (currentRole === 'operator') {
+                alert('No tiene permisos para agregar equipos.');
+                return;
+            }
+            document.getElementById('addEquipmentForm').reset();
+            document.getElementById('addModal').classList.remove('hidden');
+        }
+
+        function saveEquipment(e) {
+            e.preventDefault();
+            const type = document.getElementById('addType').value;
+            const serial = document.getElementById('addSerial').value.trim().toUpperCase();
+            const brand = document.getElementById('addBrand').value.trim();
+            const model = document.getElementById('addModel').value.trim();
+            const color = document.getElementById('addColor').value.trim();
+            const obs = document.getElementById('addObs').value.trim();
+
+            // Duplicate serial check
+            if (inventory.some(i => i.serial.toUpperCase() === serial)) {
+                alert('¡Error! Ya existe un equipo registrado con ese número de serial.');
+                return;
+            }
+
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const newItem = {
+                id: Date.now().toString(),
+                type,
+                serial,
+                brand,
+                model,
+                color,
+                status: 'En Depósito',
+                agency: '-',
+                receptor: '-',
+                owner: '-',
+                obs,
+                dateIn: now
+            };
+
+            inventory.push(newItem);
+
+            // Add movement entry log
+            movements.push({
+                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                date: now,
+                type: 'Entrada Depósito',
+                equipId: newItem.id,
+                equipSerial: newItem.serial,
+                equipType: newItem.type,
+                agency: 'Depósito Central',
+                receptorType: '-',
+                receptor: '-',
+                owner: '-',
+                user: currentRole.toUpperCase(),
+                obs: obs || 'Ingreso inicial a bodega',
+                signature: ''
+            });
+
+            saveData();
+            renderAll();
+            closeModal('addModal');
+        }
+
+        function openDispatchModal(id) {
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            document.getElementById('dispatchEquipmentId').value = item.id;
+            document.getElementById('dispatchEquipTitle').innerText = `${item.type} - ${item.brand} ${item.model} (S/N: ${item.serial})`;
+            document.getElementById('dispatchEquipDetails').innerText = `Color: ${item.color || 'No especificado'} | Obs: ${item.obs || 'Ninguna'}`;
+            document.getElementById('dispatchForm').reset();
+            clearSignature();
+            toggleReceptorField();
+
+            document.getElementById('dispatchModal').classList.remove('hidden');
+        }
+
+        function toggleReceptorField() {
+            const type = document.getElementById('dispatchTargetType').value;
+            const receptorContainer = document.getElementById('receptorContainer');
+            const receptorInput = document.getElementById('dispatchReceptorName');
+
+            if (type === 'Dueño Directo') {
+                receptorContainer.style.opacity = '0.5';
+                receptorInput.required = false;
+                receptorInput.disabled = true;
+                receptorInput.value = '';
+            } else {
+                receptorContainer.style.opacity = '1';
+                receptorInput.required = true;
+                receptorInput.disabled = false;
+            }
+        }
+
+        function processDispatch(e) {
+            e.preventDefault();
+            const equipId = document.getElementById('dispatchEquipmentId').value;
+            const item = inventory.find(i => i.id === equipId);
+            if (!item) return;
+
+            const targetType = document.getElementById('dispatchTargetType').value;
+            const agency = document.getElementById('dispatchAgencyName').value.trim();
+            const owner = document.getElementById('dispatchOwnerName').value.trim();
+            const receptor = targetType === 'Dueño Directo' ? '-' : document.getElementById('dispatchReceptorName').value.trim();
+            const obs = document.getElementById('dispatchObs').value.trim();
+
+            // Validate Signature
+            if (isCanvasBlank(canvas)) {
+                alert('Por favor, solicite la firma del receptor antes de continuar.');
+                return;
+            }
+
+            const signatureData = canvas.toDataURL();
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+            // Update Item Status
+            item.status = 'Asignado';
+            item.agency = agency;
+            item.owner = owner;
+            item.receptor = receptor;
+
+            // Save Movement Log
+            const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
+            const movObj = {
+                id: movId,
+                date: now,
+                type: 'Salida / Asignación',
+                equipId: item.id,
+                equipSerial: item.serial,
+                equipType: item.type,
+                equipBrandModel: `${item.brand} ${item.model}`,
+                equipColor: item.color,
+                agency,
+                receptorType: targetType,
+                receptor,
+                owner,
+                user: currentRole.toUpperCase(),
+                obs,
+                signature: signatureData
+            };
+
+            movements.push(movObj);
+            saveData();
+            renderAll();
+            closeModal('dispatchModal');
+
+            // Open Receipt Modal automatically
+            viewReceipt(movId);
+        }
+
+        function returnToWarehouse(id) {
+            if (currentRole === 'operator') return;
+            if (!confirm('¿Desea registrar el reingreso de este equipo de vuelta al depósito central?')) return;
+
+            const item = inventory.find(i => i.id === id);
+            if (!item) return;
+
+            const prevAgency = item.agency;
+            item.status = 'En Depósito';
+            item.agency = '-';
+            item.receptor = '-';
+            item.owner = '-';
+
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            movements.push({
+                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                date: now,
+                type: 'Reingreso Depósito',
+                equipId: item.id,
+                equipSerial: item.serial,
+                equipType: item.type,
+                agency: `Devuelto de: ${prevAgency}`,
+                receptorType: '-',
+                receptor: '-',
+                owner: '-',
+                user: currentRole.toUpperCase(),
+                obs: 'Reingreso a almacén',
+                signature: ''
+            });
+
+            saveData();
+            renderAll();
+        }
+
+        function initSignatureCanvas() {
+            canvas = document.getElementById('sigCanvas');
+            if (!canvas) return;
+            ctx = canvas.getContext('2d');
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = '#0f172a';
+
+            // Mouse Events
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            canvas.addEventListener('mouseup', stopDrawing);
+            canvas.addEventListener('mouseleave', stopDrawing);
+
+            // Touch Events (For tablet/mobile signature)
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                isDrawing = true;
+                ctx.beginPath();
+                ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            });
+
+            canvas.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!isDrawing) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                ctx.stroke();
+            });
+
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        function clearSignature() {
+            if (ctx && canvas) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function isCanvasBlank(cnv) {
+            const blank = document.createElement('canvas');
+            blank.width = cnv.width;
+            blank.height = cnv.height;
+            return cnv.toDataURL() === blank.toDataURL();
+        }
+
+        function viewReceipt(movId) {
+            const mov = movements.find(m => m.id === movId);
+            if (!mov) return;
+
+            document.getElementById('receiptId').innerText = `#${mov.id}`;
+            document.getElementById('receiptDate').innerText = `Fecha: ${mov.date}`;
+            document.getElementById('receiptAgency').innerText = mov.agency || '-';
+            document.getElementById('receiptTargetType').innerText = mov.receptorType || 'Entrega General';
+            document.getElementById('receiptOwner').innerText = mov.owner || '-';
+            document.getElementById('receiptReceptor').innerText = mov.receptor || '-';
+
+            document.getElementById('receiptEquipType').innerText = mov.equipType;
+            document.getElementById('receiptEquipBrandModel').innerText = mov.equipBrandModel || '-';
+            document.getElementById('receiptEquipColor').innerText = mov.equipColor || '-';
+            document.getElementById('receiptEquipSerial').innerText = mov.equipSerial;
+
+            document.getElementById('receiptObs').innerText = mov.obs || 'Sin observaciones.';
+            document.getElementById('receiptTechUser').innerText = `Procesado por: ${mov.user}`;
+            document.getElementById('receiptSignerName').innerText = mov.receptor !== '-' ? mov.receptor : mov.owner;
+
+            const sigImg = document.getElementById('receiptSignatureImg');
+            if (mov.signature) {
+                sigImg.src = mov.signature;
+                sigImg.style.display = 'block';
+            } else {
+                sigImg.style.display = 'none';
+            }
+
+            document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function getEquipmentIcon(type) {
+            switch(type) {
+                case 'Laptop': return 'fa-solid fa-laptop';
+                case 'CPU': return 'fa-solid fa-desktop';
+                case 'Monitor': return 'fa-solid fa-display';
+                case 'Impresora Térmica': return 'fa-solid fa-print';
+                case 'UPS / Batería': return 'fa-solid fa-car-battery';
+                case 'Publicidad': return 'fa-solid fa-rectangle-ad';
+                case 'Lector Código de Barras': return 'fa-solid fa-barcode';
+                default: return 'fa-solid fa-box-archive';
+            }
+        }
+
+        function exportData() {
+            let csv = 'ID,Tipo,Marca,Modelo,Color,Serial,Estado,Agencia,Receptor,Dueno,FechaIngreso\n';
+            inventory.forEach(i => {
+                csv += `"${i.id}","${i.type}","${i.brand}","${i.model}","${i.color}","${i.serial}","${i.status}","${i.agency}","${i.receptor}","${i.owner}","${i.dateIn}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Inventario_Loterias_${new Date().toISOString().substring(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
