@@ -2,7 +2,7 @@
 <html lang="es" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Sistema de Inventario y Despachos - Grupo Andino Banca de Loterías</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -50,181 +50,240 @@
         }
         .print-only { display: none; }
         
-        /* Custom scrollbars */
+        /* Custom smooth scrollbars */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
+        /* Mobile Touch & Canvas Optimizations */
+        canvas { touch-action: none !important; }
+        
         /* Toast animation */
         @keyframes slideInRight {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
-        .animate-toast { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-toast { animation: slideInRight 0.25s ease-out forwards; }
     </style>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
 
-    <!-- TOAST NOTIFICATIONS CONTAINER -->
-    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 max-w-sm pointer-events-none no-print"></div>
+    <!-- TOAST NOTIFICATIONS CONTAINER (ADAPTADO A SMARTPHONES ANDROID) -->
+    <div id="toastContainer" class="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 z-50 flex flex-col space-y-2 max-w-full sm:max-w-sm pointer-events-none no-print"></div>
 
-    <!-- TOP NAVBAR -->
+    <!-- TOP NAVBAR RESPONSIVE PARA MÓVIL Y DESKTOP -->
     <header class="bg-slate-900 text-white shadow-md no-print sticky top-0 z-30 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30">
-                    <i class="fa-solid fa-ticket-simple text-xl"></i>
-                </div>
-                <div>
-                    <div class="flex items-center space-x-2">
-                        <h1 class="text-lg font-bold leading-none tracking-wide text-white">GRUPO ANDINO INVENTARIO</h1>
-                        <span class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-500/30 hidden md:inline">PRO POS v2.9</span>
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+            <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center space-x-2.5">
+                    <div class="p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30 shrink-0">
+                        <i class="fa-solid fa-ticket-simple text-lg sm:text-xl"></i>
                     </div>
-                    <p class="text-xs text-slate-400 mt-0.5">Control de Equipos, Despachos, Reingresos y Agencias POS</p>
+                    <div>
+                        <div class="flex items-center space-x-1.5">
+                            <h1 class="text-base sm:text-lg font-bold leading-none tracking-wide text-white">GRUPO ANDINO INVENTARIO</h1>
+                            <span class="bg-emerald-500/20 text-emerald-400 text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded border border-emerald-500/30">PRO POS v3.2</span>
+                        </div>
+                        <p class="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">Control de Equipos, Despachos, Reingresos y Agencias POS</p>
+                    </div>
+                </div>
+
+                <div id="roleBadgeMobile" class="sm:hidden px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
+                    ADMIN
                 </div>
             </div>
 
             <!-- User Selector, Backup & Role Switcher -->
-            <div class="flex items-center space-x-2 sm:space-x-3">
-                <button onclick="openBackupModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1" title="Respaldos y Datos">
+            <div class="flex items-center justify-between sm:justify-end space-x-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+                <button onclick="openBackupModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1 shrink-0" title="Respaldos y Datos">
                     <i class="fa-solid fa-database text-brand-400"></i>
-                    <span class="hidden lg:inline">Respaldos</span>
+                    <span>Respaldos</span>
                 </button>
-                <div class="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
-                    <i class="fa-solid fa-user-shield text-brand-400 text-sm"></i>
-                    <span class="text-xs font-medium text-slate-300 hidden sm:inline">Usuario:</span>
-                    <span id="activeUserName" class="text-sm font-semibold text-white">Administrador</span>
+                <div class="flex items-center space-x-1.5 bg-slate-800 px-2.5 py-1.5 rounded-lg border border-slate-700 shrink-0">
+                    <i class="fa-solid fa-user-shield text-brand-400 text-xs sm:text-sm"></i>
+                    <span class="text-xs font-medium text-slate-300 hidden md:inline">Usuario:</span>
+                    <span id="activeUserName" class="text-xs sm:text-sm font-semibold text-white truncate max-w-[100px] sm:max-w-none">Administrador</span>
                 </div>
                 <div id="roleBadge" class="hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
                     ADMINISTRADOR
                 </div>
-                <button onclick="openLoginModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1" title="Cambiar de Usuario">
+                <button onclick="openLoginModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-lg text-xs font-medium border border-slate-700 transition flex items-center space-x-1 shrink-0" title="Cambiar de Usuario">
                     <i class="fa-solid fa-right-from-bracket"></i>
-                    <span class="hidden md:inline">Cambiar Rol</span>
+                    <span class="hidden md:inline">Rol</span>
                 </button>
-                <button id="btnManagePasswords" onclick="openManageUsersModal()" class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-medium transition flex items-center space-x-1" title="Gestionar Claves">
+                <button id="btnManagePasswords" onclick="openManageUsersModal()" class="px-2 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg text-xs font-medium transition flex items-center space-x-1 shrink-0" title="Gestionar Claves">
                     <i class="fa-solid fa-key"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- MAIN CONTAINER -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 no-print">
+    <!-- MAIN CONTAINER RESPONSIVO -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6 no-print">
 
-        <!-- DASHBOARD STATS CARDS -->
-        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-            <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3 sm:space-x-4 hover:shadow-md transition">
-                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                    <i class="fa-solid fa-boxes-stacked text-xl sm:text-2xl"></i>
+        <!-- STOCK ALERT BANNER (ADAPTADO A MÓVILES) -->
+        <div id="stockAlertBanner" class="hidden bg-amber-50 border-l-4 border-amber-500 p-3.5 sm:p-4 rounded-xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-amber-900 border border-amber-200">
+            <div class="flex items-start space-x-3">
+                <div class="p-2 bg-amber-100 text-amber-700 rounded-xl shrink-0 mt-0.5">
+                    <i class="fa-solid fa-triangle-exclamation text-lg sm:text-xl animate-pulse"></i>
                 </div>
-                <div class="min-w-0">
-                    <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Total Equipos</p>
-                    <h3 id="statTotal" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
+                <div>
+                    <h4 class="font-bold text-xs sm:text-sm text-amber-950 flex items-center gap-1.5">
+                        <span>⚠️ ¡Alerta! Equipos con Stock Bajo en Depósito Central</span>
+                    </h4>
+                    <p id="stockAlertBannerText" class="text-[11px] sm:text-xs text-amber-800 mt-0.5">
+                        Quedan pocos equipos disponibles en el depósito.
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
+                <button onclick="openQuantitativeModal()" class="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-950 rounded-lg text-xs font-bold transition flex-1 sm:flex-none text-center">
+                    <i class="fa-solid fa-chart-pie mr-1"></i> Desglose
+                </button>
+                <button onclick="openStockAlertsModal()" class="px-3 py-1.5 bg-amber-700 hover:bg-amber-800 text-white rounded-lg text-xs font-bold shadow transition flex-1 sm:flex-none text-center">
+                    <i class="fa-solid fa-sliders mr-1"></i> Mínimos
+                </button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD STATS CARDS (GRID OPTIMIZADO PARA PANTALLAS ANDROID) -->
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4">
+            <div onclick="openQuantitativeModal()" class="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md hover:border-blue-400 transition cursor-pointer group" title="Haga clic para ver el inventario cuantitativo por tipo de equipo">
+                <div class="flex items-center space-x-2.5 sm:space-x-4">
+                    <div class="p-2.5 sm:p-3 bg-blue-50 group-hover:bg-blue-100 text-blue-600 rounded-xl shrink-0 transition">
+                        <i class="fa-solid fa-boxes-stacked text-lg sm:text-2xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate flex items-center gap-0.5">
+                            <span>Total</span>
+                            <i class="fa-solid fa-chevron-right text-[9px] text-blue-500 group-hover:translate-x-0.5 transition-transform"></i>
+                        </p>
+                        <h3 id="statTotal" class="text-lg sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    </div>
+                </div>
+                <span class="hidden xl:inline-flex px-2 py-1 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-lg border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition">
+                    Ver Cantidades <i class="fa-solid fa-chart-pie ml-1"></i>
+                </span>
+            </div>
+
+            <div onclick="openQuantitativeModal()" class="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:shadow-md hover:border-emerald-400 transition cursor-pointer group">
+                <div class="flex items-center space-x-2.5 sm:space-x-4">
+                    <div class="p-2.5 sm:p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
+                        <i class="fa-solid fa-warehouse text-lg sm:text-2xl"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">En Depósito</p>
+                        <h3 id="statWarehouse" class="text-lg sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3 sm:space-x-4 hover:shadow-md transition">
-                <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl shrink-0">
-                    <i class="fa-solid fa-warehouse text-xl sm:text-2xl"></i>
+            <div class="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-2.5 sm:space-x-4 hover:shadow-md transition">
+                <div class="p-2.5 sm:p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
+                    <i class="fa-solid fa-store text-lg sm:text-2xl"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">En Depósito</p>
-                    <h3 id="statWarehouse" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">En Agencia</p>
+                    <h3 id="statAssigned" class="text-lg sm:text-2xl font-extrabold text-slate-800">0</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3 sm:space-x-4 hover:shadow-md transition">
-                <div class="p-3 bg-amber-50 text-amber-600 rounded-xl shrink-0">
-                    <i class="fa-solid fa-store text-xl sm:text-2xl"></i>
+            <div class="bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-2.5 sm:space-x-4 hover:shadow-md transition">
+                <div class="p-2.5 sm:p-3 bg-rose-50 text-rose-600 rounded-xl shrink-0">
+                    <i class="fa-solid fa-screwdriver-wrench text-lg sm:text-2xl"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">En Agencia</p>
-                    <h3 id="statAssigned" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Taller</p>
+                    <h3 id="statMaintenance" class="text-lg sm:text-2xl font-extrabold text-slate-800">0</h3>
                 </div>
             </div>
 
-            <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3 sm:space-x-4 hover:shadow-md transition">
-                <div class="p-3 bg-rose-50 text-rose-600 rounded-xl shrink-0">
-                    <i class="fa-solid fa-screwdriver-wrench text-xl sm:text-2xl"></i>
+            <div class="col-span-2 lg:col-span-1 bg-white p-3 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-2.5 sm:space-x-4 hover:shadow-md transition">
+                <div class="p-2.5 sm:p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
+                    <i class="fa-solid fa-building-flag text-lg sm:text-2xl"></i>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Mantenimiento</p>
-                    <h3 id="statMaintenance" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
-                </div>
-            </div>
-
-            <div class="col-span-2 lg:col-span-1 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-3 sm:space-x-4 hover:shadow-md transition">
-                <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl shrink-0">
-                    <i class="fa-solid fa-building-flag text-xl sm:text-2xl"></i>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-[11px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Agencias POS</p>
-                    <h3 id="statAgencies" class="text-xl sm:text-2xl font-extrabold text-slate-800">0</h3>
+                    <p class="text-[10px] sm:text-xs font-semibold text-slate-400 uppercase tracking-wider truncate">Agencias POS</p>
+                    <h3 id="statAgencies" class="text-lg sm:text-2xl font-extrabold text-slate-800">0</h3>
                 </div>
             </div>
         </div>
 
-        <!-- ACTION BAR & MAIN TABS -->
-        <div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <!-- Navigation Tabs -->
-            <div class="flex space-x-1 sm:space-x-2 overflow-x-auto pb-2 xl:pb-0 scrollbar-none border-b xl:border-b-0 border-slate-200">
-                <button id="tabInventoryBtn" onclick="switchTab('inventory')" class="px-3.5 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-2 bg-brand-600 text-white shadow-sm shrink-0">
+        <!-- ACTION BAR & MAIN TABS RESPONSIVAS -->
+        <div class="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 sm:gap-4 bg-white p-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm">
+            <!-- Navigation Tabs Scrollable en Móviles -->
+            <div class="flex space-x-1.5 sm:space-x-2 overflow-x-auto pb-2 xl:pb-0 scrollbar-none border-b xl:border-b-0 border-slate-200 -mx-1 px-1">
+                <button id="tabInventoryBtn" onclick="switchTab('inventory')" class="px-3 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm shrink-0">
                     <i class="fa-solid fa-list-check"></i>
                     <span>Inventario</span>
                 </button>
-                <button id="tabAgenciesBtn" onclick="switchTab('agencies')" class="px-3.5 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-2 shrink-0">
+                <button id="tabQuantBtn" onclick="openQuantitativeModal()" class="px-3 py-2 font-medium text-xs sm:text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all flex items-center space-x-1.5 border border-blue-200 shrink-0" title="Ver resumen cuantitativo por tipo de equipo">
+                    <i class="fa-solid fa-chart-pie text-blue-600"></i>
+                    <span>Desglose</span>
+                </button>
+                <button id="tabAgenciesBtn" onclick="switchTab('agencies')" class="px-3 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-1.5 shrink-0">
                     <i class="fa-solid fa-store"></i>
                     <span>Agencias POS</span>
                 </button>
-                <button id="tabMovementsBtn" onclick="switchTab('movements')" class="px-3.5 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-2 shrink-0">
+                <button id="tabMovementsBtn" onclick="switchTab('movements')" class="px-3 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-1.5 shrink-0">
                     <i class="fa-solid fa-clock-rotate-left"></i>
-                    <span>Historial Movimientos</span>
+                    <span>Movimientos</span>
                 </button>
-                <button id="tabMaintenanceBtn" onclick="switchTab('maintenance')" class="px-3.5 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-2 shrink-0">
+                <button id="tabMaintenanceBtn" onclick="switchTab('maintenance')" class="px-3 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-1.5 shrink-0">
                     <i class="fa-solid fa-screwdriver-wrench"></i>
                     <span>Mantenimiento</span>
                 </button>
             </div>
 
-            <!-- Global Actions -->
-            <div class="flex items-center space-x-2 flex-wrap gap-y-2 justify-end">
-                <!-- EXCEL IMPORT BUTTON (SOLO PARA ADMINISTRADOR) -->
-                <button id="btnImportExcel" onclick="openExcelImportModal()" class="px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-solid fa-file-excel text-emerald-600 text-sm"></i>
+            <!-- Global Actions Grid para Móviles Android -->
+            <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 justify-end">
+                <!-- BOTÓN ESCANEAR QR HD ALTA VELOCIDAD -->
+                <button onclick="openScannerModal('search')" class="col-span-2 sm:col-span-1 px-3.5 py-2.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition flex items-center justify-center space-x-2 shadow-sm">
+                    <i class="fa-solid fa-camera text-sm"></i>
+                    <span>Escanear QR / Barras HD</span>
+                </button>
+                
+                <button id="btnStockAlerts" onclick="openStockAlertsModal()" class="px-2.5 py-2 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-300 rounded-lg transition flex items-center justify-center space-x-1 shadow-sm relative">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                    <span>Alertas Stock</span>
+                    <span id="stockAlertBadge" class="hidden px-1.5 py-0.5 text-[9px] font-extrabold rounded-full bg-rose-600 text-white">0</span>
+                </button>
+
+                <button id="btnImportExcel" onclick="openExcelImportModal()" class="px-2.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 rounded-lg transition flex items-center justify-center space-x-1 shadow-sm">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
                     <span>Importar Excel</span>
                 </button>
-                <button onclick="openScannerModal('search')" class="px-3 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
-                    <i class="fa-solid fa-qrcode text-emerald-600 text-sm"></i>
-                    <span>Escanear QR</span>
-                </button>
-                <button id="btnBatchDispatch" onclick="openBatchDispatchModal()" class="px-3 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition flex items-center space-x-1.5 shadow-sm">
+
+                <button id="btnBatchDispatch" onclick="openBatchDispatchModal()" class="px-2.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition flex items-center justify-center space-x-1 shadow-sm">
                     <i class="fa-solid fa-boxes-packing text-blue-600"></i>
-                    <span>Despacho Combo Kit</span>
+                    <span>Combo Kit</span>
                 </button>
-                <button id="btnExport" onclick="exportData()" class="px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-300 flex items-center space-x-1">
+
+                <button id="btnExport" onclick="exportData()" class="px-2.5 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-300 flex items-center justify-center space-x-1">
                     <i class="fa-solid fa-file-csv text-slate-500"></i>
-                    <span class="hidden sm:inline">Exportar CSV</span>
+                    <span>Exportar CSV</span>
                 </button>
-                <button id="btnManageTypes" onclick="openTypesModal()" class="px-3 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition flex items-center space-x-1">
+
+                <button id="btnManageTypes" onclick="openTypesModal()" class="px-2.5 py-2 text-xs font-semibold text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition flex items-center justify-center space-x-1">
                     <i class="fa-solid fa-tags text-purple-600"></i>
-                    <span class="hidden sm:inline">Categorías</span>
+                    <span>Categorías</span>
                 </button>
-                <button id="btnAddEquipment" onclick="openAddModal()" class="px-4 py-2 text-xs sm:text-sm font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition flex items-center space-x-1.5">
+
+                <button id="btnAddEquipment" onclick="openAddModal()" class="col-span-2 sm:col-span-1 px-4 py-2.5 text-xs sm:text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-sm transition flex items-center justify-center space-x-1.5">
                     <i class="fa-solid fa-plus text-brand-400"></i>
                     <span>+ Nuevo Equipo</span>
                 </button>
             </div>
         </div>
 
-        <!-- SEARCH & FILTER CONTROLS BAR (For Inventory View) -->
-        <div id="filterControlsBar" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        <!-- BÚSQUEDA Y FILTROS ADAPTADOS A PANTALLAS TÁCTILES -->
+        <div id="filterControlsBar" class="bg-white p-3.5 sm:p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
                 <!-- Search input -->
                 <div class="lg:col-span-2 relative">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-sm"></i>
-                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Buscar Serial, Agencia, Receptor, Dueño..." class="w-full pl-9 pr-10 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none">
+                    <input type="text" id="filterSearch" oninput="applyFilters()" placeholder="Buscar Serial, Agencia, Receptor, Dueño..." class="w-full pl-9 pr-10 py-2 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none">
                     <button onclick="openScannerModal('search')" title="Escanear Código de Barras o QR" class="absolute right-2 top-2 p-1 text-slate-400 hover:text-brand-600 transition">
                         <i class="fa-solid fa-barcode text-base"></i>
                     </button>
@@ -232,14 +291,14 @@
 
                 <!-- Category Filter -->
                 <div>
-                    <select id="filterType" onchange="applyFilters()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
+                    <select id="filterType" onchange="applyFilters()" class="w-full py-2 px-3 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
                         <!-- Dynamic -->
                     </select>
                 </div>
 
                 <!-- Status Filter -->
                 <div>
-                    <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
+                    <select id="filterStatus" onchange="applyFilters()" class="w-full py-2 px-3 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white text-slate-700">
                         <option value="">Todos los Estados</option>
                         <option value="En Depósito">En Depósito Central</option>
                         <option value="Asignado">Asignado / Agencia POS</option>
@@ -249,12 +308,12 @@
 
                 <!-- Brand Filter -->
                 <div>
-                    <input type="text" id="filterBrand" oninput="applyFilters()" placeholder="Marca (HP, Epson...)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <input type="text" id="filterBrand" oninput="applyFilters()" placeholder="Marca (HP, Epson...)" class="w-full py-2 px-3 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
                 <!-- Clear Filters -->
                 <div>
-                    <button onclick="resetFilters()" class="w-full py-2 px-3 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-200 flex items-center justify-center space-x-1">
+                    <button onclick="resetFilters()" class="w-full py-2 px-3 text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition border border-slate-200 flex items-center justify-center space-x-1">
                         <i class="fa-solid fa-filter-circle-xmark text-slate-500"></i>
                         <span>Limpiar Filtros</span>
                     </button>
@@ -262,20 +321,20 @@
             </div>
         </div>
 
-        <!-- VIEW 1: INVENTORY TABLE WITH ENTRY/EXIT TIMESTAMPS -->
+        <!-- VIEW 1: INVENTORY TABLE TABLA RESPONSIVA MÓVIL CON SCROLL FLUIDO -->
         <div id="inventoryView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
+            <div class="overflow-x-auto -mx-1 sm:mx-0">
+                <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[720px]">
                     <thead class="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Equipo / Categoría</th>
-                            <th class="px-4 py-3">Marca y Modelo</th>
-                            <th class="px-4 py-3">Serial</th>
-                            <th class="px-4 py-3">Agencia POS Asignada</th>
-                            <th class="px-4 py-3">Receptor / Dueño</th>
-                            <th class="px-4 py-3">Fechas (Entrada / Salida)</th>
-                            <th class="px-4 py-3">Estado</th>
-                            <th class="px-4 py-3 text-right">Acciones</th>
+                            <th class="px-3.5 py-3">Equipo / Categoría</th>
+                            <th class="px-3.5 py-3">Marca y Modelo</th>
+                            <th class="px-3.5 py-3">Serial</th>
+                            <th class="px-3.5 py-3">Agencia POS Asignada</th>
+                            <th class="px-3.5 py-3">Receptor / Dueño</th>
+                            <th class="px-3.5 py-3">Fechas (Entrada / Salida)</th>
+                            <th class="px-3.5 py-3">Estado</th>
+                            <th class="px-3.5 py-3 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="inventoryTableBody" class="divide-y divide-slate-200 font-normal">
@@ -283,35 +342,35 @@
                     </tbody>
                 </table>
             </div>
-            <div id="noInventoryMsg" class="hidden p-12 text-center text-slate-400">
-                <i class="fa-solid fa-box-open text-5xl mb-3 text-slate-300"></i>
-                <p class="text-sm font-medium">No se encontraron equipos registrados con los criterios seleccionados.</p>
+            <div id="noInventoryMsg" class="hidden p-8 sm:p-12 text-center text-slate-400">
+                <i class="fa-solid fa-box-open text-4xl sm:text-5xl mb-3 text-slate-300"></i>
+                <p class="text-xs sm:text-sm font-medium">No se encontraron equipos registrados con los criterios seleccionados.</p>
             </div>
         </div>
 
-        <!-- VIEW 2: AGENCIES CATALOG TABLE -->
+        <!-- VIEW 2: AGENCIES CATALOG TABLE RESPONSIVA -->
         <div id="agenciesView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden space-y-4">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div class="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm">Directorio Oficial de Agencias / Bancas POS</h3>
-                    <p class="text-xs text-slate-500">Puntos de venta habilitados para instalación de equipos informáticos</p>
+                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Directorio Oficial de Agencias / Bancas POS</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-500">Puntos de venta habilitados para instalación de equipos</p>
                 </div>
-                <button onclick="openAddAgencyModal()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1.5">
+                <button onclick="openAddAgencyModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1 shrink-0">
                     <i class="fa-solid fa-plus"></i>
-                    <span>Registrar Nueva Agencia</span>
+                    <span>+ Nueva Agencia</span>
                 </button>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
+                <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[650px]">
                     <thead class="bg-slate-100 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Código</th>
-                            <th class="px-4 py-3">Nombre Agencia</th>
-                            <th class="px-4 py-3">Ubicación / Dirección</th>
-                            <th class="px-4 py-3">Dueño / Responsable</th>
-                            <th class="px-4 py-3">Teléfono</th>
-                            <th class="px-4 py-3">Equipos Activos</th>
-                            <th class="px-4 py-3 text-right">Acciones</th>
+                            <th class="px-3.5 py-3">Código</th>
+                            <th class="px-3.5 py-3">Nombre Agencia</th>
+                            <th class="px-3.5 py-3">Ubicación / Dirección</th>
+                            <th class="px-3.5 py-3">Dueño / Responsable</th>
+                            <th class="px-3.5 py-3">Teléfono</th>
+                            <th class="px-3.5 py-3">Equipos Activos</th>
+                            <th class="px-3.5 py-3 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="agenciesTableBody" class="divide-y divide-slate-200 font-normal">
@@ -321,27 +380,27 @@
             </div>
         </div>
 
-        <!-- VIEW 3: MOVEMENTS LOG TABLE WITH TIMESTAMPS -->
+        <!-- VIEW 3: MOVEMENTS LOG TABLE RESPONSIVA -->
         <div id="movementsView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden">
-            <div class="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm">Historial de Entradas, Despachos y Reingresos</h3>
-                    <p class="text-xs text-slate-500">Registro cronológico con fecha, hora exacta y firmas digitales de entrega y devolución</p>
+                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Historial de Entradas, Despachos y Reingresos</h3>
+                    <p class="text-[11px] sm:text-xs text-slate-500">Registro cronológico con fecha, hora exacta y firmas digitales</p>
                 </div>
-                <span class="text-xs font-mono text-slate-400 bg-slate-200 px-2 py-0.5 rounded">En orden inverso</span>
+                <span class="text-[11px] font-mono text-slate-400 bg-slate-200 px-2 py-0.5 rounded shrink-0">Inverso</span>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
+                <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[700px]">
                     <thead class="bg-slate-100 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Fecha y Hora Operación</th>
-                            <th class="px-4 py-3">Tipo Movimiento</th>
-                            <th class="px-4 py-3">Equipo & Serial</th>
-                            <th class="px-4 py-3">Agencia</th>
-                            <th class="px-4 py-3">Receptor / Entregado Por</th>
-                            <th class="px-4 py-3">Responsable (Técnico)</th>
-                            <th class="px-4 py-3">Firma</th>
-                            <th class="px-4 py-3 text-right">Comprobante</th>
+                            <th class="px-3.5 py-3">Fecha y Hora Operación</th>
+                            <th class="px-3.5 py-3">Tipo Movimiento</th>
+                            <th class="px-3.5 py-3">Equipo & Serial</th>
+                            <th class="px-3.5 py-3">Agencia</th>
+                            <th class="px-3.5 py-3">Receptor / Entregado Por</th>
+                            <th class="px-3.5 py-3">Responsable (Técnico)</th>
+                            <th class="px-3.5 py-3">Firma</th>
+                            <th class="px-3.5 py-3 text-right">Comprobante</th>
                         </tr>
                     </thead>
                     <tbody id="movementsTableBody" class="divide-y divide-slate-200 font-normal">
@@ -349,35 +408,35 @@
                     </tbody>
                 </table>
             </div>
-            <div id="noMovementsMsg" class="hidden p-12 text-center text-slate-400">
-                <i class="fa-solid fa-clock-rotate-left text-4xl mb-2 text-slate-300"></i>
-                <p class="text-sm">Aún no existen registros de movimientos o despachos en el sistema.</p>
+            <div id="noMovementsMsg" class="hidden p-8 sm:p-12 text-center text-slate-400">
+                <i class="fa-solid fa-clock-rotate-left text-3xl sm:text-4xl mb-2 text-slate-300"></i>
+                <p class="text-xs sm:text-sm">Aún no existen registros de movimientos o despachos en el sistema.</p>
             </div>
         </div>
 
-        <!-- VIEW 4: MAINTENANCE LOG TABLE WITH IN/OUT TIMESTAMPS -->
+        <!-- VIEW 4: MAINTENANCE LOG TABLE RESPONSIVA -->
         <div id="maintenanceView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden">
-            <div class="p-4 border-b border-slate-200 bg-rose-50/50 flex items-center justify-between">
+            <div class="p-3.5 sm:p-4 border-b border-slate-200 bg-rose-50/50 flex items-center justify-between">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-screwdriver-wrench text-rose-600"></i>
                         <span>Control de Mantenimiento y Servicio Técnico</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Equipos en taller con registro de fecha/hora de ingreso y salida</p>
+                    <p class="text-[11px] sm:text-xs text-slate-500">Equipos en taller con registro de fecha/hora de ingreso y salida</p>
                 </div>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-slate-600">
+                <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[700px]">
                     <thead class="bg-slate-100 border-b border-slate-200 text-xs text-slate-500 uppercase font-semibold">
                         <tr>
-                            <th class="px-4 py-3">Equipo / Serial</th>
-                            <th class="px-4 py-3">Falla / Motivo</th>
-                            <th class="px-4 py-3">Taller / Técnico</th>
-                            <th class="px-4 py-3">Fecha/Hora Ingreso Taller</th>
-                            <th class="px-4 py-3">Fecha/Hora Salida (Reparación)</th>
-                            <th class="px-4 py-3">Costo Est.</th>
-                            <th class="px-4 py-3">Estado Reparación</th>
-                            <th class="px-4 py-3 text-right">Acciones</th>
+                            <th class="px-3.5 py-3">Equipo / Serial</th>
+                            <th class="px-3.5 py-3">Falla / Motivo</th>
+                            <th class="px-3.5 py-3">Taller / Técnico</th>
+                            <th class="px-3.5 py-3">Fecha/Hora Ingreso Taller</th>
+                            <th class="px-3.5 py-3">Fecha/Hora Salida (Reparación)</th>
+                            <th class="px-3.5 py-3">Costo Est.</th>
+                            <th class="px-3.5 py-3">Estado Reparación</th>
+                            <th class="px-3.5 py-3 text-right">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="maintenanceTableBody" class="divide-y divide-slate-200 font-normal">
@@ -385,25 +444,180 @@
                     </tbody>
                 </table>
             </div>
-            <div id="noMaintenanceMsg" class="hidden p-12 text-center text-slate-400">
-                <i class="fa-solid fa-circle-check text-4xl mb-2 text-emerald-400"></i>
-                <p class="text-sm font-medium">¡No hay equipos en taller técnico en este momento!</p>
+            <div id="noMaintenanceMsg" class="hidden p-8 sm:p-12 text-center text-slate-400">
+                <i class="fa-solid fa-circle-check text-3xl sm:text-4xl mb-2 text-emerald-400"></i>
+                <p class="text-xs sm:text-sm font-medium">¡No hay equipos en taller técnico en este momento!</p>
             </div>
         </div>
     </main>
 
+    <!-- MODAL 15: CONFIGURACIÓN DE ALERTAS DE STOCK MÍNIMO -->
+    <div id="stockAlertsModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-amber-900 px-4 sm:px-6 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-sliders text-amber-300"></i>
+                    <span>Configurar Alertas de Stock Mínimo</span>
+                </h3>
+                <button onclick="closeModal('stockAlertsModal')" class="text-amber-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1 bg-slate-50">
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900 space-y-1">
+                    <p class="font-bold"><i class="fa-solid fa-bell text-amber-600 mr-1"></i> Control Automático de Inventario Mínimo</p>
+                    <p>Establezca el número mínimo disponible en <strong>Depósito Central</strong>. Si el stock baja a ese número o menos, el programa emitirá alertas automáticas.</p>
+                </div>
+
+                <form id="stockAlertsForm" onsubmit="saveStockThresholds(event)" class="space-y-4">
+                    <div id="stockThresholdsContainer" class="space-y-2 max-h-64 sm:max-h-72 overflow-y-auto pr-1">
+                        <!-- Dynamic rows per category -->
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row justify-between items-center gap-3 pt-3 border-t border-slate-200">
+                        <button type="button" onclick="resetStockThresholdsToDefault()" class="text-xs text-amber-800 hover:text-amber-950 font-bold underline">
+                            Restablecer Predeterminados
+                        </button>
+                        <div class="flex space-x-2 w-full sm:w-auto justify-end">
+                            <button type="button" onclick="closeModal('stockAlertsModal')" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                            <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-amber-700 hover:bg-amber-800 rounded-lg shadow transition flex items-center space-x-1.5">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                                <span>Guardar</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 14: INVENTARIO CUANTITATIVO POR TIPO DE EQUIPO -->
+    <div id="quantitativeModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-blue-900 px-4 sm:px-6 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-pie text-blue-400"></i>
+                    <span>Inventario Cuantitativo por Tipo de Equipo</span>
+                </h3>
+                <button onclick="closeModal('quantitativeModal')" class="text-blue-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-1 bg-slate-50">
+                <!-- Summary KPI Cards Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Total Equipos</p>
+                            <h4 id="quantTotalCount" class="text-xl sm:text-2xl font-black text-slate-800">0</h4>
+                        </div>
+                        <div class="p-2 bg-blue-50 text-blue-600 rounded-lg"><i class="fa-solid fa-boxes-stacked text-lg"></i></div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Tipos de Equipos</p>
+                            <h4 id="quantTypesCount" class="text-xl sm:text-2xl font-black text-purple-700">0</h4>
+                        </div>
+                        <div class="p-2 bg-purple-50 text-purple-600 rounded-lg"><i class="fa-solid fa-tags text-lg"></i></div>
+                    </div>
+
+                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                        <div>
+                            <p class="text-[10px] font-bold text-slate-400 uppercase">Categoría Principal</p>
+                            <h4 id="quantTopCategory" class="text-xs font-bold text-emerald-700 truncate max-w-[130px]">--</h4>
+                        </div>
+                        <div class="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><i class="fa-solid fa-trophy text-lg"></i></div>
+                    </div>
+                </div>
+
+                <!-- Detailed Category Table -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden space-y-2 sm:space-y-3">
+                    <div class="p-3 bg-white border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
+                        <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center space-x-1.5">
+                            <i class="fa-solid fa-list-ol text-blue-600"></i>
+                            <span>Conteo Cuantitativo por Categoría</span>
+                        </h4>
+                        <span class="text-[10px] sm:text-[11px] text-slate-500">Haga clic en <strong>Ver Equipos</strong> para filtrar</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs min-w-[550px]">
+                            <thead class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold">
+                                <tr>
+                                    <th class="p-2.5">Categoría / Tipo</th>
+                                    <th class="p-2.5 text-center">Total Existencias</th>
+                                    <th class="p-2.5 text-center text-emerald-700">En Depósito</th>
+                                    <th class="p-2.5 text-center text-amber-700">En Agencia POS</th>
+                                    <th class="p-2.5 text-center text-rose-700">Mantenimiento</th>
+                                    <th class="p-2.5 text-right">Filtrar</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quantTableBody" class="divide-y divide-slate-100 text-slate-700 font-medium">
+                                <!-- Dynamic rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-4 sm:px-6 py-3 border-t border-slate-200 flex justify-end shrink-0">
+                <button onclick="closeModal('quantitativeModal')" class="px-5 py-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-lg shadow transition">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 9: LECTOR DE CÓDIGO DE BARRAS Y QR HD OPTIMIZADO PARA ANDROID -->
+    <div id="qrScannerModal" class="fixed inset-0 bg-slate-900/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
+            <div class="bg-slate-900 px-4 py-3 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-camera text-emerald-400 text-base"></i>
+                    <span>Cámara HD Escáner QR / Código de Barras</span>
+                </h3>
+                <button onclick="closeScannerModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+
+            <div class="p-4 sm:p-5 space-y-3.5">
+                <div class="relative bg-black rounded-xl overflow-hidden min-h-[280px] sm:min-h-[300px] flex items-center justify-center border-2 border-slate-800 shadow-inner">
+                    <div id="qr-reader" class="w-full"></div>
+                    
+                    <!-- Linea Láser de Escaneo Estilo Profesional -->
+                    <div id="scannerOverlay" class="absolute inset-0 pointer-events-none border-2 border-emerald-400/60 rounded-xl m-4 flex flex-col items-center justify-between p-3">
+                        <span class="text-[10px] bg-slate-900/90 text-emerald-400 px-2 py-0.5 rounded font-mono border border-emerald-500/30">Cámara HD con Enfoque Continuo</span>
+                        <div class="w-full h-0.5 bg-emerald-500 shadow-[0_0_8px_#22c55e] animate-pulse my-auto"></div>
+                        <span class="text-[10px] text-white/80 bg-black/60 px-2 py-0.5 rounded">Alinee el serial de la etiqueta aquí</span>
+                    </div>
+                </div>
+
+                <div id="scannerStatus" class="p-2.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold text-center border border-slate-200">
+                    <i class="fa-solid fa-circle-notch fa-spin text-emerald-600 mr-1.5"></i> Inicializando cámara de alta resolución...
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                    <label class="cursor-pointer px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold border border-slate-300 transition flex items-center space-x-1.5 flex-1 justify-center">
+                        <i class="fa-solid fa-file-image text-slate-500"></i>
+                        <span>Cargar Foto</span>
+                        <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(event)">
+                    </label>
+
+                    <button type="button" onclick="closeScannerModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL 1: NUEVO EQUIPO / ENTRADA -->
-    <div id="addModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
-            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+    <div id="addModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-boxes-packing text-brand-400"></i>
-                    <span>Registrar Entrada de Equipo al Depósito</span>
+                    <span>Registrar Entrada al Depósito</span>
                 </h3>
                 <button onclick="closeModal('addModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="addEquipmentForm" onsubmit="saveEquipment(event)" class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+            <form id="addEquipmentForm" onsubmit="saveEquipment(event)" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <div class="col-span-2 sm:col-span-1">
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Equipo *</label>
                         <select id="addType" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -414,25 +628,25 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Número de Serial *</label>
                         <div class="relative flex items-center">
                             <input type="text" id="addSerial" required placeholder="Ej: S/N-987654321" class="w-full py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono uppercase">
-                            <button type="button" onclick="openScannerModal('addSerial')" title="Escanear Código de Barras / QR" class="absolute right-1.5 p-1.5 text-slate-500 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 rounded-md transition">
+                            <button type="button" onclick="openScannerModal('addSerial')" title="Escanear con Cámara HD" class="absolute right-1.5 p-1.5 text-slate-500 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 rounded-md transition">
                                 <i class="fa-solid fa-camera text-xs"></i>
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-3">
+                <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Marca *</label>
                         <input type="text" id="addBrand" required placeholder="HP, Epson..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Modelo *</label>
-                        <input type="text" id="addModel" required placeholder="ProBook, TM-T20..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <input type="text" id="addModel" required placeholder="ProBook..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color</label>
-                        <input type="text" id="addColor" placeholder="Negro, Gris..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <input type="text" id="addColor" placeholder="Negro..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                     </div>
                 </div>
 
@@ -441,7 +655,7 @@
                     <textarea id="addObs" rows="2" placeholder="Ej: Equipo nuevo en caja original, incluye cables y transformador..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center space-x-1.5">
                         <i class="fa-solid fa-check"></i>
@@ -453,30 +667,30 @@
     </div>
 
     <!-- MODAL 2: ASIGNACIÓN / SALIDA INDIVIDUAL CON FIRMA DIGITAL -->
-    <div id="dispatchModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="dispatchModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
-            <div class="bg-emerald-800 px-6 py-4 flex items-center justify-between text-white shrink-0">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-emerald-800 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-truck-ramp-box text-emerald-300"></i>
                     <span>Asignar Salida a Agencia / Receptor</span>
                 </h3>
                 <button onclick="closeModal('dispatchModal')" class="text-emerald-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <form id="dispatchForm" onsubmit="processDispatch(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+            <form id="dispatchForm" onsubmit="processDispatch(event)" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 <input type="hidden" id="dispatchEquipmentId">
 
                 <!-- Selected Equipment Summary -->
                 <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex justify-between items-center">
                     <div>
-                        <p class="font-bold text-sm" id="dispatchEquipTitle">Laptop HP ProBook (S/N: 123456)</p>
-                        <p id="dispatchEquipDetails" class="text-emerald-700">Color: Negro | Estado: En Depósito Central</p>
+                        <p class="font-bold text-xs sm:text-sm" id="dispatchEquipTitle">Laptop HP ProBook (S/N: 123456)</p>
+                        <p id="dispatchEquipDetails" class="text-emerald-700 text-[11px]">Color: Negro | Estado: En Depósito Central</p>
                     </div>
-                    <span class="px-2.5 py-1 bg-emerald-200 font-bold rounded-lg text-emerald-800 uppercase text-[10px]">Listo para salida</span>
+                    <span class="px-2 py-0.5 bg-emerald-200 font-bold rounded text-emerald-800 uppercase text-[10px]">Listo</span>
                 </div>
 
                 <!-- Assignment Type & Agency Selector -->
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Tipo de Entrega *</label>
                         <select id="dispatchTargetType" onchange="toggleReceptorField()" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
@@ -486,55 +700,52 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Agencia / Punto de Venta *</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Agencia POS Destino *</label>
                         <select id="dispatchAgencySelect" onchange="autoFillAgencyDetails()" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
                             <!-- Dynamic agencies list -->
                         </select>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div id="receptorContainer">
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Receptor / Subreceptor *</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Receptor *</label>
                         <input type="text" id="dispatchReceptorName" placeholder="Ej: Carlos Mendoza (R-14)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño de la Agencia *</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño *</label>
                         <input type="text" id="dispatchOwnerName" required placeholder="Ej: Roberto Gómez" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Accesorios Entregados</label>
-                    <input type="text" id="dispatchObs" placeholder="Ej: Se entrega con cargador, cable HDMI y 2 rollos térmicos..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Accesorios</label>
+                    <input type="text" id="dispatchObs" placeholder="Ej: Cargador, cable HDMI y rollos térmicos..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none">
                 </div>
 
-                <!-- DIGITAL SIGNATURE CANVAS -->
+                <!-- DIGITAL SIGNATURE CANVAS OPTIMIZADO PARA TOUCH ANDROID -->
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
                             <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital de Conformidad *
                         </label>
                         <div class="flex items-center space-x-2">
-                            <span class="text-[11px] text-slate-400">Color Tinta:</span>
-                            <button type="button" onclick="setCanvasColor('#0f172a')" class="w-4 h-4 rounded-full bg-slate-900 ring-2 ring-offset-1 ring-slate-400 focus:outline-none" title="Color Azul Oscuro"></button>
-                            <button type="button" onclick="setCanvasColor('#1e40af')" class="w-4 h-4 rounded-full bg-blue-800 focus:outline-none" title="Color Azul Tinta"></button>
-                            <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline ml-2">
-                                Limpiar Firma
+                            <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">
+                                Limpiar
                             </button>
                         </div>
                     </div>
                     <div class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative">
                         <canvas id="sigCanvas" class="w-full h-32 touch-none cursor-crosshair rounded-xl"></canvas>
-                        <span class="absolute bottom-2 right-2 text-[10px] text-slate-400 pointer-events-none select-none">Firme aquí usando Mouse, Lápiz Óptico o Pantalla Táctil</span>
+                        <span class="absolute bottom-1.5 right-2 text-[9px] text-slate-400 pointer-events-none select-none">Firme aquí con el dedo o lápiz táctil</span>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('dispatchModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-file-signature"></i>
-                        <span>Confirmar Entrega y Generar Acta</span>
+                        <span>Confirmar Entrega</span>
                     </button>
                 </div>
             </form>
@@ -542,62 +753,61 @@
     </div>
 
     <!-- MODAL DE REINGRESO / DEVOLUCIÓN AL DEPÓSITO CON FIRMA -->
-    <div id="returnModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="returnModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
-            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-rotate-left text-brand-400"></i>
-                    <span>Verificación de Reingreso y Devolución al Depósito Central</span>
+                    <span>Verificación de Reingreso a Depósito</span>
                 </h3>
                 <button onclick="closeModal('returnModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <form id="returnForm" onsubmit="processReturnToWarehouse(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+            <form id="returnForm" onsubmit="processReturnToWarehouse(event)" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 <input type="hidden" id="returnEquipmentId">
 
-                <!-- VERIFICATION SUMMARY OF REGISTERED EQUIPMENT -->
-                <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                <div class="p-3 sm:p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
                     <p class="font-bold text-slate-800 uppercase text-[11px] border-b border-slate-200 pb-1 flex justify-between">
-                        <span><i class="fa-solid fa-shield-halved text-brand-600 mr-1"></i> Equipo Registrado Previamente</span>
+                        <span><i class="fa-solid fa-shield-halved text-brand-600 mr-1"></i> Equipo Registrado</span>
                         <span class="text-brand-700 font-mono" id="returnEquipSerial">S/N-0000</span>
                     </p>
                     <div class="grid grid-cols-2 gap-2 text-slate-700">
                         <div><strong class="text-slate-900">Equipo:</strong> <span id="returnEquipType">--</span></div>
-                        <div><strong class="text-slate-900">Marca / Modelo:</strong> <span id="returnEquipBrandModel">--</span></div>
-                        <div><strong class="text-slate-900">Agencia Actual:</strong> <span id="returnEquipAgency" class="font-bold text-slate-900">--</span></div>
+                        <div><strong class="text-slate-900">Marca/Modelo:</strong> <span id="returnEquipBrandModel">--</span></div>
+                        <div><strong class="text-slate-900">Agencia:</strong> <span id="returnEquipAgency" class="font-bold text-slate-900">--</span></div>
                         <div><strong class="text-slate-900">Asignado a:</strong> <span id="returnEquipHolder">--</span></div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de la Persona que Devuelve el Equipo *</label>
-                    <input type="text" id="returnPersonName" required placeholder="Ej: Roberto Gómez (Dueño) / Carlos Mendoza (Receptor)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de quien devuelve el equipo *</label>
+                    <input type="text" id="returnPersonName" required placeholder="Ej: Roberto Gómez / Carlos Mendoza" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Estado Físico al Devolver *</label>
-                    <textarea id="returnObs" required rows="2" oninput="checkReturnValidation()" placeholder="Ej: Devolución por cierre de agencia, equipo probado y en buen estado de funcionamiento, incluye cables..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones de Devolución *</label>
+                    <textarea id="returnObs" required rows="2" oninput="checkReturnValidation()" placeholder="Ej: Devolución por cierre de agencia, probado y en buen estado..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
                 </div>
 
                 <!-- DIGITAL SIGNATURE CANVAS FOR RETURN -->
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-brand-600"></i> Firma Digital del Receptor / Dueño que Devuelve el Equipo *
+                            <i class="fa-solid fa-signature text-brand-600"></i> Firma Digital del Receptor / Dueño *
                         </label>
-                        <button type="button" onclick="clearReturnSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Limpiar Firma</button>
+                        <button type="button" onclick="clearReturnSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">Limpiar</button>
                     </div>
                     <div class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative">
                         <canvas id="returnSigCanvas" class="w-full h-32 touch-none cursor-crosshair rounded-xl"></canvas>
-                        <span class="absolute bottom-2 right-2 text-[10px] text-slate-400 pointer-events-none select-none">Firme aquí para validar devolución</span>
+                        <span class="absolute bottom-1.5 right-2 text-[9px] text-slate-400 pointer-events-none select-none">Firme aquí para validar</span>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('returnModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" id="btnSubmitReturn" disabled class="px-5 py-2 text-sm font-semibold text-white bg-slate-400 cursor-not-allowed rounded-lg shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-circle-check"></i>
-                        <span>Confirmar y Aceptar Reingreso</span>
+                        <span>Confirmar Reingreso</span>
                     </button>
                 </div>
             </form>
@@ -605,27 +815,27 @@
     </div>
 
     <!-- MODAL 3: DESPACHO MÚLTIPLE / COMBO KIT AGENCIA -->
-    <div id="batchDispatchModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="batchDispatchModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
-            <div class="bg-blue-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-blue-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-boxes-packing text-blue-400"></i>
-                    <span>Despacho Múltiple / Kit de Equipos para Agencia</span>
+                    <span>Despacho Combo Kit para Agencia</span>
                 </h3>
                 <button onclick="closeModal('batchDispatchModal')" class="text-blue-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
 
-            <form id="batchDispatchForm" onsubmit="processBatchDispatch(event)" class="p-6 space-y-4 overflow-y-auto flex-1">
+            <form id="batchDispatchForm" onsubmit="processBatchDispatch(event)" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
                 <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900">
                     <p class="font-bold"><i class="fa-solid fa-circle-info text-blue-600 mr-1"></i> Despacho Conjunto POS</p>
-                    <p class="text-blue-700">Seleccione los equipos disponibles en almacén que instalará en la agencia. Todos se entregarán en una sola acta firmada.</p>
+                    <p class="text-blue-700">Seleccione los equipos disponibles en almacén que instalará en la agencia.</p>
                 </div>
 
-                <!-- AMARILLO: Agency & Destination Details (With Phone & Location Address) -->
-                <div class="p-4 bg-amber-50/60 rounded-xl border-2 border-amber-300 space-y-3">
-                    <div class="grid grid-cols-2 gap-4">
+                <!-- AMARILLO: Agency & Destination Details -->
+                <div class="p-3.5 sm:p-4 bg-amber-50/60 rounded-xl border-2 border-amber-300 space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Agencia / Punto de Venta Destino *</label>
+                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Agencia Destino *</label>
                             <select id="batchAgencySelect" onchange="autoFillBatchAgencyDetails()" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                                 <!-- Dynamic -->
                             </select>
@@ -640,30 +850,29 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         <div id="batchReceptorContainer">
-                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Nombre del Receptor / Subreceptor *</label>
+                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Nombre del Receptor *</label>
                             <input type="text" id="batchReceptorName" placeholder="Ej: Carlos Mendoza (R-14)" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Nombre del Dueño de Agencia *</label>
+                            <label class="block text-xs font-bold text-slate-800 uppercase mb-1">Nombre del Dueño *</label>
                             <input type="text" id="batchOwnerName" required placeholder="Ej: Roberto Gómez" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                         </div>
                     </div>
 
-                    <!-- Teléfono y Ubicación/Dirección -->
-                    <div class="grid grid-cols-2 gap-4 pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 pt-1">
                         <div>
                             <label class="block text-xs font-bold text-slate-800 uppercase mb-1">
-                                <i class="fa-solid fa-phone text-amber-700 mr-1"></i> Teléfono de la Agencia
+                                <i class="fa-solid fa-phone text-amber-700 mr-1"></i> Teléfono
                             </label>
                             <input type="text" id="batchAgencyPhone" placeholder="Ej: 0414-1234567" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-800 uppercase mb-1">
-                                <i class="fa-solid fa-location-dot text-amber-700 mr-1"></i> Ubicación / Dirección de la Agencia
+                                <i class="fa-solid fa-location-dot text-amber-700 mr-1"></i> Ubicación / Dirección
                             </label>
-                            <input type="text" id="batchAgencyAddress" placeholder="Ej: Av. Principal #45, Zona Central" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                            <input type="text" id="batchAgencyAddress" placeholder="Ej: Av. Principal #45, Sector Centro" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
                         </div>
                     </div>
                 </div>
@@ -672,45 +881,43 @@
                 <div class="p-3 bg-blue-50/80 rounded-xl border-2 border-blue-400 space-y-3">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-blue-200 pb-2">
                         <label class="block text-xs font-bold text-blue-900 uppercase tracking-wide">
-                            <i class="fa-solid fa-boxes-stacked text-blue-700 mr-1"></i> SELECCIONAR EQUIPOS A DESPACHAR *
+                            <i class="fa-solid fa-boxes-stacked text-blue-700 mr-1"></i> SELECCIONAR EQUIPOS *
                         </label>
-                        <!-- BÚSQUEDA POR PALABRAS CLAVES -->
                         <div class="relative w-full sm:w-72">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-2 text-slate-400 text-xs"></i>
                             <input type="text" id="batchEquipSearchInput" oninput="filterBatchEquipmentList()" placeholder="Buscar por palabra clave (Epson, HP, S/N...)" class="w-full pl-8 pr-3 py-1 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white">
                         </div>
                     </div>
 
-                    <!-- Available Warehouse Equipment Checkboxes -->
-                    <div id="batchEquipList" class="max-h-52 overflow-y-auto space-y-2 p-2 bg-white rounded-lg border border-blue-200">
-                        <!-- Dynamic list of warehouse items -->
+                    <div id="batchEquipList" class="max-h-48 overflow-y-auto space-y-2 p-2 bg-white rounded-lg border border-blue-200">
+                        <!-- Dynamic list -->
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones Generales del Combo</label>
-                    <input type="text" id="batchObs" placeholder="Ej: Kit de instalación completo para nueva agencia..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones Generales</label>
+                    <input type="text" id="batchObs" placeholder="Ej: Kit de instalación completo..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
 
                 <!-- DIGITAL SIGNATURE CANVAS FOR BATCH -->
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor del Kit *
+                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor *
                         </label>
-                        <button type="button" onclick="clearBatchSignature()" class="text-xs text-rose-600 font-semibold underline">Limpiar Firma</button>
+                        <button type="button" onclick="clearBatchSignature()" class="text-xs text-rose-600 font-semibold underline">Limpiar</button>
                     </div>
                     <div class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 relative">
                         <canvas id="batchSigCanvas" class="w-full h-28 touch-none cursor-crosshair rounded-xl"></canvas>
-                        <span class="absolute bottom-2 right-2 text-[10px] text-slate-400 pointer-events-none select-none">Firme aquí</span>
+                        <span class="absolute bottom-1.5 right-2 text-[9px] text-slate-400 pointer-events-none select-none">Firme aquí</span>
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('batchDispatchModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow transition flex items-center space-x-2">
                         <i class="fa-solid fa-check"></i>
-                        <span>Procesar Combo Kit y Generar Acta</span>
+                        <span>Procesar Combo Kit</span>
                     </button>
                 </div>
             </form>
@@ -718,55 +925,52 @@
     </div>
 
     <!-- MODAL 13: IMPORTACIÓN DE EXCEL (SÓLO ADMINISTRADOR) -->
-    <div id="excelImportModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="excelImportModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
-            <div class="bg-emerald-900 px-6 py-4 flex items-center justify-between text-white shrink-0">
-                <h3 class="font-bold text-base flex items-center space-x-2">
-                    <i class="fa-solid fa-file-excel text-emerald-400 text-lg"></i>
-                    <span>Importar Inventario y Agencias desde Excel (.xlsx, .csv)</span>
+            <div class="bg-emerald-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                    <span>Importar Inventario desde Excel (.xlsx, .csv)</span>
                 </h3>
                 <button onclick="closeModal('excelImportModal')" class="text-emerald-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-6 space-y-4 overflow-y-auto flex-1">
-                <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-2">
-                    <p class="font-bold text-sm"><i class="fa-solid fa-circle-info text-emerald-600 mr-1"></i> Carga Masiva de Inventario Existente</p>
-                    <p>Suba el archivo de Excel o CSV preparado por su departamento. El sistema cargará todos los equipos y **creará automáticamente las agencias** en el catálogo si aún no están registradas.</p>
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+                <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 space-y-2">
+                    <p class="font-bold text-sm"><i class="fa-solid fa-circle-info text-emerald-600 mr-1"></i> Carga Masiva de Inventario</p>
+                    <p>Suba el archivo de Excel o CSV preparado por su departamento. El sistema cargará los equipos y **creará automáticamente las agencias** que falten en el catálogo.</p>
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-emerald-200/60">
-                        <span class="text-[11px] font-semibold text-emerald-800">Columnas reconocidas: <code>Tipo, Marca, Modelo, Color, Serial, Agencia, Receptor, Dueño, Estado, FechaEntrada, FechaSalida</code></span>
+                        <span class="text-[10px] sm:text-[11px] font-semibold text-emerald-800">Columnas: <code>Tipo, Marca, Modelo, Color, Serial, Agencia, Receptor, Dueño, Estado</code></span>
                         <button type="button" onclick="downloadSampleExcel()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold shadow transition flex items-center space-x-1 shrink-0">
                             <i class="fa-solid fa-download"></i>
-                            <span>Descargar Plantilla Ejemplo</span>
+                            <span>Plantilla Ejemplo</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Dropzone Input -->
-                <div class="border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-2xl p-6 text-center bg-slate-50 transition cursor-pointer" onclick="document.getElementById('excelFileInput').click()">
-                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-emerald-600 mb-2"></i>
-                    <p class="text-xs font-bold text-slate-700">Haga clic aquí para seleccionar el archivo Excel (.xlsx, .csv) o arrástrelo</p>
-                    <p class="text-[11px] text-slate-400 mt-1" id="excelFileName">No se ha seleccionado ningún archivo</p>
+                <div class="border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-2xl p-5 text-center bg-slate-50 transition cursor-pointer" onclick="document.getElementById('excelFileInput').click()">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl sm:text-4xl text-emerald-600 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">Haga clic aquí para seleccionar el archivo Excel (.xlsx, .csv)</p>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400 mt-1" id="excelFileName">Ningún archivo seleccionado</p>
                     <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelFileSelect(event)">
                 </div>
 
-                <!-- Preview Container -->
                 <div id="excelPreviewContainer" class="hidden space-y-3">
                     <div class="flex items-center justify-between text-xs border-b pb-2">
-                        <span class="font-bold text-slate-800" id="excelPreviewSummary">0 filas válidas detectadas</span>
-                        <span class="text-emerald-700 font-semibold text-[11px]" id="excelAgenciesSummary">0 agencias nuevas a incluir</span>
+                        <span class="font-bold text-slate-800" id="excelPreviewSummary">0 filas detectadas</span>
+                        <span class="text-emerald-700 font-semibold text-[11px]" id="excelAgenciesSummary">0 agencias nuevas</span>
                     </div>
-                    <div class="max-h-48 overflow-y-auto border rounded-xl bg-white text-xs">
+                    <div class="max-h-40 overflow-y-auto border rounded-xl bg-white text-xs">
                         <table class="w-full text-left divide-y divide-slate-200">
-                            <thead class="bg-slate-100 font-bold text-[11px] text-slate-600 sticky top-0">
+                            <thead class="bg-slate-100 font-bold text-[10px] sm:text-[11px] text-slate-600 sticky top-0">
                                 <tr>
                                     <th class="p-2">#</th>
                                     <th class="p-2">Tipo</th>
-                                    <th class="p-2">Marca / Modelo</th>
+                                    <th class="p-2">Marca/Modelo</th>
                                     <th class="p-2">Serial</th>
-                                    <th class="p-2">Agencia Asignada</th>
-                                    <th class="p-2">Fechas (Entrada / Salida)</th>
+                                    <th class="p-2">Agencia</th>
                                 </tr>
                             </thead>
-                            <tbody id="excelPreviewTbody" class="divide-y divide-slate-100 text-[11px] text-slate-700">
+                            <tbody id="excelPreviewTbody" class="divide-y divide-slate-100 text-[10px] sm:text-[11px] text-slate-700">
                                 <!-- Preview rows -->
                             </tbody>
                         </table>
@@ -774,27 +978,27 @@
                 </div>
             </div>
 
-            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 flex justify-end space-x-3 shrink-0">
+            <div class="bg-slate-50 px-4 sm:px-6 py-3 border-t border-slate-100 flex justify-end space-x-3 shrink-0">
                 <button onclick="closeModal('excelImportModal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cancelar</button>
                 <button id="btnConfirmExcelImport" disabled onclick="executeExcelImport()" class="px-5 py-2 text-xs font-semibold text-white bg-slate-400 cursor-not-allowed rounded-lg shadow transition flex items-center space-x-1.5">
                     <i class="fa-solid fa-file-import"></i>
-                    <span>Confirmar e Importar al Sistema</span>
+                    <span>Confirmar e Importar</span>
                 </button>
             </div>
         </div>
     </div>
 
     <!-- MODAL 4: REGISTRAR MANTENIMIENTO TÉCNICO -->
-    <div id="maintenanceModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="maintenanceModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-200">
-            <div class="bg-rose-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-rose-900 px-5 py-3.5 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-screwdriver-wrench text-rose-400"></i>
-                    <span>Enviar Equipo a Mantenimiento Técnico</span>
+                    <span>Enviar a Mantenimiento Técnico</span>
                 </h3>
                 <button onclick="closeModal('maintenanceModal')" class="text-rose-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form id="maintenanceForm" onsubmit="processSendToMaintenance(event)" class="p-6 space-y-4">
+            <form id="maintenanceForm" onsubmit="processSendToMaintenance(event)" class="p-4 sm:p-6 space-y-4">
                 <input type="hidden" id="maintEquipmentId">
 
                 <div class="p-3 bg-rose-50 rounded-xl border border-rose-200 text-xs text-rose-900">
@@ -803,85 +1007,82 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Descripción de la Falla / Motivo de Reparación *</label>
-                    <textarea id="maintFault" required rows="2" placeholder="Ej: Imprime con líneas en blanco, fuente de poder averiada, pantalla rota..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Descripción de Falla / Reparación *</label>
+                    <textarea id="maintFault" required rows="2" placeholder="Ej: Imprime con líneas en blanco, fuente averiada..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none"></textarea>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Taller / Técnico Responsable *</label>
-                        <input type="text" id="maintWorkshop" required placeholder="Ej: Taller Central / Ing. Marcos" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Taller / Técnico *</label>
+                        <input type="text" id="maintWorkshop" required placeholder="Ej: Taller Central" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Costo Estimado ($ USD)</label>
-                        <input type="number" step="0.01" id="maintCost" placeholder="Ej: 25.00" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Costo Est. ($)</label>
+                        <input type="number" step="0.01" id="maintCost" placeholder="25.00" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none">
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('maintenanceModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition flex items-center space-x-1.5">
                         <i class="fa-solid fa-wrench"></i>
-                        <span>Confirmar Envío a Taller</span>
+                        <span>Enviar a Taller</span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 5: COMPROBANTE / ACTA DE ENTREGA / DEVOLUCIÓN IMPRIMIBLE -->
-    <div id="receiptModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden modal-print-container">
+    <!-- MODAL 5: COMPROBANTE / ACTA IMPRIMIBLE -->
+    <div id="receiptModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden modal-print-container">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
-            <!-- Modal Actions Bar (hidden when printing) -->
-            <div class="bg-slate-800 px-6 py-3 flex items-center justify-between text-white no-print shrink-0">
-                <span class="text-sm font-semibold flex items-center space-x-2">
+            <div class="bg-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between text-white no-print shrink-0">
+                <span class="text-xs sm:text-sm font-semibold flex items-center space-x-2">
                     <i class="fa-solid fa-print text-brand-400"></i>
                     <span id="receiptModalTitle">Acta Oficial de Recepción y Entrega POS</span>
                 </span>
                 <div class="flex space-x-2">
                     <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition flex items-center space-x-1 shadow">
                         <i class="fa-solid fa-print"></i>
-                        <span>Imprimir / PDF</span>
+                        <span>Imprimir</span>
                     </button>
                     <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
             </div>
 
             <!-- PRINTABLE RECEIPT CONTENT -->
-            <div id="receiptPrintArea" class="p-8 space-y-6 overflow-y-auto flex-1 bg-white text-slate-900">
-                <div class="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
+            <div id="receiptPrintArea" class="p-5 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto flex-1 bg-white text-slate-900">
+                <div class="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
                     <div>
-                        <h2 class="text-2xl font-extrabold text-slate-900 tracking-wide">BANCA DE LOTERÍAS</h2>
-                        <p class="text-xs text-slate-700 uppercase tracking-widest font-bold">Departamento de Tecnología e Instalaciones POS - Grupo Andino</p>
-                        <p class="text-xs text-slate-500 mt-1" id="receiptSubtitle">Comprobante Oficial de Entrega y Recepción de Equipos</p>
+                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-wide">BANCA DE LOTERÍAS</h2>
+                        <p class="text-[10px] sm:text-xs text-slate-700 uppercase tracking-widest font-bold">Departamento de Tecnología e Instalaciones POS - Grupo Andino</p>
+                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5" id="receiptSubtitle">Comprobante Oficial de Entrega y Recepción de Equipos</p>
                     </div>
                     <div class="text-right">
-                        <span class="inline-block px-3 py-1 bg-slate-100 text-slate-900 text-xs font-mono font-bold rounded-lg border border-slate-300" id="receiptId">#MOV-0000</span>
-                        <p class="text-xs text-slate-600 font-medium mt-1" id="receiptDate">Fecha: --/--/----</p>
+                        <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-900 text-xs font-mono font-bold rounded-lg border border-slate-300" id="receiptId">#MOV-0000</span>
+                        <p class="text-[11px] sm:text-xs text-slate-600 font-medium mt-1" id="receiptDate">Fecha: --/--/----</p>
                     </div>
                 </div>
 
-                <!-- Details Grid -->
-                <div class="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200">
+                <div class="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
                     <div>
-                        <p class="font-semibold text-slate-500 uppercase">Agencia / Punto de Venta:</p>
-                        <p class="text-sm font-bold text-slate-800" id="receiptAgency">--</p>
+                        <p class="font-semibold text-slate-500 uppercase">Agencia POS:</p>
+                        <p class="text-xs sm:text-sm font-bold text-slate-800" id="receiptAgency">--</p>
                     </div>
                     <div>
-                        <p class="font-semibold text-slate-500 uppercase">Tipo de Operación:</p>
-                        <p class="text-sm font-bold text-slate-800" id="receiptTargetType">--</p>
+                        <p class="font-semibold text-slate-500 uppercase">Tipo Operación:</p>
+                        <p class="text-xs sm:text-sm font-bold text-slate-800" id="receiptTargetType">--</p>
                     </div>
                     <div>
                         <p class="font-semibold text-slate-500 uppercase">Dueño / Titular:</p>
-                        <p class="text-sm font-semibold text-slate-800" id="receiptOwner">--</p>
+                        <p class="text-xs sm:text-sm font-semibold text-slate-800" id="receiptOwner">--</p>
                     </div>
                     <div>
                         <p class="font-semibold text-slate-500 uppercase">Receptor / Quien Firma:</p>
-                        <p class="text-sm font-semibold text-slate-800" id="receiptReceptor">--</p>
+                        <p class="text-xs sm:text-sm font-semibold text-slate-800" id="receiptReceptor">--</p>
                     </div>
                 </div>
 
-                <!-- Equipment Details Box -->
                 <div class="space-y-2">
                     <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider border-b pb-1">Detalle del Equipamiento</h4>
                     <table class="w-full text-xs text-left border border-slate-200">
@@ -904,37 +1105,36 @@
                     <p class="text-xs text-slate-700 italic bg-slate-50 p-3 rounded-lg border border-slate-200 mt-1" id="receiptObs">Sin observaciones adicionales.</p>
                 </div>
 
-                <!-- Signatures Section -->
-                <div class="pt-8 grid grid-cols-2 gap-8 items-end">
-                    <div class="text-center space-y-2">
-                        <div class="border-b border-slate-400 pb-2 h-24 flex items-center justify-center">
-                            <span class="text-xs text-slate-400 font-mono" id="receiptTechUser">Procesado por: Admin</span>
+                <div class="pt-6 grid grid-cols-2 gap-6 items-end">
+                    <div class="text-center space-y-1.5">
+                        <div class="border-b border-slate-400 pb-2 h-20 flex items-center justify-center">
+                            <span class="text-[11px] text-slate-400 font-mono" id="receiptTechUser">Procesado por: Admin</span>
                         </div>
-                        <p class="text-xs font-bold text-slate-800">Firma del Técnico / Recibidor</p>
-                        <p class="text-[10px] text-slate-500">Banca de Lotería - Depósito Central</p>
+                        <p class="text-xs font-bold text-slate-800">Firma Técnico / Recibidor</p>
+                        <p class="text-[10px] text-slate-500">Banca de Lotería - Depósito</p>
                     </div>
 
-                    <div class="text-center space-y-2">
-                        <div class="border-b border-slate-400 pb-2 h-24 flex items-center justify-center overflow-hidden">
+                    <div class="text-center space-y-1.5">
+                        <div class="border-b border-slate-400 pb-2 h-20 flex items-center justify-center overflow-hidden">
                             <img id="receiptSignatureImg" src="" alt="Firma Receptor" class="max-h-full max-w-full object-contain">
                         </div>
                         <p class="text-xs font-bold text-slate-800">Firma de Conformidad</p>
-                        <p class="text-[10px] text-slate-500" id="receiptSignerName">Receptor / Dueño de Agencia</p>
+                        <p class="text-[10px] text-slate-500" id="receiptSignerName">Receptor / Dueño</p>
                     </div>
                 </div>
 
-                <div class="text-[10px] text-slate-400 text-center pt-6 border-t border-slate-100">
+                <div class="text-[9px] text-slate-400 text-center pt-4 border-t border-slate-100">
                     Documento generado digitalmente por el Sistema de Control de Inventario POS - Grupo Andino Inventario
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 6: GENERADOR E IMPRESOR DE ETIQUETAS BARCODE/QR -->
-    <div id="tagModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden modal-print-container">
+    <!-- MODAL 6: GENERADOR DE ETIQUETAS BARCODE/QR -->
+    <div id="tagModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden modal-print-container">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white no-print">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white no-print">
+                <h3 class="font-bold text-sm flex items-center space-x-2">
                     <i class="fa-solid fa-barcode text-brand-400"></i>
                     <span>Etiqueta Física del Equipo</span>
                 </h3>
@@ -947,7 +1147,6 @@
                 </div>
             </div>
 
-            <!-- PHYSICAL TAG PRINT AREA -->
             <div class="p-6 space-y-4 bg-white flex flex-col items-center justify-center text-center text-slate-900" id="tagPrintArea">
                 <div class="border-2 border-slate-800 p-4 rounded-xl w-full space-y-3 bg-white">
                     <div class="border-b pb-2 flex justify-between items-center">
@@ -960,12 +1159,10 @@
                         <p class="text-xs font-mono font-bold text-slate-700 mt-0.5" id="tagSerial">SN-HP-998822</p>
                     </div>
 
-                    <!-- Barcode Canvas Container -->
                     <div class="flex justify-center py-1">
                         <svg id="tagBarcode"></svg>
                     </div>
 
-                    <!-- QR Code & Logo footer -->
                     <div class="flex items-center justify-between border-t pt-2 text-[10px] text-slate-500">
                         <span>Propiedad de Banca de Loterías</span>
                         <div id="tagQRCode" class="w-12 h-12 flex justify-center items-center"></div>
@@ -975,30 +1172,30 @@
         </div>
     </div>
 
-    <!-- MODAL 7: REGISTRAR / EDITAR AGENCIA POS -->
-    <div id="agencyModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <!-- MODAL 7: REGISTRAR AGENCIA POS -->
+    <div id="agencyModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-indigo-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-indigo-900 px-5 py-3.5 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-store text-indigo-400"></i>
                     <span>Registrar Nueva Agencia POS</span>
                 </h3>
                 <button onclick="closeModal('agencyModal')" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="saveAgency(event)" class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+            <form onsubmit="saveAgency(event)" class="p-4 sm:p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código de Agencia *</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código *</label>
                         <input type="text" id="agencyCode" required placeholder="Ej: AG-104" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono uppercase">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Zona / Región *</label>
-                        <input type="text" id="agencyZone" required placeholder="Ej: Central, Norte..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <input type="text" id="agencyZone" required placeholder="Ej: Central..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de la Agencia *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre Agencia *</label>
                     <input type="text" id="agencyName" required placeholder="Ej: Agencia Lotería La Fortuna #08" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
 
@@ -1008,45 +1205,45 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño / Titular *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño *</label>
                     <input type="text" id="agencyOwner" required placeholder="Ej: Roberto Gómez" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono de Contacto</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teléfono</label>
                         <input type="text" id="agencyPhone" placeholder="0414-1234567" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supervisor de Zona</label>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Supervisor</label>
                         <input type="text" id="agencySupervisor" placeholder="Ej: Marcos Ruiz" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-4 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
                     <button type="button" onclick="closeModal('agencyModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition flex items-center space-x-1.5">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Guardar Agencia</span>
+                        <span>Guardar</span>
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- MODAL 8: GESTIONAR CATEGORÍAS Y TIPOS -->
-    <div id="typesModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <!-- MODAL 8: GESTIONAR CATEGORÍAS -->
+    <div id="typesModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-purple-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-purple-900 px-5 py-3.5 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-tags text-purple-400"></i>
-                    <span>Gestionar Categorías de Equipos</span>
+                    <span>Gestionar Categorías</span>
                 </h3>
                 <button onclick="closeModal('typesModal')" class="text-purple-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-6 space-y-4">
+            <div class="p-4 sm:p-6 space-y-4">
                 <form onsubmit="addEquipmentCategory(event)" class="space-y-3">
-                    <label class="block text-xs font-bold text-slate-700 uppercase">Agregar Nueva Categoría</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase">Nueva Categoría</label>
                     <div class="flex gap-2">
                         <input type="text" id="newTypeName" required placeholder="Ej: Mini PC, Pinpad..." class="flex-1 py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none">
                         <button type="submit" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium text-sm rounded-lg transition flex items-center space-x-1 shrink-0 shadow">
@@ -1058,104 +1255,65 @@
 
                 <div class="border-t border-slate-100 pt-3">
                     <p class="text-xs font-bold text-slate-500 uppercase mb-2">Categorías Registradas</p>
-                    <div id="categoriesList" class="max-h-52 overflow-y-auto space-y-1.5 pr-1">
+                    <div id="categoriesList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1">
                         <!-- Dynamic categories list -->
                     </div>
                 </div>
             </div>
-            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 text-right">
+            <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 text-right">
                 <button onclick="closeModal('typesModal')" class="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cerrar</button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL 9: LECTOR CÓDIGO BARRAS Y QR -->
-    <div id="qrScannerModal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <!-- MODAL 10: RESPALDOS JSON Y DATOS -->
+    <div id="backupModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
             <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white">
-                <h3 class="font-bold text-sm flex items-center space-x-2">
-                    <i class="fa-solid fa-qrcode text-brand-400 text-base"></i>
-                    <span>Lector de Código de Barras y QR</span>
-                </h3>
-                <button onclick="closeScannerModal()" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <div class="p-5 space-y-4">
-                <div class="relative bg-slate-900 rounded-xl overflow-hidden min-h-[260px] flex items-center justify-center border-2 border-dashed border-slate-300">
-                    <div id="qr-reader" class="w-full"></div>
-                    <div id="scannerOverlay" class="absolute inset-0 pointer-events-none border-2 border-dashed border-emerald-400/50 rounded-xl m-4 flex flex-col items-center justify-between p-2">
-                        <span class="text-[10px] bg-slate-900/80 text-emerald-400 px-2 py-0.5 rounded font-mono">Alinee el código dentro del marco</span>
-                        <i class="fa-solid fa-expand text-brand-400 text-2xl opacity-70 animate-pulse"></i>
-                    </div>
-                </div>
-
-                <div id="scannerStatus" class="p-2.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-medium text-center border border-slate-200">
-                    <i class="fa-solid fa-circle-notch fa-spin text-brand-600 mr-1.5"></i> Inicializando cámara del dispositivo...
-                </div>
-
-                <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                    <label class="cursor-pointer px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium border border-slate-300 transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-file-image text-slate-500"></i>
-                        <span>Cargar Imagen</span>
-                        <input type="file" id="qrFileInput" accept="image/*" class="hidden" onchange="scanFromFile(event)">
-                    </label>
-
-                    <button type="button" onclick="closeScannerModal()" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-medium transition">
-                        Cancelar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 10: RESPALDOS JSON Y DATOS -->
-    <div id="backupModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-database text-brand-400"></i>
-                    <span>Respaldos y Migración de Datos</span>
+                    <span>Respaldos y Migración</span>
                 </h3>
                 <button onclick="closeModal('backupModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-6 space-y-4">
+            <div class="p-5 space-y-4">
                 <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600">
                     <p class="font-bold text-slate-800 mb-1">Copia de Seguridad de la Base de Datos</p>
-                    <p>Guarde la información de su inventario, agencias e historial de movimientos en un archivo JSON o restáurelo en cualquier equipo.</p>
+                    <p>Guarde la información de su inventario, agencias e historial en un archivo JSON.</p>
                 </div>
 
                 <div class="space-y-3">
                     <button onclick="exportJSONBackup()" class="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow transition flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-download"></i>
-                        <span>Exportar Respaldo Completo (.JSON)</span>
+                        <span>Exportar Respaldo (.JSON)</span>
                     </button>
 
                     <label class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow transition flex items-center justify-center space-x-2 cursor-pointer">
                         <i class="fa-solid fa-upload"></i>
-                        <span>Restaurar Desde Respaldo (.JSON)</span>
+                        <span>Restaurar Desde Respaldo</span>
                         <input type="file" id="jsonBackupInput" accept=".json" class="hidden" onchange="importJSONBackup(event)">
                     </label>
                 </div>
             </div>
-            <div class="bg-slate-50 px-6 py-3 border-t border-slate-100 text-right">
+            <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 text-right">
                 <button onclick="closeModal('backupModal')" class="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cerrar</button>
             </div>
         </div>
     </div>
 
     <!-- MODAL 11: INICIO DE SESIÓN / ROL -->
-    <div id="loginModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="loginModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-200">
-            <div class="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-slate-900 px-5 py-3.5 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-lock text-brand-400"></i>
                     <span>Acceso al Sistema</span>
                 </h3>
                 <button onclick="closeModal('loginModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="handleLoginSubmit(event)" class="p-6 space-y-4">
+            <form onsubmit="handleLoginSubmit(event)" class="p-5 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Seleccionar Usuario / Rol *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Seleccionar Rol *</label>
                     <select id="loginRoleSelect" onchange="updateLoginPrompt()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
                         <option value="admin">Administrador (Acceso Total)</option>
                         <option value="supervisor">Supervisor (Altas y Despachos)</option>
@@ -1164,7 +1322,7 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contraseña / Clave de Acceso *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contraseña *</label>
                     <div class="relative">
                         <input type="password" id="loginPasswordInput" required placeholder="Ingresa tu clave" class="w-full py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                         <button type="button" onclick="togglePasswordVisibility('loginPasswordInput', 'eyeIcon')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
@@ -1193,16 +1351,16 @@
     </div>
 
     <!-- MODAL 12: GESTIÓN DE CLAVES (ADMIN) -->
-    <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+    <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-amber-800 px-6 py-4 flex items-center justify-between text-white">
-                <h3 class="font-bold text-base flex items-center space-x-2">
+            <div class="bg-amber-800 px-5 py-3.5 flex items-center justify-between text-white">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-user-lock text-amber-300"></i>
                     <span>Gestión de Claves de Usuarios</span>
                 </h3>
                 <button onclick="closeModal('manageUsersModal')" class="text-amber-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="saveNewPasswords(event)" class="p-6 space-y-4">
+            <form onsubmit="saveNewPasswords(event)" class="p-5 space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Administrador</label>
                     <input type="password" id="pwdAdmin" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
@@ -1229,7 +1387,7 @@
 
     <!-- CUSTOM CONFIRMATION DIALOG MODAL -->
     <div id="confirmModal" class="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center space-y-4 border border-slate-200">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5 text-center space-y-4 border border-slate-200">
             <div id="confirmIconContainer" class="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto text-xl">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
@@ -1272,6 +1430,22 @@
         // Dynamic Categories List
         const defaultCategories = ['Laptop', 'CPU Desktop', 'Monitor', 'Impresora Térmica', 'UPS / Batería', 'Lectores Código de Barras', 'Tablet POS', 'Celular Corporativo', 'Wipo / Router 4G', 'Valla / Publicidad', 'Otro'];
         let equipmentCategories = JSON.parse(localStorage.getItem('lotto_categories')) || defaultCategories;
+
+        // Stock Alerts Thresholds per Category
+        const defaultStockThresholds = {
+            'Laptop': 5,
+            'CPU Desktop': 3,
+            'Monitor': 3,
+            'Impresora Térmica': 5,
+            'UPS / Batería': 5,
+            'Lectores Código de Barras': 3,
+            'Tablet POS': 4,
+            'Celular Corporativo': 3,
+            'Wipo / Router 4G': 5,
+            'Valla / Publicidad': 2,
+            'Otro': 2
+        };
+        let stockThresholds = JSON.parse(localStorage.getItem('lotto_stock_thresholds')) || defaultStockThresholds;
 
         // Initial Agencies Seed Data
         const initialAgencies = [
@@ -1332,7 +1506,7 @@
             }
         });
 
-        // TOAST NOTIFICATION SYSTEM
+        // TOAST NOTIFICATION SYSTEM ADAPTADO A TELÉFONOS ANDROID
         function showToast(message, type = 'success') {
             const container = document.getElementById('toastContainer');
             const toast = document.createElement('div');
@@ -1343,7 +1517,7 @@
             if (type === 'error') {
                 bgClass = 'bg-rose-900 text-white border-rose-700';
                 icon = 'fa-circle-xmark text-rose-300';
-            } else if (type === 'warning') {
+            } else if (type === 'warning' || type === 'alert') {
                 bgClass = 'bg-amber-900 text-white border-amber-700';
                 icon = 'fa-triangle-exclamation text-amber-300';
             } else if (type === 'info') {
@@ -1351,14 +1525,14 @@
                 icon = 'fa-circle-info text-blue-300';
             }
 
-            toast.className = `${bgClass} border p-3 rounded-xl shadow-xl flex items-center space-x-3 text-xs font-semibold animate-toast pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${icon} text-base"></i><span>${message}</span>`;
+            toast.className = `${bgClass} border p-3 rounded-xl shadow-xl flex items-center space-x-2.5 text-xs font-semibold animate-toast pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm shrink-0"></i><span class="leading-tight">${message}</span>`;
             
             container.appendChild(toast);
             setTimeout(() => {
                 toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
                 setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            }, 4000);
         }
 
         // CONFIRMATION DIALOG MODAL
@@ -1423,6 +1597,7 @@
 
         function updateRoleUI() {
             const roleBadge = document.getElementById('roleBadge');
+            const roleBadgeMobile = document.getElementById('roleBadgeMobile');
             const activeUserName = document.getElementById('activeUserName');
             const btnAdd = document.getElementById('btnAddEquipment');
             const btnBatch = document.getElementById('btnBatchDispatch');
@@ -1438,18 +1613,22 @@
                     roleBadge.innerText = 'ADMINISTRADOR';
                     roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
                 }
-                if (btnAdd) btnAdd.style.display = 'inline-flex';
-                if (btnBatch) btnBatch.style.display = 'inline-flex';
-                if (btnImportExcel) btnImportExcel.style.display = 'inline-flex';
-                if (btnManageTypes) btnManageTypes.style.display = 'inline-flex';
-                if (btnManagePasswords) btnManagePasswords.style.display = 'inline-flex';
+                if (roleBadgeMobile) roleBadgeMobile.innerText = 'ADMIN';
+
+                if (btnAdd) btnAdd.style.display = 'flex';
+                if (btnBatch) btnBatch.style.display = 'flex';
+                if (btnImportExcel) btnImportExcel.style.display = 'flex';
+                if (btnManageTypes) btnManageTypes.style.display = 'flex';
+                if (btnManagePasswords) btnManagePasswords.style.display = 'flex';
             } else if (currentRole === 'supervisor') {
                 if (roleBadge) {
                     roleBadge.innerText = 'SUPERVISOR';
                     roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
                 }
-                if (btnAdd) btnAdd.style.display = 'inline-flex';
-                if (btnBatch) btnBatch.style.display = 'inline-flex';
+                if (roleBadgeMobile) roleBadgeMobile.innerText = 'SUPERVISOR';
+
+                if (btnAdd) btnAdd.style.display = 'flex';
+                if (btnBatch) btnBatch.style.display = 'flex';
                 if (btnImportExcel) btnImportExcel.style.display = 'none';
                 if (btnManageTypes) btnManageTypes.style.display = 'none';
                 if (btnManagePasswords) btnManagePasswords.style.display = 'none';
@@ -1458,6 +1637,8 @@
                     roleBadge.innerText = 'AUDITOR (SÓLO LECTURA)';
                     roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
                 }
+                if (roleBadgeMobile) roleBadgeMobile.innerText = 'AUDITOR';
+
                 if (btnAdd) btnAdd.style.display = 'none';
                 if (btnBatch) btnBatch.style.display = 'none';
                 if (btnImportExcel) btnImportExcel.style.display = 'none';
@@ -1548,24 +1729,24 @@
 
             // Reset tab styles
             [invTab, agTab, movTab, maintTab].forEach(btn => {
-                if (btn) btn.className = 'px-3.5 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-2 shrink-0';
+                if (btn) btn.className = 'px-3 py-2 font-medium text-xs sm:text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-all flex items-center space-x-1.5 shrink-0';
             });
             [invView, agView, movView, maintView].forEach(v => v.classList.add('hidden'));
 
             if (tab === 'inventory') {
-                invTab.className = 'px-3.5 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-2 bg-brand-600 text-white shadow-sm shrink-0';
+                invTab.className = 'px-3 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm shrink-0';
                 invView.classList.remove('hidden');
                 filterBar.classList.remove('hidden');
             } else if (tab === 'agencies') {
-                agTab.className = 'px-3.5 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-2 bg-indigo-600 text-white shadow-sm shrink-0';
+                agTab.className = 'px-3 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-1.5 bg-indigo-600 text-white shadow-sm shrink-0';
                 agView.classList.remove('hidden');
                 filterBar.classList.add('hidden');
             } else if (tab === 'movements') {
-                movTab.className = 'px-3.5 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-2 bg-brand-600 text-white shadow-sm shrink-0';
+                movTab.className = 'px-3 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-1.5 bg-brand-600 text-white shadow-sm shrink-0';
                 movView.classList.remove('hidden');
                 filterBar.classList.add('hidden');
             } else if (tab === 'maintenance') {
-                maintTab.className = 'px-3.5 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-2 bg-rose-600 text-white shadow-sm shrink-0';
+                maintTab.className = 'px-3 py-2 font-semibold text-xs sm:text-sm rounded-lg transition-all flex items-center space-x-1.5 bg-rose-600 text-white shadow-sm shrink-0';
                 maintView.classList.remove('hidden');
                 filterBar.classList.add('hidden');
             }
@@ -1577,10 +1758,12 @@
             localStorage.setItem('lotto_movements', JSON.stringify(movements));
             localStorage.setItem('lotto_maintenance', JSON.stringify(maintenanceLog));
             localStorage.setItem('lotto_categories', JSON.stringify(equipmentCategories));
+            localStorage.setItem('lotto_stock_thresholds', JSON.stringify(stockThresholds));
         }
 
         function renderAll() {
             updateDashboardStats();
+            checkStockAlerts();
             renderInventoryTable();
             renderAgenciesTable();
             renderMovementsTable();
@@ -1593,6 +1776,220 @@
             document.getElementById('statAssigned').innerText = inventory.filter(i => i.status === 'Asignado').length;
             document.getElementById('statMaintenance').innerText = inventory.filter(i => i.status === 'En Mantenimiento').length;
             document.getElementById('statAgencies').innerText = agencies.length;
+        }
+
+        /* --- CONTROL Y ALERTAS DE STOCK MÍNIMO --- */
+        function checkStockAlerts() {
+            const lowStockAlerts = [];
+            const usedCategories = new Set(inventory.map(i => i.type));
+            const allCategories = Array.from(new Set([...equipmentCategories, ...usedCategories]));
+
+            allCategories.forEach(cat => {
+                const inWarehouseCount = inventory.filter(i => i.type.toLowerCase() === cat.toLowerCase() && i.status === 'En Depósito').length;
+                const minThreshold = stockThresholds[cat] !== undefined ? stockThresholds[cat] : 3;
+
+                if (inWarehouseCount <= minThreshold) {
+                    lowStockAlerts.push({
+                        cat,
+                        count: inWarehouseCount,
+                        min: minThreshold
+                    });
+                }
+            });
+
+            const banner = document.getElementById('stockAlertBanner');
+            const textEl = document.getElementById('stockAlertBannerText');
+            const badge = document.getElementById('stockAlertBadge');
+
+            if (lowStockAlerts.length > 0) {
+                if (banner) banner.classList.remove('hidden');
+                if (badge) {
+                    badge.innerText = lowStockAlerts.length;
+                    badge.classList.remove('hidden');
+                }
+
+                const alertMessages = lowStockAlerts.map(a => `Quedan <strong>${a.count} ${a.cat}(s)</strong> en stock (Mín: ${a.min})`);
+                if (textEl) {
+                    textEl.innerHTML = alertMessages.join(' • ');
+                }
+            } else {
+                if (banner) banner.classList.add('hidden');
+                if (badge) badge.classList.add('hidden');
+            }
+
+            return lowStockAlerts;
+        }
+
+        function triggerStockToastAlerts(affectedTypes = []) {
+            affectedTypes.forEach(cat => {
+                const inWarehouseCount = inventory.filter(i => i.type.toLowerCase() === cat.toLowerCase() && i.status === 'En Depósito').length;
+                const minThreshold = stockThresholds[cat] !== undefined ? stockThresholds[cat] : 3;
+
+                if (inWarehouseCount <= minThreshold) {
+                    showToast(`⚠️ ¡Alerta! Quedan ${inWarehouseCount} ${cat}(s) en stock en Depósito (Mínimo: ${minThreshold})`, 'warning');
+                }
+            });
+        }
+
+        function openStockAlertsModal() {
+            renderStockThresholdsInputs();
+            document.getElementById('stockAlertsModal').classList.remove('hidden');
+        }
+
+        function renderStockThresholdsInputs() {
+            const container = document.getElementById('stockThresholdsContainer');
+            container.innerHTML = '';
+
+            const usedCategories = new Set(inventory.map(i => i.type));
+            const allCategories = Array.from(new Set([...equipmentCategories, ...usedCategories]));
+
+            allCategories.forEach(cat => {
+                const currentMin = stockThresholds[cat] !== undefined ? stockThresholds[cat] : 3;
+                const inWarehouse = inventory.filter(i => i.type.toLowerCase() === cat.toLowerCase() && i.status === 'En Depósito').length;
+                const isLow = inWarehouse <= currentMin;
+
+                const row = document.createElement('div');
+                row.className = `flex items-center justify-between p-2.5 sm:p-3 rounded-xl border text-xs shadow-sm ${isLow ? 'bg-amber-50/70 border-amber-300' : 'bg-white border-slate-200'}`;
+
+                row.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="p-1.5 ${isLow ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'} rounded-lg">
+                            <i class="${getEquipmentIcon(cat)} text-sm"></i>
+                        </div>
+                        <div>
+                            <span class="font-bold text-slate-800 text-xs sm:text-sm">${cat}</span>
+                            <span class="text-[10px] sm:text-[11px] block ${isLow ? 'text-amber-800 font-extrabold' : 'text-slate-500'}">
+                                Libre en Depósito: <strong>${inWarehouse}</strong> ${isLow ? '⚠️ (Stock Bajo)' : ''}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        <span class="text-[10px] sm:text-[11px] text-slate-500 font-medium hidden sm:inline">Mínimo:</span>
+                        <input type="number" min="0" max="999" data-cat="${cat}" value="${currentMin}" class="w-14 sm:w-16 py-1 px-2 text-center text-xs sm:text-sm font-bold border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none bg-slate-50">
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function saveStockThresholds(e) {
+            e.preventDefault();
+            const inputs = document.querySelectorAll('#stockThresholdsContainer input[data-cat]');
+            inputs.forEach(input => {
+                const cat = input.getAttribute('data-cat');
+                const val = parseInt(input.value) || 0;
+                stockThresholds[cat] = val;
+            });
+
+            saveData();
+            closeModal('stockAlertsModal');
+            renderAll();
+            showToast('¡Configuración de alertas de stock guardada exitosamente!');
+        }
+
+        function resetStockThresholdsToDefault() {
+            stockThresholds = { ...defaultStockThresholds };
+            renderStockThresholdsInputs();
+            showToast('Valores predeterminados cargados.');
+        }
+
+        /* --- DESGLOSE CUANTITATIVO POR TIPO DE EQUIPO --- */
+        function openQuantitativeModal() {
+            renderQuantitativeReport();
+            document.getElementById('quantitativeModal').classList.remove('hidden');
+        }
+
+        function renderQuantitativeReport() {
+            const tbody = document.getElementById('quantTableBody');
+            tbody.innerHTML = '';
+
+            const categoryStats = [];
+            const usedCategories = new Set(inventory.map(i => i.type));
+            const allCategories = Array.from(new Set([...equipmentCategories, ...usedCategories]));
+
+            let maxCount = 0;
+            let topCategoryName = '--';
+
+            allCategories.forEach(cat => {
+                const itemsOfCat = inventory.filter(i => i.type.toLowerCase() === cat.toLowerCase());
+                const total = itemsOfCat.length;
+                if (total === 0) return;
+
+                const inWarehouse = itemsOfCat.filter(i => i.status === 'En Depósito').length;
+                const inAgency = itemsOfCat.filter(i => i.status === 'Asignado').length;
+                const inMaintenance = itemsOfCat.filter(i => i.status === 'En Mantenimiento').length;
+                const minThreshold = stockThresholds[cat] !== undefined ? stockThresholds[cat] : 3;
+
+                if (total > maxCount) {
+                    maxCount = total;
+                    topCategoryName = `${cat} (${total})`;
+                }
+
+                categoryStats.push({
+                    cat,
+                    total,
+                    inWarehouse,
+                    inAgency,
+                    inMaintenance,
+                    minThreshold,
+                    isLow: inWarehouse <= minThreshold
+                });
+            });
+
+            categoryStats.sort((a, b) => b.total - a.total);
+
+            document.getElementById('quantTotalCount').innerText = inventory.length;
+            document.getElementById('quantTypesCount').innerText = categoryStats.length;
+            document.getElementById('quantTopCategory').innerText = topCategoryName;
+
+            if (categoryStats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-6 text-center text-slate-400">No hay equipos registrados en el inventario.</td></tr>';
+                return;
+            }
+
+            categoryStats.forEach(st => {
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-100 transition ${st.isLow ? 'bg-amber-50/50' : ''}`;
+
+                const alertBadge = st.isLow ? 
+                    `<span class="ml-1.5 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 rounded inline-flex items-center gap-0.5"><i class="fa-solid fa-triangle-exclamation"></i> Mín: ${st.minThreshold}</span>` : '';
+
+                tr.innerHTML = `
+                    <td class="p-2.5 sm:p-3 font-semibold text-slate-900 flex items-center space-x-1.5 sm:space-x-2">
+                        <div class="p-1 sm:p-1.5 bg-slate-100 rounded-lg text-slate-600 shrink-0">
+                            <i class="${getEquipmentIcon(st.cat)} text-xs sm:text-sm"></i>
+                        </div>
+                        <span class="text-xs sm:text-sm font-bold truncate">${st.cat}</span>
+                        ${alertBadge}
+                    </td>
+                    <td class="p-2.5 sm:p-3 text-center font-bold text-slate-900 text-xs sm:text-sm">
+                        <span class="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-slate-100 rounded-full border border-slate-200">${st.total}</span>
+                    </td>
+                    <td class="p-2.5 sm:p-3 text-center">
+                        <span class="px-1.5 py-0.5 rounded font-bold text-xs ${st.isLow ? 'bg-amber-200 text-amber-950 font-black' : st.inWarehouse > 0 ? 'bg-emerald-100 text-emerald-800' : 'text-slate-400'}">${st.inWarehouse}</span>
+                    </td>
+                    <td class="p-2.5 sm:p-3 text-center">
+                        <span class="px-1.5 py-0.5 rounded font-bold text-xs ${st.inAgency > 0 ? 'bg-amber-100 text-amber-800' : 'text-slate-400'}">${st.inAgency}</span>
+                    </td>
+                    <td class="p-2.5 sm:p-3 text-center">
+                        <span class="px-1.5 py-0.5 rounded font-bold text-xs ${st.inMaintenance > 0 ? 'bg-rose-100 text-rose-800' : 'text-slate-400'}">${st.inMaintenance}</span>
+                    </td>
+                    <td class="p-2.5 sm:p-3 text-right">
+                        <button onclick="filterInventoryByType('${st.cat}')" class="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg font-semibold text-[10px] sm:text-[11px] border border-blue-200 transition">
+                            <i class="fa-solid fa-filter mr-0.5"></i> Filtrar
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterInventoryByType(catName) {
+            closeModal('quantitativeModal');
+            switchTab('inventory');
+            document.getElementById('filterType').value = catName;
+            applyFilters();
+            showToast(`Filtrando inventario por: ${catName}`, 'info');
         }
 
         function applyFilters() {
@@ -1627,7 +2024,7 @@
                     item.receptor.toLowerCase().includes(query) ||
                     item.owner.toLowerCase().includes(query);
 
-                const matchesType = !typeFilter || item.type === typeFilter;
+                const matchesType = !typeFilter || item.type.toLowerCase() === typeFilter.toLowerCase();
                 const matchesStatus = !statusFilter || item.status === statusFilter;
                 const matchesBrand = !brandFilter || item.brand.toLowerCase().includes(brandFilter);
 
@@ -1640,22 +2037,21 @@
                 emptyMsg.classList.add('hidden');
                 filtered.forEach(item => {
                     const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                    tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm';
 
                     let statusBadge = '';
                     if (item.status === 'En Depósito') {
-                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 inline-flex items-center gap-1"><i class="fa-solid fa-house-laptop text-[10px]"></i> En Depósito</span>`;
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 inline-flex items-center gap-1"><i class="fa-solid fa-house-laptop text-[9px]"></i> En Depósito</span>`;
                     } else if (item.status === 'Asignado') {
-                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 inline-flex items-center gap-1"><i class="fa-solid fa-store text-[10px]"></i> Asignado</span>`;
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 inline-flex items-center gap-1"><i class="fa-solid fa-store text-[9px]"></i> Asignado</span>`;
                     } else if (item.status === 'En Mantenimiento') {
-                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 inline-flex items-center gap-1"><i class="fa-solid fa-screwdriver-wrench text-[10px]"></i> Mantenimiento</span>`;
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 inline-flex items-center gap-1"><i class="fa-solid fa-screwdriver-wrench text-[9px]"></i> Mantenimiento</span>`;
                     } else {
-                        statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">${item.status}</span>`;
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700">${item.status}</span>`;
                     }
 
                     let actionsHtml = `<div class="flex items-center justify-end space-x-1">`;
                     
-                    // Tag generator button
                     actionsHtml += `
                         <button onclick="openTagModal('${item.id}')" title="Imprimir Etiqueta con Código de Barras / QR" class="p-1.5 text-slate-600 hover:text-brand-600 hover:bg-slate-100 rounded-lg transition">
                             <i class="fa-solid fa-barcode text-sm"></i>
@@ -1665,18 +2061,18 @@
                     if (currentRole !== 'operator') {
                         if (item.status === 'En Depósito') {
                             actionsHtml += `
-                                <button onclick="openDispatchModal('${item.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
-                                    <i class="fa-solid fa-truck-arrow-right text-[11px]"></i>
+                                <button onclick="openDispatchModal('${item.id}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
+                                    <i class="fa-solid fa-truck-arrow-right text-[10px]"></i>
                                     <span>Asignar</span>
                                 </button>
-                                <button onclick="openMaintenanceModal('${item.id}')" title="Enviar a Reparación Técnica" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-1">
-                                    <i class="fa-solid fa-screwdriver-wrench text-sm"></i>
+                                <button onclick="openMaintenanceModal('${item.id}')" title="Enviar a Taller" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
+                                    <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
                                 </button>
                             `;
                         } else if (item.status === 'Asignado') {
                             actionsHtml += `
-                                <button onclick="openReturnModal('${item.id}')" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
-                                    <i class="fa-solid fa-rotate-left text-[11px]"></i>
+                                <button onclick="openReturnModal('${item.id}')" class="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
+                                    <i class="fa-solid fa-rotate-left text-[10px]"></i>
                                     <span>Reingresar</span>
                                 </button>
                             `;
@@ -1684,50 +2080,50 @@
 
                         if (currentRole === 'admin') {
                             actionsHtml += `
-                                <button onclick="deleteEquipment('${item.id}')" title="Eliminar equipo del sistema" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-1">
-                                    <i class="fa-solid fa-trash-can text-sm"></i>
+                                <button onclick="deleteEquipment('${item.id}')" title="Eliminar equipo" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
                                 </button>
                             `;
                         }
                     } else {
-                        actionsHtml += `<span class="text-xs text-slate-400 italic">Solo lectura</span>`;
+                        actionsHtml += `<span class="text-[11px] text-slate-400 italic">Lectura</span>`;
                     }
                     actionsHtml += `</div>`;
 
                     tr.innerHTML = `
-                        <td class="px-4 py-3 font-semibold text-slate-900">
+                        <td class="px-3.5 py-2.5 font-semibold text-slate-900">
                             <div class="flex items-center space-x-2">
-                                <i class="${getEquipmentIcon(item.type)} text-slate-500 text-base"></i>
+                                <i class="${getEquipmentIcon(item.type)} text-slate-500 text-sm"></i>
                                 <span>${item.type}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-3.5 py-2.5">
                             <div class="font-medium text-slate-800">${item.brand} ${item.model}</div>
-                            <div class="text-xs text-slate-400">${item.color || 'Sin color'}</div>
+                            <div class="text-[11px] text-slate-400">${item.color || 'Sin color'}</div>
                         </td>
-                        <td class="px-4 py-3 font-mono font-bold text-slate-700">${item.serial}</td>
-                        <td class="px-4 py-3">
+                        <td class="px-3.5 py-2.5 font-mono font-bold text-slate-700">${item.serial}</td>
+                        <td class="px-3.5 py-2.5">
                             <span class="${item.agency !== '-' ? 'font-semibold text-slate-800' : 'text-slate-400'}">${item.agency}</span>
                         </td>
-                        <td class="px-4 py-3">
-                            <div class="text-xs">
+                        <td class="px-3.5 py-2.5">
+                            <div class="text-[11px]">
                                 ${item.receptor !== '-' ? `<p class="font-medium text-slate-800"><i class="fa-solid fa-user-tag text-slate-400 mr-1"></i> ${item.receptor}</p>` : ''}
                                 ${item.owner !== '-' ? `<p class="text-slate-500"><i class="fa-solid fa-user-tie text-slate-400 mr-1"></i> Dueño: ${item.owner}</p>` : ''}
                                 ${item.receptor === '-' && item.owner === '-' ? '<span class="text-slate-400">-</span>' : ''}
                             </div>
                         </td>
-                        <td class="px-4 py-3 font-mono text-xs">
-                            <div class="text-[11px] text-emerald-800 font-semibold flex items-center space-x-1" title="Fecha y hora de entrada al depósito">
+                        <td class="px-3.5 py-2.5 font-mono text-[11px]">
+                            <div class="text-emerald-800 font-semibold flex items-center space-x-1" title="Fecha y hora de entrada al depósito">
                                 <i class="fa-solid fa-arrow-down-to-bracket text-emerald-600"></i>
                                 <span>Ent: ${item.dateIn || '-'}</span>
                             </div>
-                            <div class="text-[11px] ${item.dateOut && item.dateOut !== '-' ? 'text-amber-800 font-semibold' : 'text-slate-400'} flex items-center space-x-1 mt-0.5" title="Fecha y hora de salida / asignación / taller">
+                            <div class="${item.dateOut && item.dateOut !== '-' ? 'text-amber-800 font-semibold' : 'text-slate-400'} flex items-center space-x-1 mt-0.5" title="Fecha y hora de salida / asignación">
                                 <i class="fa-solid fa-arrow-up-from-bracket ${item.dateOut && item.dateOut !== '-' ? 'text-amber-600' : 'text-slate-300'}"></i>
                                 <span>Sal: ${item.dateOut || '-'}</span>
                             </div>
                         </td>
-                        <td class="px-4 py-3">${statusBadge}</td>
-                        <td class="px-4 py-3 text-right">${actionsHtml}</td>
+                        <td class="px-3.5 py-2.5">${statusBadge}</td>
+                        <td class="px-3.5 py-2.5 text-right">${actionsHtml}</td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -1742,26 +2138,26 @@
             agencies.forEach(ag => {
                 const assignedEquip = inventory.filter(i => i.agency === ag.name && i.status === 'Asignado');
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm';
 
                 tr.innerHTML = `
-                    <td class="px-4 py-3 font-mono font-bold text-indigo-700">${ag.code || ag.id}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-900">${ag.name}</td>
-                    <td class="px-4 py-3 text-slate-600 font-medium">${ag.address || ag.zone || '-'}</td>
-                    <td class="px-4 py-3 font-medium text-slate-800">${ag.owner}</td>
-                    <td class="px-4 py-3 text-slate-500 font-mono">${ag.phone || '-'}</td>
-                    <td class="px-4 py-3">
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold ${assignedEquip.length > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
+                    <td class="px-3.5 py-2.5 font-mono font-bold text-indigo-700">${ag.code || ag.id}</td>
+                    <td class="px-3.5 py-2.5 font-semibold text-slate-900">${ag.name}</td>
+                    <td class="px-3.5 py-2.5 text-slate-600 font-medium">${ag.address || ag.zone || '-'}</td>
+                    <td class="px-3.5 py-2.5 font-medium text-slate-800">${ag.owner}</td>
+                    <td class="px-3.5 py-2.5 text-slate-500 font-mono">${ag.phone || '-'}</td>
+                    <td class="px-3.5 py-2.5">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${assignedEquip.length > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
                             ${assignedEquip.length} equipo(s)
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-right space-x-1">
-                        <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos de esta agencia" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
-                            <i class="fa-solid fa-eye mr-1"></i> Ver Equipos
+                    <td class="px-3.5 py-2.5 text-right space-x-1">
+                        <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-eye mr-1"></i> Equipos
                         </button>
                         ${currentRole === 'admin' ? `
                             <button onclick="deleteAgency('${ag.id}')" title="Eliminar agencia" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-1">
-                                <i class="fa-solid fa-trash-can text-sm"></i>
+                                <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
                         ` : ''}
                     </td>
@@ -1808,16 +2204,16 @@
                 }
 
                 tr.innerHTML = `
-                    <td class="px-4 py-3 font-mono font-bold text-slate-800"><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${mov.date}</td>
-                    <td class="px-4 py-3">${typeBadge}</td>
-                    <td class="px-4 py-3 font-medium text-slate-800">${equipText}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800">${mov.agency || '-'}</td>
-                    <td class="px-4 py-3 text-slate-700">${mov.receptor !== '-' ? mov.receptor : mov.owner}</td>
-                    <td class="px-4 py-3 text-slate-500"><i class="fa-solid fa-user text-[10px] mr-1"></i> ${mov.user}</td>
-                    <td class="px-4 py-3">${hasSig}</td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-3.5 py-2.5 font-mono font-bold text-slate-800"><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${mov.date}</td>
+                    <td class="px-3.5 py-2.5">${typeBadge}</td>
+                    <td class="px-3.5 py-2.5 font-medium text-slate-800">${equipText}</td>
+                    <td class="px-3.5 py-2.5 font-semibold text-slate-800">${mov.agency || '-'}</td>
+                    <td class="px-3.5 py-2.5 text-slate-700">${mov.receptor !== '-' ? mov.receptor : mov.owner}</td>
+                    <td class="px-3.5 py-2.5 text-slate-500"><i class="fa-solid fa-user text-[10px] mr-1"></i> ${mov.user}</td>
+                    <td class="px-3.5 py-2.5">${hasSig}</td>
+                    <td class="px-3.5 py-2.5 text-right">
                         <button onclick="viewReceipt('${mov.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 font-medium text-xs transition">
-                            <i class="fa-solid fa-receipt mr-1"></i> Ver Acta
+                            <i class="fa-solid fa-receipt mr-1"></i> Acta
                         </button>
                     </td>
                 `;
@@ -1844,19 +2240,19 @@
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
 
                 tr.innerHTML = `
-                    <td class="px-4 py-3 font-semibold text-slate-900">
+                    <td class="px-3.5 py-2.5 font-semibold text-slate-900">
                         ${m.equipType} <span class="font-mono text-slate-500">(${m.equipSerial})</span>
                     </td>
-                    <td class="px-4 py-3 text-rose-800 font-medium">${m.fault}</td>
-                    <td class="px-4 py-3 text-slate-700">${m.workshop}</td>
-                    <td class="px-4 py-3 font-mono text-emerald-800 font-semibold"><i class="fa-regular fa-calendar-plus mr-1"></i>${m.dateIn}</td>
-                    <td class="px-4 py-3 font-mono text-slate-500">${m.dateOut || '-'}</td>
-                    <td class="px-4 py-3 font-semibold text-slate-800">${m.cost ? '$' + parseFloat(m.cost).toFixed(2) : '-'}</td>
-                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800">En Taller</span></td>
-                    <td class="px-4 py-3 text-right">
+                    <td class="px-3.5 py-2.5 text-rose-800 font-medium">${m.fault}</td>
+                    <td class="px-3.5 py-2.5 text-slate-700">${m.workshop}</td>
+                    <td class="px-3.5 py-2.5 font-mono text-emerald-800 font-semibold"><i class="fa-regular fa-calendar-plus mr-1"></i>${m.dateIn}</td>
+                    <td class="px-3.5 py-2.5 font-mono text-slate-500">${m.dateOut || '-'}</td>
+                    <td class="px-3.5 py-2.5 font-semibold text-slate-800">${m.cost ? '$' + parseFloat(m.cost).toFixed(2) : '-'}</td>
+                    <td class="px-3.5 py-2.5"><span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800">En Taller</span></td>
+                    <td class="px-3.5 py-2.5 text-right">
                         <button onclick="resolveMaintenance('${m.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition flex items-center space-x-1 ml-auto">
                             <i class="fa-solid fa-check"></i>
-                            <span>Reparado / Devolver</span>
+                            <span>Reparado</span>
                         </button>
                     </td>
                 `;
@@ -2045,6 +2441,10 @@
             }
 
             equipmentCategories.push(newCat);
+            if (stockThresholds[newCat] === undefined) {
+                stockThresholds[newCat] = 3;
+            }
+
             saveData();
             populateTypeDropdowns();
             renderCategoriesList();
@@ -2140,12 +2540,13 @@
 
             const signatureData = canvas.toDataURL();
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const dispatchedType = item.type;
 
             item.status = 'Asignado';
             item.agency = agency;
             item.owner = owner;
             item.receptor = receptor;
-            item.dateOut = now; // Actualiza la fecha y hora de salida
+            item.dateOut = now;
 
             const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
             const movObj = {
@@ -2168,6 +2569,7 @@
             closeModal('dispatchModal');
 
             showToast('¡Despacho completado con éxito!');
+            triggerStockToastAlerts([dispatchedType]);
             viewReceipt(movId);
         }
 
@@ -2234,8 +2636,8 @@
             item.agency = '-';
             item.receptor = '-';
             item.owner = '-';
-            item.dateIn = now;  // Nueva fecha/hora de reingreso a depósito
-            item.dateOut = '-'; // Se limpia la fecha de salida al quedar en depósito
+            item.dateIn = now;
+            item.dateOut = '-';
 
             const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
 
@@ -2379,6 +2781,7 @@
 
             const selectedIds = checkedBoxes.map(cb => cb.value);
             const dispatchedItems = [];
+            const affectedTypes = new Set();
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
 
             selectedIds.forEach(id => {
@@ -2388,7 +2791,8 @@
                     item.agency = agency;
                     item.owner = owner;
                     item.receptor = receptor;
-                    item.dateOut = now; // Guarda la fecha y hora de salida
+                    item.dateOut = now;
+                    affectedTypes.add(item.type);
                     dispatchedItems.push({
                         type: item.type,
                         brandModel: `${item.brand} ${item.model}`,
@@ -2422,6 +2826,7 @@
             closeModal('batchDispatchModal');
 
             showToast(`¡Despacho Combo de ${dispatchedItems.length} equipos completado!`);
+            triggerStockToastAlerts(Array.from(affectedTypes));
             viewReceipt(movId);
         }
 
@@ -2433,7 +2838,7 @@
             }
 
             document.getElementById('excelFileInput').value = '';
-            document.getElementById('excelFileName').innerText = 'No se ha seleccionado ningún archivo';
+            document.getElementById('excelFileName').innerText = 'Ningún archivo seleccionado';
             document.getElementById('excelPreviewContainer').classList.add('hidden');
             
             const btn = document.getElementById('btnConfirmExcelImport');
@@ -2546,7 +2951,7 @@
                     const tbody = document.getElementById('excelPreviewTbody');
 
                     previewSummary.innerText = `${parsedExcelRows.length} equipos válidos procesados`;
-                    agenciesSummary.innerText = `${detectedAgencies.size} agencia(s) nueva(s) a incluir en el catálogo`;
+                    agenciesSummary.innerText = `${detectedAgencies.size} agencia(s) nueva(s) a incluir`;
 
                     tbody.innerHTML = '';
                     parsedExcelRows.slice(0, 15).forEach((row, i) => {
@@ -2557,7 +2962,6 @@
                             <td class="p-2 text-slate-700">${row.brand} ${row.model}</td>
                             <td class="p-2 font-mono font-bold text-emerald-700">${row.serial}</td>
                             <td class="p-2 text-slate-800">${row.agency}</td>
-                            <td class="p-2 font-mono text-[10px] text-slate-600">Ent: ${row.dateIn}<br>Sal: ${row.dateOut}</td>
                         `;
                         tbody.appendChild(tr);
                     });
@@ -2604,6 +3008,7 @@
 
                 if (!equipmentCategories.some(c => c.toLowerCase() === row.type.toLowerCase())) {
                     equipmentCategories.push(row.type);
+                    if (stockThresholds[row.type] === undefined) stockThresholds[row.type] = 3;
                 }
 
                 const existingIdx = inventory.findIndex(i => i.serial.toUpperCase() === row.serial.toUpperCase());
@@ -2626,7 +3031,7 @@
                 receptor: 'Administrador',
                 owner: 'Grupo Andino',
                 user: userCredentials[currentRole].name,
-                obs: `Carga masiva realizada por Administrador: ${addedCount} equipos nuevos agregados, ${updatedCount} actualizados, ${newAgenciesCreated} agencias creadas.`,
+                obs: `Carga masiva realizada por Administrador: ${addedCount} nuevos, ${updatedCount} actualizados, ${newAgenciesCreated} agencias creadas.`,
                 signature: ''
             });
 
@@ -2662,11 +3067,12 @@
             const cost = document.getElementById('maintCost').value;
 
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const maintType = item.type;
 
             item.status = 'En Mantenimiento';
             item.agency = '-';
             item.receptor = '-';
-            item.dateOut = now; // Guarda fecha y hora de salida a taller
+            item.dateOut = now;
 
             maintenanceLog.push({
                 id: 'MNT-' + Math.floor(1000 + Math.random() * 9000),
@@ -2685,6 +3091,7 @@
             renderAll();
             closeModal('maintenanceModal');
             showToast('Equipo enviado a Mantenimiento Técnico.', 'warning');
+            triggerStockToastAlerts([maintType]);
         }
 
         function resolveMaintenance(maintId) {
@@ -2697,12 +3104,12 @@
                 () => {
                     const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
                     maint.status = 'Reparado';
-                    maint.dateOut = now; // Registra fecha/hora de salida de taller
+                    maint.dateOut = now;
 
                     const item = inventory.find(i => i.id === maint.equipId);
                     if (item) {
                         item.status = 'En Depósito';
-                        item.dateIn = now; // Registra fecha/hora de reingreso a depósito
+                        item.dateIn = now;
                         item.dateOut = '-';
                     }
 
@@ -2721,7 +3128,6 @@
             document.getElementById('tagTitle').innerText = `${item.brand} ${item.model}`;
             document.getElementById('tagSerial').innerText = item.serial;
 
-            // Generate Barcode using JsBarcode
             setTimeout(() => {
                 try {
                     JsBarcode("#tagBarcode", item.serial, {
@@ -2734,7 +3140,6 @@
                     console.error("Barcode gen error", e);
                 }
 
-                // Generate QR code
                 const qrContainer = document.getElementById('tagQRCode');
                 qrContainer.innerHTML = '';
                 try {
@@ -2939,14 +3344,15 @@
             document.getElementById(id).classList.add('hidden');
         }
 
+        /* --- APARTADO DE CÁMARA ESCÁNER HD ALTA CALIDAD Y VELOCIDAD OPTIMIZADO PARA ANDROID --- */
         function openScannerModal(targetField) {
             activeScanTarget = targetField;
             const modal = document.getElementById('qrScannerModal');
             const statusBox = document.getElementById('scannerStatus');
             modal.classList.remove('hidden');
 
-            statusBox.className = "p-2.5 bg-slate-50 text-slate-600 rounded-lg text-xs font-medium text-center border border-slate-200";
-            statusBox.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-brand-600 mr-1.5"></i> Inicializando cámara...`;
+            statusBox.className = "p-2.5 bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold text-center border border-slate-200";
+            statusBox.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-emerald-600 mr-1.5"></i> Inicializando cámara HD de alta velocidad...`;
 
             if (html5QrCodeScanner) {
                 stopScanner();
@@ -2954,26 +3360,58 @@
 
             setTimeout(() => {
                 try {
-                    html5QrCodeScanner = new Html5Qrcode("qr-reader");
-                    const config = { 
-                        fps: 10, 
-                        qrbox: { width: 220, height: 180 },
-                        aspectRatio: 1.0
+                    // Configuración para usar decodificación nativa por hardware en Android si está disponible
+                    html5QrCodeScanner = new Html5Qrcode("qr-reader", {
+                        verbose: false,
+                        experimentalFeatures: {
+                            useBarCodeDetectorIfSupported: true
+                        }
+                    });
+
+                    // Configuración de restricciones de video en ALTA RESOLUCIÓN (1080p / 720p HD)
+                    const cameraConstraints = {
+                        facingMode: { exact: "environment" },
+                        width: { min: 1024, ideal: 1920, max: 2560 },
+                        height: { min: 720, ideal: 1080, max: 1440 },
+                        focusMode: "continuous"
                     };
 
-                    html5QrCodeScanner.start(
-                        { facingMode: "environment" },
-                        config,
-                        onScanSuccess,
-                        onScanFailure
-                    ).then(() => {
-                        statusBox.className = "p-2.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-medium text-center border border-emerald-200";
-                        statusBox.innerHTML = `<i class="fa-solid fa-camera text-emerald-600 mr-1"></i> Cámara activa. Escaneando código...`;
-                    }).catch(err => {
-                        console.warn("Camera start warning:", err);
-                        statusBox.className = "p-2.5 bg-amber-50 text-amber-800 rounded-lg text-xs font-medium text-center border border-amber-200";
-                        statusBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i> No se pudo acceder a la cámara. Puede seleccionar una imagen.`;
-                    });
+                    const fallbackConstraints = {
+                        facingMode: "environment",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    };
+
+                    const config = { 
+                        fps: 25, // Tasa de refresco elevada a 25 FPS para lectura instantánea de barras
+                        qrbox: (viewfinderWidth, viewfinderHeight) => {
+                            const w = Math.floor(viewfinderWidth * 0.85);
+                            const h = Math.floor(viewfinderHeight * 0.65);
+                            return { width: Math.max(w, 240), height: Math.max(h, 160) };
+                        },
+                        aspectRatio: 1.333333
+                    };
+
+                    const startWithConstraints = (constraints) => {
+                        return html5QrCodeScanner.start(
+                            constraints,
+                            config,
+                            onScanSuccess,
+                            onScanFailure
+                        );
+                    };
+
+                    startWithConstraints(cameraConstraints)
+                        .catch(() => startWithConstraints(fallbackConstraints))
+                        .then(() => {
+                            statusBox.className = "p-2.5 bg-emerald-50 text-emerald-800 rounded-lg text-xs font-semibold text-center border border-emerald-200";
+                            statusBox.innerHTML = `<i class="fa-solid fa-camera text-emerald-600 mr-1"></i> Cámara HD Activa con Enfoque Continuo. Escaneando...`;
+                        })
+                        .catch(err => {
+                            console.warn("Camera start warning:", err);
+                            statusBox.className = "p-2.5 bg-amber-50 text-amber-800 rounded-lg text-xs font-semibold text-center border border-amber-200";
+                            statusBox.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-600 mr-1"></i> No se pudo acceder a la cámara trasera HD. Puede seleccionar una foto.`;
+                        });
                 } catch (e) {
                     console.error("Scanner init error:", e);
                     statusBox.innerHTML = `Error al iniciar cámara. Use la opción de cargar imagen.`;
@@ -3026,7 +3464,7 @@
             if (!file) return;
 
             const statusBox = document.getElementById('scannerStatus');
-            statusBox.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Procesando archivo de imagen...`;
+            statusBox.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Procesando foto en alta definición...`;
 
             const html5QrCode = new Html5Qrcode("qr-reader");
             html5QrCode.scanFile(file, true)
@@ -3035,7 +3473,7 @@
                 })
                 .catch(err => {
                     statusBox.className = "p-2.5 bg-rose-50 text-rose-800 rounded-lg text-xs font-medium text-center border border-rose-200";
-                    statusBox.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600 mr-1"></i> No se detectó código QR o de barras en la imagen.`;
+                    statusBox.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600 mr-1"></i> No se detectó código QR o de barras en la foto.`;
                 });
         }
 
@@ -3101,6 +3539,7 @@
                 movements,
                 maintenanceLog,
                 categories: equipmentCategories,
+                stockThresholds,
                 exportDate: new Date().toISOString()
             };
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -3127,6 +3566,7 @@
                         movements = data.movements || [];
                         maintenanceLog = data.maintenanceLog || [];
                         if (data.categories) equipmentCategories = data.categories;
+                        if (data.stockThresholds) stockThresholds = data.stockThresholds;
 
                         saveData();
                         populateTypeDropdowns();
