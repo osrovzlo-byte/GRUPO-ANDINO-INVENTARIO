@@ -350,15 +350,21 @@
 
         <!-- VIEW 2: AGENCIES CATALOG TABLE RESPONSIVA -->
         <div id="agenciesView" class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden hidden space-y-4">
-            <div class="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div class="p-3.5 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                 <div>
                     <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Directorio Oficial de Agencias / Bancas POS</h3>
                     <p class="text-[11px] sm:text-xs text-slate-500">Puntos de venta habilitados para instalación de equipos</p>
                 </div>
-                <button onclick="openAddAgencyModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1 shrink-0">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>+ Nueva Agencia</span>
-                </button>
+                <div class="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
+                    <button id="btnImportAgenciesExcel" onclick="openAgenciesExcelImportModal()" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1" title="Cargar catálogo de agencias desde Excel">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                        <span>Importar Excel Agencias</span>
+                    </button>
+                    <button onclick="openAddAgencyModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>+ Nueva Agencia</span>
+                    </button>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs sm:text-sm text-slate-600 min-w-[650px]">
@@ -637,7 +643,22 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Destino Inicial del Equipo *</label>
+                        <select id="addInitialStatus" onchange="toggleAddMaintenanceFields()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-semibold text-slate-800">
+                            <option value="En Depósito">📦 Depósito Central (Disponible)</option>
+                            <option value="En Mantenimiento">🔧 Mantenimiento Técnico (Taller)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color</label>
+                        <input type="text" id="addColor" placeholder="Negro..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Marca *</label>
                         <input type="text" id="addBrand" required placeholder="HP, Epson..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
@@ -646,21 +667,36 @@
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Modelo *</label>
                         <input type="text" id="addModel" required placeholder="ProBook..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                     </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Color</label>
-                        <input type="text" id="addColor" placeholder="Negro..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                </div>
+
+                <!-- Campos Adicionales si se selecciona Mantenimiento -->
+                <div id="addMaintDetailsContainer" class="hidden p-3 bg-rose-50 rounded-xl border border-rose-200 space-y-2">
+                    <p class="text-[11px] font-bold text-rose-900"><i class="fa-solid fa-screwdriver-wrench text-rose-600 mr-1"></i> Datos de Mantenimiento Técnico</p>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <div>
+                            <label class="block text-[10px] font-bold text-rose-800 uppercase mb-0.5">Taller / Técnico Responsable</label>
+                            <input type="text" id="addMaintWorkshop" placeholder="Ej: Taller Central POS" class="w-full py-1.5 px-2.5 text-xs border border-rose-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none bg-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-rose-800 uppercase mb-0.5">Costo Estimado ($)</label>
+                            <input type="number" step="0.01" id="addMaintCost" placeholder="25.00" class="w-full py-1.5 px-2.5 text-xs border border-rose-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none bg-white">
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Estado Físico Inicial</label>
-                    <textarea id="addObs" rows="2" placeholder="Ej: Equipo nuevo en caja original, incluye cables y transformador..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones / Estado Físico / Falla Inicial</label>
+                    <textarea id="addObs" rows="2" placeholder="Ej: Equipo requiere revisión de fuente / Equipo nuevo en caja..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
-                    <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center space-x-1.5">
-                        <i class="fa-solid fa-check"></i>
+                <div class="flex flex-col sm:flex-row justify-end items-stretch sm:items-center gap-2 pt-3 border-t border-slate-100">
+                    <button type="button" onclick="closeModal('addModal')" class="px-4 py-2 text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition text-center">Cancelar</button>
+                    <button type="submit" onclick="setAddSubmitDestination('maintenance')" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
+                        <span>Registrar en Mantenimiento</span>
+                    </button>
+                    <button type="submit" onclick="setAddSubmitDestination('warehouse')" class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-check text-xs"></i>
                         <span>Guardar en Depósito</span>
                     </button>
                 </div>
@@ -985,6 +1021,70 @@
                 <button id="btnConfirmExcelImport" disabled onclick="executeExcelImport()" class="px-5 py-2 text-xs font-semibold text-white bg-slate-400 cursor-not-allowed rounded-lg shadow transition flex items-center space-x-1.5">
                     <i class="fa-solid fa-file-import"></i>
                     <span>Confirmar e Importar</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 16: IMPORTACIÓN DE AGENCIAS POS DESDE EXCEL -->
+    <div id="agenciesExcelImportModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-indigo-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+                <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-file-excel text-indigo-400"></i>
+                    <span>Importar Agencias POS desde Excel (.xlsx, .csv)</span>
+                </h3>
+                <button onclick="closeModal('agenciesExcelImportModal')" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+                <div class="p-3.5 bg-indigo-50 rounded-xl border border-indigo-200 text-xs text-indigo-900 space-y-2">
+                    <p class="font-bold text-sm"><i class="fa-solid fa-circle-info text-indigo-600 mr-1"></i> Carga Masiva del Catálogo de Agencias</p>
+                    <p>Suba el archivo de Excel o CSV con el listado de agencias/bancas POS. El sistema reconocerá automáticamente cada columna y registrará o actualizará la información.</p>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1 border-t border-indigo-200/60">
+                        <span class="text-[10px] sm:text-[11px] font-semibold text-indigo-800">Columnas: <code>Código, Nombre Agencia, Ubicación/Dirección, Dueño/Responsable, Teléfono, Supervisor, Zona</code></span>
+                        <button type="button" onclick="downloadSampleAgenciesExcel()" class="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold shadow transition flex items-center space-x-1 shrink-0">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Plantilla Ejemplo</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="border-2 border-dashed border-indigo-300 hover:border-indigo-500 rounded-2xl p-5 text-center bg-slate-50 transition cursor-pointer" onclick="document.getElementById('agenciesExcelFileInput').click()">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl sm:text-4xl text-indigo-600 mb-2"></i>
+                    <p class="text-xs font-bold text-slate-700">Haga clic aquí para seleccionar el archivo Excel de Agencias (.xlsx, .csv)</p>
+                    <p class="text-[10px] sm:text-[11px] text-slate-400 mt-1" id="agenciesExcelFileName">Ningún archivo seleccionado</p>
+                    <input type="file" id="agenciesExcelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleAgenciesExcelFileSelect(event)">
+                </div>
+
+                <div id="agenciesExcelPreviewContainer" class="hidden space-y-3">
+                    <div class="flex items-center justify-between text-xs border-b pb-2">
+                        <span class="font-bold text-slate-800" id="agenciesExcelPreviewSummary">0 agencias detectadas</span>
+                        <span class="text-indigo-700 font-semibold text-[11px]">Listas para ser incorporadas</span>
+                    </div>
+                    <div class="max-h-40 overflow-y-auto border rounded-xl bg-white text-xs">
+                        <table class="w-full text-left divide-y divide-slate-200">
+                            <thead class="bg-slate-100 font-bold text-[10px] sm:text-[11px] text-slate-600 sticky top-0">
+                                <tr>
+                                    <th class="p-2">Código</th>
+                                    <th class="p-2">Nombre Agencia</th>
+                                    <th class="p-2">Ubicación / Dirección</th>
+                                    <th class="p-2">Dueño</th>
+                                    <th class="p-2">Teléfono</th>
+                                </tr>
+                            </thead>
+                            <tbody id="agenciesExcelPreviewTbody" class="divide-y divide-slate-100 text-[10px] sm:text-[11px] text-slate-700">
+                                <!-- Preview rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-4 sm:px-6 py-3 border-t border-slate-100 flex justify-end space-x-3 shrink-0">
+                <button onclick="closeModal('agenciesExcelImportModal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+                <button id="btnConfirmAgenciesExcelImport" disabled onclick="executeAgenciesExcelImport()" class="px-5 py-2 text-xs font-semibold text-white bg-slate-400 cursor-not-allowed rounded-lg shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Confirmar e Importar Agencias</span>
                 </button>
             </div>
         </div>
@@ -2063,12 +2163,13 @@
                     if (currentRole !== 'operator') {
                         if (item.status === 'En Depósito') {
                             actionsHtml += `
-                                <button onclick="openDispatchModal('${item.id}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
+                                <button onclick="openDispatchModal('${item.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
                                     <i class="fa-solid fa-truck-arrow-right text-[10px]"></i>
                                     <span>Asignar</span>
                                 </button>
-                                <button onclick="openMaintenanceModal('${item.id}')" title="Enviar a Taller" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
-                                    <i class="fa-solid fa-screwdriver-wrench text-xs"></i>
+                                <button onclick="openMaintenanceModal('${item.id}')" title="Enviar a Mantenimiento Técnico" class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1 ml-1">
+                                    <i class="fa-solid fa-screwdriver-wrench text-[10px]"></i>
+                                    <span>Mantenimiento</span>
                                 </button>
                             `;
                         } else if (item.status === 'Asignado') {
@@ -2262,12 +2363,40 @@
             });
         }
 
+        let targetAddDestination = 'warehouse'; // 'warehouse' or 'maintenance'
+
+        function setAddSubmitDestination(dest) {
+            targetAddDestination = dest;
+            const select = document.getElementById('addInitialStatus');
+            if (select) {
+                select.value = dest === 'maintenance' ? 'En Mantenimiento' : 'En Depósito';
+                toggleAddMaintenanceFields();
+            }
+        }
+
+        function toggleAddMaintenanceFields() {
+            const statusSelect = document.getElementById('addInitialStatus');
+            const container = document.getElementById('addMaintDetailsContainer');
+            if (statusSelect && container) {
+                if (statusSelect.value === 'En Mantenimiento') {
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            }
+        }
+
         function openAddModal() {
             if (currentRole === 'operator') {
                 showToast('No tiene permisos para agregar equipos.', 'error');
                 return;
             }
+            targetAddDestination = 'warehouse';
             document.getElementById('addEquipmentForm').reset();
+            const statusSelect = document.getElementById('addInitialStatus');
+            if (statusSelect) statusSelect.value = 'En Depósito';
+            toggleAddMaintenanceFields();
+
             document.getElementById('addModal').classList.remove('hidden');
         }
 
@@ -2279,6 +2408,10 @@
             const model = document.getElementById('addModel').value.trim();
             const color = document.getElementById('addColor').value.trim();
             const obs = document.getElementById('addObs').value.trim();
+
+            const statusSelect = document.getElementById('addInitialStatus');
+            const initialStatus = statusSelect ? statusSelect.value : (targetAddDestination === 'maintenance' ? 'En Mantenimiento' : 'En Depósito');
+            const isMaint = initialStatus === 'En Mantenimiento';
 
             if (inventory.some(i => i.serial.toUpperCase() === serial)) {
                 showToast('¡Error! Ya existe un equipo registrado con ese número de serial.', 'error');
@@ -2293,35 +2426,73 @@
                 brand,
                 model,
                 color,
-                status: 'En Depósito',
+                status: isMaint ? 'En Mantenimiento' : 'En Depósito',
                 agency: '-',
                 receptor: '-',
                 owner: '-',
                 obs,
                 dateIn: now,
-                dateOut: '-'
+                dateOut: isMaint ? now : '-'
             };
 
             inventory.push(newItem);
 
-            movements.push({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
-                date: now,
-                type: 'Entrada Depósito',
-                items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color }],
-                agency: 'Depósito Central',
-                receptorType: '-',
-                receptor: '-',
-                owner: '-',
-                user: userCredentials[currentRole].name,
-                obs: obs || 'Ingreso inicial a bodega central',
-                signature: ''
-            });
+            if (isMaint) {
+                const workshop = document.getElementById('addMaintWorkshop')?.value.trim() || 'Taller Central';
+                const cost = document.getElementById('addMaintCost')?.value || '';
 
-            saveData();
-            renderAll();
-            closeModal('addModal');
-            showToast('¡Equipo registrado con éxito en el Depósito Central!');
+                maintenanceLog.push({
+                    id: 'MNT-' + Math.floor(1000 + Math.random() * 9000),
+                    equipId: newItem.id,
+                    equipType: newItem.type,
+                    equipSerial: newItem.serial,
+                    fault: obs || 'Ingreso inicial directo a Mantenimiento Técnico',
+                    workshop: workshop,
+                    cost: cost,
+                    dateIn: now,
+                    dateOut: '-',
+                    status: 'En Taller'
+                });
+
+                movements.push({
+                    id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                    date: now,
+                    type: 'Entrada Mantenimiento',
+                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color }],
+                    agency: 'Taller Técnico / Mantenimiento',
+                    receptorType: 'Mantenimiento',
+                    receptor: workshop,
+                    owner: '-',
+                    user: userCredentials[currentRole].name,
+                    obs: `Ingreso directo a mantenimiento. Falla: ${obs || 'Revisión inicial'}`,
+                    signature: ''
+                });
+
+                saveData();
+                renderAll();
+                closeModal('addModal');
+                showToast('¡Equipo registrado con éxito directamente en Mantenimiento Técnico!', 'warning');
+                triggerStockToastAlerts([newItem.type]);
+            } else {
+                movements.push({
+                    id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                    date: now,
+                    type: 'Entrada Depósito',
+                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color }],
+                    agency: 'Depósito Central',
+                    receptorType: '-',
+                    receptor: '-',
+                    owner: '-',
+                    user: userCredentials[currentRole].name,
+                    obs: obs || 'Ingreso inicial a bodega central',
+                    signature: ''
+                });
+
+                saveData();
+                renderAll();
+                closeModal('addModal');
+                showToast('¡Equipo registrado con éxito en el Depósito Central!');
+            }
         }
 
         function deleteEquipment(id) {
@@ -3044,6 +3215,163 @@
             closeModal('excelImportModal');
 
             showToast(`¡Importación exitosa! ${addedCount} nuevos equipos, ${newAgenciesCreated} agencias creadas.`, 'success');
+        }
+
+        /* --- IMPORTACIÓN DE AGENCIAS DESDE EXCEL (.XLSX, .CSV) --- */
+        let parsedAgenciesExcelRows = [];
+
+        function openAgenciesExcelImportModal() {
+            if (currentRole === 'operator') {
+                showToast('No tiene permisos para importar agencias.', 'error');
+                return;
+            }
+
+            document.getElementById('agenciesExcelFileInput').value = '';
+            document.getElementById('agenciesExcelFileName').innerText = 'Ningún archivo seleccionado';
+            document.getElementById('agenciesExcelPreviewContainer').classList.add('hidden');
+            
+            const btn = document.getElementById('btnConfirmAgenciesExcelImport');
+            btn.disabled = true;
+            btn.className = "px-5 py-2 text-xs font-semibold text-white bg-slate-400 cursor-not-allowed rounded-lg shadow transition flex items-center space-x-1.5";
+
+            parsedAgenciesExcelRows = [];
+            document.getElementById('agenciesExcelImportModal').classList.remove('hidden');
+        }
+
+        function downloadSampleAgenciesExcel() {
+            const sampleData = [
+                { "Código": "AG-101", "Nombre Agencia": "Agencia Lotería El Trébol #01", "Ubicación/Dirección": "Av. Principal #45, Sector Centro", "Dueño/Responsable": "Carlos Ramos", "Teléfono": "0414-1234567", "Supervisor": "Marcos Ruiz", "Zona": "Zona Central" },
+                { "Código": "AG-102", "Nombre Agencia": "Agencia Lotería La Suerte #12", "Ubicación/Dirección": "Calle 10 C.C. Plaza Local 4", "Dueño/Responsable": "María Fernández", "Teléfono": "0412-9876543", "Supervisor": "Marcos Ruiz", "Zona": "Zona Norte" },
+                { "Código": "AG-103", "Nombre Agencia": "Agencia Lotería El Dorado #05", "Ubicación/Dirección": "Av. Las Palmas Edif. Sol", "Dueño/Responsable": "José Gregorio", "Teléfono": "0424-5554433", "Supervisor": "Ana Blanco", "Zona": "Zona Este" }
+            ];
+            const ws = XLSX.utils.json_to_sheet(sampleData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "AgenciasPOS");
+            XLSX.writeFile(wb, "Plantilla_Agencias_POS_GrupoAndino.xlsx");
+            showToast("Plantilla Excel de Agencias descargada.");
+        }
+
+        function handleAgenciesExcelFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('agenciesExcelFileName').innerText = file.name;
+            showToast("Procesando archivo de agencias...", "info");
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = new Uint8Array(evt.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+                    if (rawRows.length === 0) {
+                        showToast('El archivo de Excel parece estar vacío.', 'warning');
+                        return;
+                    }
+
+                    parsedAgenciesExcelRows = [];
+
+                    rawRows.forEach((r, idx) => {
+                        const getVal = (keys) => {
+                            for (let k of keys) {
+                                for (let rk in r) {
+                                    if (rk.toLowerCase().trim() === k.toLowerCase()) return String(r[rk]).trim();
+                                }
+                            }
+                            return '';
+                        };
+
+                        const name = getVal(['nombre agencia', 'nombre', 'agencia', 'name', 'banca']);
+                        if (!name) return;
+
+                        let code = getVal(['código', 'codigo', 'code', 'id', 'cod']).toUpperCase();
+                        if (!code) {
+                            code = `AG-${100 + agencies.length + parsedAgenciesExcelRows.length + 1}`;
+                        }
+
+                        const zone = getVal(['zona', 'region', 'región', 'zone']) || 'General';
+                        const address = getVal(['ubicación/dirección', 'ubicación', 'ubicacion', 'dirección', 'direccion', 'address', 'ubicacion/direccion']) || 'Dirección por especificar';
+                        const owner = getVal(['dueño/responsable', 'dueño', 'dueno', 'titular', 'responsable', 'owner', 'dueño/responsable']) || 'Por Asignar';
+                        const phone = getVal(['teléfono', 'telefono', 'phone', 'contacto']) || 'Sin teléfono';
+                        const supervisor = getVal(['supervisor', 'manager', 'encargado']) || 'Por Asignar';
+
+                        parsedAgenciesExcelRows.push({
+                            id: code,
+                            code: code,
+                            name: name,
+                            zone: zone,
+                            address: address,
+                            owner: owner,
+                            phone: phone,
+                            supervisor: supervisor
+                        });
+                    });
+
+                    if (parsedAgenciesExcelRows.length === 0) {
+                        showToast('No se encontraron agencias válidas en el Excel. Verifique la columna Nombre de Agencia.', 'warning');
+                        return;
+                    }
+
+                    const previewSummary = document.getElementById('agenciesExcelPreviewSummary');
+                    const tbody = document.getElementById('agenciesExcelPreviewTbody');
+
+                    previewSummary.innerText = `${parsedAgenciesExcelRows.length} agencias POS detectadas`;
+
+                    tbody.innerHTML = '';
+                    parsedAgenciesExcelRows.slice(0, 15).forEach((row, i) => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="p-2 font-mono font-bold text-indigo-700">${row.code}</td>
+                            <td class="p-2 font-semibold text-slate-800">${row.name}</td>
+                            <td class="p-2 text-slate-700">${row.address}</td>
+                            <td class="p-2 text-slate-800 font-medium">${row.owner}</td>
+                            <td class="p-2 font-mono text-slate-600">${row.phone}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('agenciesExcelPreviewContainer').classList.remove('hidden');
+
+                    const btn = document.getElementById('btnConfirmAgenciesExcelImport');
+                    btn.disabled = false;
+                    btn.className = "px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 cursor-pointer rounded-lg shadow transition flex items-center space-x-1.5";
+
+                    showToast(`Excel leído: ${parsedAgenciesExcelRows.length} agencias listas para importar.`, "success");
+                } catch (err) {
+                    console.error("Agencies Excel parse error:", err);
+                    showToast('Error al leer el archivo Excel de agencias.', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function executeAgenciesExcelImport() {
+            if (parsedAgenciesExcelRows.length === 0) return;
+
+            let addedCount = 0;
+            let updatedCount = 0;
+
+            parsedAgenciesExcelRows.forEach(row => {
+                const existingIdx = agencies.findIndex(a => a.id.toLowerCase() === row.id.toLowerCase() || a.name.toLowerCase() === row.name.toLowerCase());
+                if (existingIdx >= 0) {
+                    agencies[existingIdx] = { ...agencies[existingIdx], ...row };
+                    updatedCount++;
+                } else {
+                    agencies.push(row);
+                    addedCount++;
+                }
+            });
+
+            saveData();
+            populateAgencyDropdowns();
+            renderAgenciesTable();
+            updateDashboardStats();
+            closeModal('agenciesExcelImportModal');
+
+            showToast(`¡Importación de agencias exitosa! ${addedCount} agencias nuevas, ${updatedCount} actualizadas.`, 'success');
         }
 
         function openMaintenanceModal(id) {
