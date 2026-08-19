@@ -1504,6 +1504,35 @@
         </div>
     </div>
 
+    <!-- FIREBASE SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdi-qT9an2vdIe92q-fbPCfvVZD5IAn90",
+            authDomain: "grupo-andino-inventario-65886.firebaseapp.com",
+            projectId: "grupo-andino-inventario-65886",
+            storageBucket: "grupo-andino-inventario-65886.firebasestorage.app",
+            messagingSenderId: "435740032183",
+            appId: "1:435740032183:web:f1c39e83e3c8e4b3842132"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Export to global window so the old script can use it
+        window.db = db;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.onSnapshot = onSnapshot;
+        window.firebaseInitialized = true;
+        
+        // Trigger a custom event when Firebase is ready
+        window.dispatchEvent(new Event('firebaseReady'));
+    </script>
+
     <!-- APPLICATION LOGIC & JAVASCRIPT -->
     <script>
         // APP STATE & DATA STORES
@@ -1575,11 +1604,116 @@
         // Initial Seed Maintenance History
         const initialMaintenance = [];
 
-        // Load data from LocalStorage
-        let inventory = JSON.parse(localStorage.getItem('lotto_inventory')) || initialInventory;
-        let agencies = JSON.parse(localStorage.getItem('lotto_agencies')) || initialAgencies;
-        let movements = JSON.parse(localStorage.getItem('lotto_movements')) || initialMovements;
-        let maintenanceLog = JSON.parse(localStorage.getItem('lotto_maintenance')) || initialMaintenance;
+        // Data arrays (Will be populated by Firestore)
+        let inventory = initialInventory;
+        let agencies = initialAgencies;
+        let movements = initialMovements;
+        let maintenanceLog = initialMaintenance;
+        
+        // Tracking states to prevent overwriting untouched data
+        let lastSavedInventory = "";
+        let lastSavedAgencies = "";
+        let lastSavedMovements = "";
+        let lastSavedMaintenance = "";
+        let lastSavedSettings = "";
+
+        function loadDataFromFirestore() {
+            showToast('Conectando a la nube...', 'info');
+            
+            // Listen to Inventory
+            window.onSnapshot(window.doc(window.db, "lotto_data", "inventory"), (docSnap) => {
+                if (docSnap.exists()) {
+                    inventory = docSnap.data().list || [];
+                    lastSavedInventory = JSON.stringify(inventory);
+                    renderAll();
+                } else {
+                    let localInv = JSON.parse(localStorage.getItem('lotto_inventory'));
+                    if (localInv && localInv.length > 0) {
+                        inventory = localInv;
+                        window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory });
+                    }
+                }
+            });
+
+            // Listen to Agencies
+            window.onSnapshot(window.doc(window.db, "lotto_data", "agencies"), (docSnap) => {
+                if (docSnap.exists()) {
+                    agencies = docSnap.data().list || [];
+                    lastSavedAgencies = JSON.stringify(agencies);
+                    populateAgencyDropdowns();
+                    renderAgenciesTable();
+                    updateDashboardStats(); // Refresh dashboard to show correct counts
+                } else {
+                    let localAgencies = JSON.parse(localStorage.getItem('lotto_agencies'));
+                    if (localAgencies && localAgencies.length > 0) {
+                        agencies = localAgencies;
+                        window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies });
+                    }
+                }
+            });
+
+            // Listen to Movements
+            window.onSnapshot(window.doc(window.db, "lotto_data", "movements"), (docSnap) => {
+                if (docSnap.exists()) {
+                    movements = docSnap.data().list || [];
+                    lastSavedMovements = JSON.stringify(movements);
+                    renderMovementsTable();
+                } else {
+                    let localMovs = JSON.parse(localStorage.getItem('lotto_movements'));
+                    if (localMovs && localMovs.length > 0) {
+                        movements = localMovs;
+                        window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: movements });
+                    }
+                }
+            });
+
+            // Listen to Maintenance
+            window.onSnapshot(window.doc(window.db, "lotto_data", "maintenance"), (docSnap) => {
+                if (docSnap.exists()) {
+                    maintenanceLog = docSnap.data().list || [];
+                    lastSavedMaintenance = JSON.stringify(maintenanceLog);
+                    renderMaintenanceTable();
+                } else {
+                    let localMaint = JSON.parse(localStorage.getItem('lotto_maintenance'));
+                    if (localMaint && localMaint.length > 0) {
+                        maintenanceLog = localMaint;
+                        window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog });
+                    }
+                }
+            });
+            
+            // Listen to Settings (Categories & Thresholds)
+            window.onSnapshot(window.doc(window.db, "lotto_data", "settings"), (docSnap) => {
+                if (docSnap.exists()) {
+                    let data = docSnap.data();
+                    equipmentCategories = data.categories || defaultCategories;
+                    stockThresholds = data.thresholds || defaultStockThresholds;
+                    lastSavedSettings = JSON.stringify({ categories: equipmentCategories, thresholds: stockThresholds });
+                    populateTypeDropdowns();
+                } else {
+                    let localCat = JSON.parse(localStorage.getItem('lotto_categories'));
+                    let localThresh = JSON.parse(localStorage.getItem('lotto_stock_thresholds'));
+                    if (localCat) equipmentCategories = localCat;
+                    if (localThresh) stockThresholds = localThresh;
+                    window.setDoc(window.doc(window.db, "lotto_data", "settings"), { categories: equipmentCategories, thresholds: stockThresholds });
+                }
+            });
+
+            // Listen to Users
+            window.onSnapshot(window.doc(window.db, "lotto_data", "users"), (docSnap) => {
+                if (docSnap.exists()) {
+                    userCredentials = docSnap.data().data;
+                } else {
+                    let localUsers = JSON.parse(localStorage.getItem('lotto_users'));
+                    if (localUsers) {
+                        userCredentials = localUsers;
+                        window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials });
+                    }
+                }
+            });
+            
+            showToast('Sincronización activa', 'success');
+        }
 
         // Signature Canvas Variables
         let canvas, ctx;
@@ -1593,7 +1727,12 @@
             populateTypeDropdowns();
             populateAgencyDropdowns();
             updateRoleUI();
-            renderAll();
+            
+            if (window.firebaseInitialized) {
+                loadDataFromFirestore();
+            } else {
+                window.addEventListener('firebaseReady', loadDataFromFirestore);
+            }
         };
 
         window.addEventListener('resize', () => {
@@ -1812,6 +1951,9 @@
             userCredentials.operator.password = document.getElementById('pwdOperator').value.trim();
 
             localStorage.setItem('lotto_users', JSON.stringify(userCredentials));
+            if (window.db) {
+                window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials });
+            }
             showToast('¡Claves de acceso actualizadas con éxito!');
             closeModal('manageUsersModal');
         }
@@ -1855,6 +1997,39 @@
         }
 
         function saveData() {
+            if (window.db) {
+                let currentInv = JSON.stringify(inventory);
+                if (currentInv !== lastSavedInventory) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory });
+                    lastSavedInventory = currentInv;
+                }
+
+                let currentAgencies = JSON.stringify(agencies);
+                if (currentAgencies !== lastSavedAgencies) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies });
+                    lastSavedAgencies = currentAgencies;
+                }
+
+                let currentMovs = JSON.stringify(movements);
+                if (currentMovs !== lastSavedMovements) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: movements });
+                    lastSavedMovements = currentMovs;
+                }
+
+                let currentMaint = JSON.stringify(maintenanceLog);
+                if (currentMaint !== lastSavedMaintenance) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog });
+                    lastSavedMaintenance = currentMaint;
+                }
+
+                let currentSettings = JSON.stringify({ categories: equipmentCategories, thresholds: stockThresholds });
+                if (currentSettings !== lastSavedSettings) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "settings"), { categories: equipmentCategories, thresholds: stockThresholds });
+                    lastSavedSettings = currentSettings;
+                }
+            }
+            
+            // Respaldo local
             localStorage.setItem('lotto_inventory', JSON.stringify(inventory));
             localStorage.setItem('lotto_agencies', JSON.stringify(agencies));
             localStorage.setItem('lotto_movements', JSON.stringify(movements));
