@@ -360,7 +360,7 @@
                         <i class="fa-solid fa-file-excel text-emerald-600"></i>
                         <span>Importar Excel Agencias</span>
                     </button>
-                    <button onclick="openAddAgencyModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
+                    <button id="btnAddAgency" onclick="openAddAgencyModal()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
                         <i class="fa-solid fa-plus"></i>
                         <span>+ Nueva Agencia</span>
                     </button>
@@ -1274,17 +1274,19 @@
         </div>
     </div>
 
-    <!-- MODAL 7: REGISTRAR AGENCIA POS -->
+    <!-- MODAL 7: REGISTRAR / EDITAR AGENCIA POS -->
     <div id="agencyModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-indigo-900 px-5 py-3.5 flex items-center justify-between text-white">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-indigo-900 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
                 <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-store text-indigo-400"></i>
-                    <span>Registrar Nueva Agencia POS</span>
+                    <span id="agencyModalTitle">Registrar Nueva Agencia POS</span>
                 </h3>
                 <button onclick="closeModal('agencyModal')" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="saveAgency(event)" class="p-4 sm:p-6 space-y-4">
+            <form id="agencyForm" onsubmit="saveAgency(event)" class="p-4 sm:p-6 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="editingAgencyId" value="">
+
                 <div class="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Código *</label>
@@ -1307,7 +1309,16 @@
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre del Dueño *</label>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1 text-rose-800 flex items-center gap-1">
+                        <i class="fa-solid fa-map-location-dot text-rose-600"></i>
+                        <span>Enlace de Ubicación Google Maps (GPS)</span>
+                    </label>
+                    <input type="url" id="agencyMapsUrl" placeholder="Ej: https://maps.app.goo.gl/abc123xyz" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-blue-700 font-mono">
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">Pegue aquí la URL o enlace compartido desde la app de Google Maps</span>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Dueño / Responsable Directo *</label>
                     <input type="text" id="agencyOwner" required placeholder="Ej: Roberto Gómez" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
 
@@ -1322,11 +1333,11 @@
                     </div>
                 </div>
 
-                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100">
+                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-100 shrink-0">
                     <button type="button" onclick="closeModal('agencyModal')" class="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow transition flex items-center space-x-1.5">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Guardar</span>
+                        <span>Guardar Agencia</span>
                     </button>
                 </div>
             </form>
@@ -1416,17 +1427,20 @@
             <form onsubmit="handleLoginSubmit(event)" class="p-5 space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Seleccionar Rol *</label>
-                    <select id="loginRoleSelect" onchange="updateLoginPrompt()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white">
-                        <option value="admin">Administrador (Acceso Total)</option>
-                        <option value="supervisor">Supervisor (Altas y Despachos)</option>
-                        <option value="operator">Auditor (Solo Consulta)</option>
+                    <select id="loginRoleSelect" onchange="updateLoginPrompt()" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-medium text-slate-800">
+                        <option value="president">👑 Presidente (Solo Ver / Consulta)</option>
+                        <option value="admin">🛡️ Administrador (Acceso Total)</option>
+                        <option value="tech_head">👨‍💼 Jefe Depto. Técnico (Registrar, Editar y Asignar)</option>
+                        <option value="tech_maintenance">🔧 Técnico Mantenimiento (Envío a Depósito)</option>
+                        <option value="office_entry">📦 Oficina Entrada (Envío a Depósito)</option>
+                        <option value="office_exit">🚚 Oficina Salida (Solo Asignar)</option>
                     </select>
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Contraseña *</label>
                     <div class="relative">
-                        <input type="password" id="loginPasswordInput" required placeholder="Ingresa tu clave" class="w-full py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                        <input type="password" id="loginPasswordInput" required placeholder="Ingresa tu clave" class="w-full py-2 pl-3 pr-10 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono">
                         <button type="button" onclick="togglePasswordVisibility('loginPasswordInput', 'eyeIcon')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
                             <i id="eyeIcon" class="fa-solid fa-eye text-sm"></i>
                         </button>
@@ -1434,11 +1448,14 @@
                     <p id="loginErrorMsg" class="text-xs text-rose-600 font-medium mt-1 hidden"></p>
                 </div>
 
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-500 space-y-1">
-                    <p class="font-bold text-slate-700">Claves predeterminadas:</p>
-                    <p>• Admin: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">admin123</code></p>
-                    <p>• Supervisor: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">super123</code></p>
-                    <p>• Auditor: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">audit123</code></p>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
+                    <p class="font-bold text-slate-800 border-b pb-1">Claves predeterminadas de los 6 roles:</p>
+                    <p>👑 Presidente: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">presi123</code></p>
+                    <p>🛡️ Admin: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">admin123</code></p>
+                    <p>👨‍💼 Jefe Técnico: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">jefe123</code></p>
+                    <p>🔧 Técnico Maint: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">tec123</code></p>
+                    <p>📦 Oficina Entrada: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">entrada123</code></p>
+                    <p>🚚 Oficina Salida: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">salida123</code></p>
                 </div>
 
                 <div class="pt-2 flex justify-end space-x-2">
@@ -1454,29 +1471,41 @@
 
     <!-- MODAL 12: GESTIÓN DE CLAVES (ADMIN) -->
     <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-200">
-            <div class="bg-amber-800 px-5 py-3.5 flex items-center justify-between text-white">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col overflow-hidden border border-slate-200">
+            <div class="bg-amber-800 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
                 <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
                     <i class="fa-solid fa-user-lock text-amber-300"></i>
-                    <span>Gestión de Claves de Usuarios</span>
+                    <span>Gestión de Claves de los 6 Niveles</span>
                 </h3>
                 <button onclick="closeModal('manageUsersModal')" class="text-amber-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="saveNewPasswords(event)" class="p-5 space-y-4">
+            <form onsubmit="saveNewPasswords(event)" class="p-4 sm:p-5 space-y-3 overflow-y-auto flex-1 text-xs">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Administrador</label>
-                    <input type="password" id="pwdAdmin" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">👑 Clave de Presidente (Solo Ver)</label>
+                    <input type="password" id="pwdPresident" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Supervisor</label>
-                    <input type="password" id="pwdSupervisor" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🛡️ Clave de Administrador (Acceso Total)</label>
+                    <input type="password" id="pwdAdmin" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Clave de Auditor (Consulta)</label>
-                    <input type="password" id="pwdOperator" required class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none">
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">👨‍💼 Clave de Jefe Depto. Técnico (Registrar, Editar, Asignar)</label>
+                    <input type="password" id="pwdTechHead" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🔧 Clave de Técnico Mantenimiento (Envío a Depósito)</label>
+                    <input type="password" id="pwdTechMaintenance" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">📦 Clave de Oficina Entrada (Envío a Depósito)</label>
+                    <input type="password" id="pwdOfficeEntry" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🚚 Clave de Oficina Salida (Solo Asignar)</label>
+                    <input type="password" id="pwdOfficeExit" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
                 </div>
 
-                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 shrink-0">
                     <button type="button" onclick="closeModal('manageUsersModal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
                     <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 rounded-lg shadow transition flex items-center space-x-1">
                         <i class="fa-solid fa-floppy-disk"></i>
@@ -1549,14 +1578,18 @@
         // Confirmation Modal Callback Holder
         let pendingConfirmCallback = null;
 
-        // Security / User Credentials
+        // Security / User Credentials (6 Roles)
         const defaultUserCredentials = {
-            admin: { name: 'Administrador', password: 'admin123', roleName: 'ADMINISTRADOR' },
-            supervisor: { name: 'Supervisor', password: 'super123', roleName: 'SUPERVISOR' },
-            operator: { name: 'Auditor', password: 'audit123', roleName: 'AUDITOR (SÓLO LECTURA)' }
+            president: { name: 'Presidente', password: 'presi123', roleName: 'PRESIDENTE (SOLO VER)' },
+            admin: { name: 'Administrador', password: 'admin123', roleName: 'ADMINISTRADOR (ACCESO TOTAL)' },
+            tech_head: { name: 'Jefe Depto. Técnico', password: 'jefe123', roleName: 'JEFE DEPTO. TÉCNICO' },
+            tech_maintenance: { name: 'Técnico Mantenimiento', password: 'tec123', roleName: 'TÉCNICO MANTENIMIENTO' },
+            office_entry: { name: 'Oficina Entrada', password: 'entrada123', roleName: 'OFICINA ENTRADA' },
+            office_exit: { name: 'Oficina Salida', password: 'salida123', roleName: 'OFICINA SALIDA' }
         };
 
-        let userCredentials = JSON.parse(localStorage.getItem('lotto_users')) || defaultUserCredentials;
+        let storedUsers = JSON.parse(localStorage.getItem('lotto_users')) || {};
+        let userCredentials = { ...defaultUserCredentials, ...storedUsers };
 
         // Dynamic Categories List
         const defaultCategories = ['Laptop', 'CPU Desktop', 'Monitor', 'Impresora Térmica', 'UPS / Batería', 'Lectores Código de Barras', 'Tablet POS', 'Celular Corporativo', 'Wipo / Router 4G', 'Valla / Publicidad', 'Otro'];
@@ -1702,13 +1735,11 @@
             // Listen to Users
             window.onSnapshot(window.doc(window.db, "lotto_data", "users"), (docSnap) => {
                 if (docSnap.exists()) {
-                    userCredentials = docSnap.data().data;
+                    userCredentials = { ...defaultUserCredentials, ...docSnap.data().data };
                 } else {
-                    let localUsers = JSON.parse(localStorage.getItem('lotto_users'));
-                    if (localUsers) {
-                        userCredentials = localUsers;
-                        window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials });
-                    }
+                    let localUsers = JSON.parse(localStorage.getItem('lotto_users')) || {};
+                    userCredentials = { ...defaultUserCredentials, ...localUsers };
+                    window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials });
                 }
             });
             
@@ -1843,52 +1874,61 @@
             const btnAdd = document.getElementById('btnAddEquipment');
             const btnBatch = document.getElementById('btnBatchDispatch');
             const btnImportExcel = document.getElementById('btnImportExcel');
+            const btnImportAgenciesExcel = document.getElementById('btnImportAgenciesExcel');
+            const btnAddAgency = document.getElementById('btnAddAgency');
             const btnManageTypes = document.getElementById('btnManageTypes');
             const btnManagePasswords = document.getElementById('btnManagePasswords');
 
             const creds = userCredentials[currentRole] || defaultUserCredentials[currentRole];
             if (activeUserName) activeUserName.innerText = creds.name;
 
-            if (currentRole === 'admin') {
-                if (roleBadge) {
-                    roleBadge.innerText = 'ADMINISTRADOR';
-                    roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-                }
-                if (roleBadgeMobile) roleBadgeMobile.innerText = 'ADMIN';
-
-                if (btnAdd) btnAdd.style.display = 'flex';
-                if (btnBatch) btnBatch.style.display = 'flex';
-                if (btnImportExcel) btnImportExcel.style.display = 'flex';
-                if (btnManageTypes) btnManageTypes.style.display = 'flex';
-                if (btnManagePasswords) btnManagePasswords.style.display = 'flex';
-            } else if (currentRole === 'supervisor') {
-                if (roleBadge) {
-                    roleBadge.innerText = 'SUPERVISOR';
-                    roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
-                }
-                if (roleBadgeMobile) roleBadgeMobile.innerText = 'SUPERVISOR';
-
-                if (btnAdd) btnAdd.style.display = 'flex';
-                if (btnBatch) btnBatch.style.display = 'flex';
-                if (btnImportExcel) btnImportExcel.style.display = 'none';
-                if (btnManageTypes) btnManageTypes.style.display = 'none';
-                if (btnManagePasswords) btnManagePasswords.style.display = 'none';
-            } else { // operator
-                if (roleBadge) {
-                    roleBadge.innerText = 'AUDITOR (SÓLO LECTURA)';
-                    roleBadge.className = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
-                }
-                if (roleBadgeMobile) roleBadgeMobile.innerText = 'AUDITOR';
-
-                if (btnAdd) btnAdd.style.display = 'none';
-                if (btnBatch) btnBatch.style.display = 'none';
-                if (btnImportExcel) btnImportExcel.style.display = 'none';
-                if (btnManageTypes) btnManageTypes.style.display = 'none';
-                if (btnManagePasswords) btnManagePasswords.style.display = 'none';
+            let badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30';
+            if (currentRole === 'president') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
+            } else if (currentRole === 'admin') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            } else if (currentRole === 'tech_head') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
+            } else if (currentRole === 'tech_maintenance') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30';
+            } else if (currentRole === 'office_entry') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-teal-500/20 text-teal-400 border border-teal-500/30';
+            } else if (currentRole === 'office_exit') {
+                badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30';
             }
+
+            if (roleBadge) {
+                roleBadge.innerText = creds.roleName;
+                roleBadge.className = badgeClass;
+            }
+            if (roleBadgeMobile) roleBadgeMobile.innerText = creds.name.toUpperCase();
+
+            // Permissions scoping:
+            // 1. + Nuevo Equipo -> admin, tech_head, office_entry, tech_maintenance
+            if (btnAdd) btnAdd.style.display = (['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 2. Combo Kit -> admin, tech_head, office_exit
+            if (btnBatch) btnBatch.style.display = (['admin', 'tech_head', 'office_exit'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 3. Importar Excel Inventario -> admin, tech_head, office_entry
+            if (btnImportExcel) btnImportExcel.style.display = (['admin', 'tech_head', 'office_entry'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 4. Importar Excel Agencias -> admin, tech_head
+            if (btnImportAgenciesExcel) btnImportAgenciesExcel.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 5. + Nueva Agencia -> admin, tech_head
+            if (btnAddAgency) btnAddAgency.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 6. Categorías -> admin, tech_head
+            if (btnManageTypes) btnManageTypes.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
+
+            // 7. Gestionar Claves -> admin only
+            if (btnManagePasswords) btnManagePasswords.style.display = (currentRole === 'admin') ? 'flex' : 'none';
 
             renderInventoryTable();
             renderAgenciesTable();
+            renderMovementsTable();
+            renderMaintenanceTable();
         }
 
         function openLoginModal() {
@@ -1938,23 +1978,37 @@
                 showToast('Solo el Administrador puede gestionar claves.', 'error');
                 return;
             }
-            document.getElementById('pwdAdmin').value = userCredentials.admin.password;
-            document.getElementById('pwdSupervisor').value = userCredentials.supervisor.password;
-            document.getElementById('pwdOperator').value = userCredentials.operator.password;
+            document.getElementById('pwdPresident').value = userCredentials.president?.password || defaultUserCredentials.president.password;
+            document.getElementById('pwdAdmin').value = userCredentials.admin?.password || defaultUserCredentials.admin.password;
+            document.getElementById('pwdTechHead').value = userCredentials.tech_head?.password || defaultUserCredentials.tech_head.password;
+            document.getElementById('pwdTechMaintenance').value = userCredentials.tech_maintenance?.password || defaultUserCredentials.tech_maintenance.password;
+            document.getElementById('pwdOfficeEntry').value = userCredentials.office_entry?.password || defaultUserCredentials.office_entry.password;
+            document.getElementById('pwdOfficeExit').value = userCredentials.office_exit?.password || defaultUserCredentials.office_exit.password;
+            
             document.getElementById('manageUsersModal').classList.remove('hidden');
         }
 
         function saveNewPasswords(e) {
             e.preventDefault();
+            if (!userCredentials.president) userCredentials.president = { ...defaultUserCredentials.president };
+            if (!userCredentials.admin) userCredentials.admin = { ...defaultUserCredentials.admin };
+            if (!userCredentials.tech_head) userCredentials.tech_head = { ...defaultUserCredentials.tech_head };
+            if (!userCredentials.tech_maintenance) userCredentials.tech_maintenance = { ...defaultUserCredentials.tech_maintenance };
+            if (!userCredentials.office_entry) userCredentials.office_entry = { ...defaultUserCredentials.office_entry };
+            if (!userCredentials.office_exit) userCredentials.office_exit = { ...defaultUserCredentials.office_exit };
+
+            userCredentials.president.password = document.getElementById('pwdPresident').value.trim();
             userCredentials.admin.password = document.getElementById('pwdAdmin').value.trim();
-            userCredentials.supervisor.password = document.getElementById('pwdSupervisor').value.trim();
-            userCredentials.operator.password = document.getElementById('pwdOperator').value.trim();
+            userCredentials.tech_head.password = document.getElementById('pwdTechHead').value.trim();
+            userCredentials.tech_maintenance.password = document.getElementById('pwdTechMaintenance').value.trim();
+            userCredentials.office_entry.password = document.getElementById('pwdOfficeEntry').value.trim();
+            userCredentials.office_exit.password = document.getElementById('pwdOfficeExit').value.trim();
 
             localStorage.setItem('lotto_users', JSON.stringify(userCredentials));
             if (window.db) {
                 window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials });
             }
-            showToast('¡Claves de acceso actualizadas con éxito!');
+            showToast('¡Claves de acceso de los 6 usuarios actualizadas con éxito!');
             closeModal('manageUsersModal');
         }
 
@@ -2335,19 +2389,30 @@
                         </button>
                     `;
 
-                    if (currentRole !== 'operator') {
-                        if (item.status === 'En Depósito') {
+                    const canAssign = ['admin', 'tech_head', 'office_exit'].includes(currentRole);
+                    const canMaint = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
+                    const canReturn = ['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole);
+                    const canDelete = (currentRole === 'admin');
+
+                    if (item.status === 'En Depósito') {
+                        if (canAssign) {
                             actionsHtml += `
                                 <button onclick="openDispatchModal('${item.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
                                     <i class="fa-solid fa-truck-arrow-right text-[10px]"></i>
                                     <span>Asignar</span>
                                 </button>
+                            `;
+                        }
+                        if (canMaint) {
+                            actionsHtml += `
                                 <button onclick="openMaintenanceModal('${item.id}')" title="Enviar a Mantenimiento Técnico" class="px-2 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1 ml-1">
                                     <i class="fa-solid fa-screwdriver-wrench text-[10px]"></i>
                                     <span>Mantenimiento</span>
                                 </button>
                             `;
-                        } else if (item.status === 'Asignado') {
+                        }
+                    } else if (item.status === 'Asignado') {
+                        if (canReturn) {
                             actionsHtml += `
                                 <button onclick="openReturnModal('${item.id}')" class="px-2 py-1 bg-slate-700 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1">
                                     <i class="fa-solid fa-rotate-left text-[10px]"></i>
@@ -2355,16 +2420,18 @@
                                 </button>
                             `;
                         }
+                    }
 
-                        if (currentRole === 'admin') {
-                            actionsHtml += `
-                                <button onclick="deleteEquipment('${item.id}')" title="Eliminar equipo" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
-                                    <i class="fa-solid fa-trash-can text-xs"></i>
-                                </button>
-                            `;
-                        }
-                    } else {
-                        actionsHtml += `<span class="text-[11px] text-slate-400 italic">Lectura</span>`;
+                    if (canDelete) {
+                        actionsHtml += `
+                            <button onclick="deleteEquipment('${item.id}')" title="Eliminar equipo" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        `;
+                    }
+
+                    if (currentRole === 'president') {
+                        actionsHtml += `<span class="text-[11px] text-slate-400 italic font-medium ml-1">Sólo Consulta</span>`;
                     }
                     actionsHtml += `</div>`;
 
@@ -2418,10 +2485,28 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm';
 
+                let mapsBtn = '';
+                if (ag.mapsUrl) {
+                    mapsBtn = `
+                        <a href="${ag.mapsUrl}" target="_blank" rel="noopener noreferrer" title="Ver en Google Maps" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition inline-flex items-center">
+                            <i class="fa-solid fa-map-location-dot text-sm sm:text-base"></i>
+                        </a>
+                    `;
+                }
+
+                let shareBtn = `
+                    <button onclick="shareAgencyWhatsApp('${ag.id}')" title="Compartir Ficha por WhatsApp" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition inline-flex items-center">
+                        <i class="fa-brands fa-whatsapp text-sm sm:text-base"></i>
+                    </button>
+                `;
+
                 tr.innerHTML = `
                     <td class="px-3.5 py-2.5 font-mono font-bold text-indigo-700">${ag.code || ag.id}</td>
                     <td class="px-3.5 py-2.5 font-semibold text-slate-900">${ag.name}</td>
-                    <td class="px-3.5 py-2.5 text-slate-600 font-medium">${ag.address || ag.zone || '-'}</td>
+                    <td class="px-3.5 py-2.5 text-slate-600 font-medium">
+                        <div>${ag.address || ag.zone || '-'}</div>
+                        ${ag.mapsUrl ? `<a href="${ag.mapsUrl}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-600 hover:underline flex items-center gap-1 mt-0.5"><i class="fa-solid fa-location-dot text-rose-500"></i> Abrir Google Maps</a>` : ''}
+                    </td>
                     <td class="px-3.5 py-2.5 font-medium text-slate-800">${ag.owner}</td>
                     <td class="px-3.5 py-2.5 text-slate-500 font-mono">${ag.phone || '-'}</td>
                     <td class="px-3.5 py-2.5">
@@ -2429,12 +2514,19 @@
                             ${assignedEquip.length} equipo(s)
                         </span>
                     </td>
-                    <td class="px-3.5 py-2.5 text-right space-x-1">
-                        <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
-                            <i class="fa-solid fa-eye mr-1"></i> Equipos
+                    <td class="px-3.5 py-2.5 text-right space-x-0.5 sm:space-x-1">
+                        ${shareBtn}
+                        ${mapsBtn}
+                        <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-eye mr-0.5"></i> Equipos
                         </button>
+                        ${['admin', 'tech_head'].includes(currentRole) ? `
+                            <button onclick="openEditAgencyModal('${ag.id}')" title="Editar Agencia" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition ml-0.5">
+                                <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
+                            </button>
+                        ` : ''}
                         ${currentRole === 'admin' ? `
-                            <button onclick="deleteAgency('${ag.id}')" title="Eliminar agencia" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-1">
+                            <button onclick="deleteAgency('${ag.id}')" title="Eliminar agencia" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
                         ` : ''}
@@ -2513,9 +2605,17 @@
             }
 
             emptyMsg.classList.add('hidden');
+            const canResolveMaint = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
             activeMaint.forEach(m => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
+
+                const maintBtn = canResolveMaint ? `
+                    <button onclick="resolveMaintenance('${m.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition flex items-center space-x-1 ml-auto">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Reparado</span>
+                    </button>
+                ` : `<span class="text-[11px] text-slate-400 italic">Sólo Consulta</span>`;
 
                 tr.innerHTML = `
                     <td class="px-3.5 py-2.5 font-semibold text-slate-900">
@@ -2527,12 +2627,7 @@
                     <td class="px-3.5 py-2.5 font-mono text-slate-500">${m.dateOut || '-'}</td>
                     <td class="px-3.5 py-2.5 font-semibold text-slate-800">${m.cost ? '$' + parseFloat(m.cost).toFixed(2) : '-'}</td>
                     <td class="px-3.5 py-2.5"><span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800">En Taller</span></td>
-                    <td class="px-3.5 py-2.5 text-right">
-                        <button onclick="resolveMaintenance('${m.id}')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-semibold transition flex items-center space-x-1 ml-auto">
-                            <i class="fa-solid fa-check"></i>
-                            <span>Reparado</span>
-                        </button>
-                    </td>
+                    <td class="px-3.5 py-2.5 text-right">${maintBtn}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -2562,8 +2657,8 @@
         }
 
         function openAddModal() {
-            if (currentRole === 'operator') {
-                showToast('No tiene permisos para agregar equipos.', 'error');
+            if (!['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) {
+                showToast('No tiene permisos para registrar nuevos equipos.', 'error');
                 return;
             }
             targetAddDestination = 'warehouse';
@@ -2671,7 +2766,10 @@
         }
 
         function deleteEquipment(id) {
-            if (currentRole !== 'admin') return;
+            if (currentRole !== 'admin') {
+                showToast('Solo el Administrador puede eliminar equipos.', 'error');
+                return;
+            }
             const equip = inventory.find(i => i.id === id);
             if (!equip) return;
 
@@ -2688,20 +2786,54 @@
         }
 
         function openAddAgencyModal() {
-            if (currentRole === 'operator') return;
+            if (!['admin', 'tech_head'].includes(currentRole)) {
+                showToast('No tiene permisos para crear agencias.', 'error');
+                return;
+            }
+            document.getElementById('editingAgencyId').value = '';
+            document.getElementById('agencyModalTitle').innerText = 'Registrar Nueva Agencia POS';
             const codeInput = document.getElementById('agencyCode');
             codeInput.value = `AG-${100 + agencies.length + 1}`;
+            codeInput.disabled = false;
             document.getElementById('agencyName').value = '';
             document.getElementById('agencyZone').value = '';
             document.getElementById('agencyAddress').value = '';
             document.getElementById('agencyOwner').value = '';
             document.getElementById('agencyPhone').value = '';
             document.getElementById('agencySupervisor').value = '';
+            document.getElementById('agencyMapsUrl').value = '';
+            document.getElementById('agencyModal').classList.remove('hidden');
+        }
+
+        function openEditAgencyModal(id) {
+            if (!['admin', 'tech_head'].includes(currentRole)) {
+                showToast('No tiene permisos para editar agencias.', 'error');
+                return;
+            }
+            const ag = agencies.find(a => a.id === id);
+            if (!ag) return;
+
+            document.getElementById('editingAgencyId').value = ag.id;
+            document.getElementById('agencyModalTitle').innerText = `Editar Agencia ${ag.code || ag.id}`;
+            
+            const codeInput = document.getElementById('agencyCode');
+            codeInput.value = ag.code || ag.id;
+            codeInput.disabled = false;
+
+            document.getElementById('agencyName').value = ag.name || '';
+            document.getElementById('agencyZone').value = ag.zone || '';
+            document.getElementById('agencyAddress').value = ag.address || '';
+            document.getElementById('agencyOwner').value = ag.owner || '';
+            document.getElementById('agencyPhone').value = ag.phone || '';
+            document.getElementById('agencySupervisor').value = ag.supervisor || '';
+            document.getElementById('agencyMapsUrl').value = ag.mapsUrl || '';
+
             document.getElementById('agencyModal').classList.remove('hidden');
         }
 
         function saveAgency(e) {
             e.preventDefault();
+            const editingId = document.getElementById('editingAgencyId').value;
             const code = document.getElementById('agencyCode').value.trim().toUpperCase();
             const name = document.getElementById('agencyName').value.trim();
             const zone = document.getElementById('agencyZone').value.trim();
@@ -2709,29 +2841,90 @@
             const owner = document.getElementById('agencyOwner').value.trim();
             const phone = document.getElementById('agencyPhone').value.trim();
             const supervisor = document.getElementById('agencySupervisor').value.trim();
+            const mapsUrl = document.getElementById('agencyMapsUrl').value.trim();
 
-            const newAgency = {
-                id: code,
-                code,
-                name,
-                zone,
-                address,
-                owner,
-                phone,
-                supervisor
-            };
+            if (editingId) {
+                const agIndex = agencies.findIndex(a => a.id === editingId);
+                if (agIndex >= 0) {
+                    const oldName = agencies[agIndex].name;
+                    agencies[agIndex] = {
+                        ...agencies[agIndex],
+                        code,
+                        name,
+                        zone,
+                        address,
+                        owner,
+                        phone,
+                        supervisor,
+                        mapsUrl
+                    };
 
-            agencies.push(newAgency);
+                    if (oldName !== name) {
+                        inventory.forEach(item => {
+                            if (item.agency === oldName) {
+                                item.agency = name;
+                            }
+                        });
+                    }
+                    showToast('¡Información de la agencia actualizada con éxito!', 'success');
+                }
+            } else {
+                const newAgency = {
+                    id: code,
+                    code,
+                    name,
+                    zone,
+                    address,
+                    owner,
+                    phone,
+                    supervisor,
+                    mapsUrl
+                };
+                agencies.push(newAgency);
+                showToast('¡Nueva Agencia POS registrada exitosamente!', 'success');
+            }
+
             saveData();
             populateAgencyDropdowns();
             renderAgenciesTable();
+            renderInventoryTable();
             updateDashboardStats();
             closeModal('agencyModal');
-            showToast('¡Nueva Agencia POS registrada exitosamente!');
+        }
+
+        function shareAgencyWhatsApp(id) {
+            const ag = agencies.find(a => a.id === id);
+            if (!ag) return;
+
+            const assignedEquip = inventory.filter(i => i.agency === ag.name && i.status === 'Asignado');
+            let equipSummary = assignedEquip.length > 0 
+                ? assignedEquip.map(e => `• ${e.type} (${e.brand} ${e.model} - S/N: ${e.serial})`).join('\n')
+                : 'Sin equipos activos asignados.';
+
+            let message = `📍 *FICHA DE AGENCIA POS - GRUPO ANDINO*\n\n`;
+            message += `🏛️ *Agencia:* ${ag.name}\n`;
+            message += `🆔 *Código:* ${ag.code || ag.id}\n`;
+            message += `👤 *Responsable / Dueño:* ${ag.owner || 'Por Asignar'}\n`;
+            message += `📞 *Teléfono:* ${ag.phone || 'Sin teléfono'}\n`;
+            message += `🗺️ *Zona:* ${ag.zone || 'General'}\n`;
+            message += `🏠 *Ubicación / Dirección:* ${ag.address || 'Por especificar'}\n`;
+            
+            if (ag.mapsUrl) {
+                message += `📍 *Google Maps:* ${ag.mapsUrl}\n`;
+            }
+            
+            message += `\n📦 *Equipos Instalados (${assignedEquip.length}):*\n${equipSummary}\n`;
+
+            const encodedMsg = encodeURIComponent(message);
+            const whatsappUrl = `https://api.whatsapp.com/send?text=${encodedMsg}`;
+            window.open(whatsappUrl, '_blank');
         }
 
         function deleteAgency(id) {
-            if (currentRole !== 'admin') return;
+            if (currentRole !== 'admin') {
+                showToast('Solo el Administrador puede eliminar agencias.', 'error');
+                return;
+            }
             const ag = agencies.find(a => a.id === id);
             if (!ag) return;
 
@@ -2750,7 +2943,10 @@
         }
 
         function openTypesModal() {
-            if (currentRole !== 'admin') return;
+            if (!['admin', 'tech_head'].includes(currentRole)) {
+                showToast('No tiene permisos para gestionar categorías.', 'error');
+                return;
+            }
             document.getElementById('newTypeName').value = '';
             renderCategoriesList();
             document.getElementById('typesModal').classList.remove('hidden');
@@ -2820,6 +3016,10 @@
         }
 
         function openDispatchModal(id) {
+            if (!['admin', 'tech_head', 'office_exit'].includes(currentRole)) {
+                showToast('No tiene permisos para asignar equipos.', 'error');
+                return;
+            }
             const item = inventory.find(i => i.id === id);
             if (!item) return;
 
@@ -2923,7 +3123,10 @@
 
         /* --- REINGRESO / DEVOLUCIÓN DE EQUIPO CON VERIFICACIÓN Y FIRMA --- */
         function openReturnModal(id) {
-            if (currentRole === 'operator') return;
+            if (!['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) {
+                showToast('No tiene permisos para registrar reingresos al depósito.', 'error');
+                return;
+            }
             const item = inventory.find(i => i.id === id);
             if (!item) return;
 
@@ -3014,7 +3217,10 @@
 
         /* --- DESPACHO MÚLTIPLE / COMBO KIT CON BÚSQUEDA Y TELÉFONO/UBICACIÓN --- */
         function openBatchDispatchModal() {
-            if (currentRole === 'operator') return;
+            if (!['admin', 'tech_head', 'office_exit'].includes(currentRole)) {
+                showToast('No tiene permisos para realizar despachos Combo Kit.', 'error');
+                return;
+            }
             populateAgencyDropdowns();
 
             document.getElementById('batchEquipSearchInput').value = '';
@@ -3180,8 +3386,8 @@
 
         /* --- IMPORTACIÓN DESDE EXCEL (.XLSX, .CSV) --- */
         function openExcelImportModal() {
-            if (currentRole !== 'admin') {
-                showToast('Solo el usuario Administrador puede importar archivos de Excel.', 'error');
+            if (!['admin', 'tech_head', 'office_entry'].includes(currentRole)) {
+                showToast('No tiene permisos para importar inventario desde Excel.', 'error');
                 return;
             }
 
@@ -3396,8 +3602,8 @@
         let parsedAgenciesExcelRows = [];
 
         function openAgenciesExcelImportModal() {
-            if (currentRole === 'operator') {
-                showToast('No tiene permisos para importar agencias.', 'error');
+            if (!['admin', 'tech_head'].includes(currentRole)) {
+                showToast('No tiene permisos para importar agencias desde Excel.', 'error');
                 return;
             }
 
@@ -3550,6 +3756,10 @@
         }
 
         function openMaintenanceModal(id) {
+            if (!['admin', 'tech_head', 'tech_maintenance'].includes(currentRole)) {
+                showToast('No tiene permisos para enviar equipos a mantenimiento.', 'error');
+                return;
+            }
             const item = inventory.find(i => i.id === id);
             if (!item) return;
 
@@ -3600,6 +3810,10 @@
         }
 
         function resolveMaintenance(maintId) {
+            if (!['admin', 'tech_head', 'tech_maintenance'].includes(currentRole)) {
+                showToast('No tiene permisos para procesar la salida de taller.', 'error');
+                return;
+            }
             const maint = maintenanceLog.find(m => m.id === maintId);
             if (!maint) return;
 
@@ -4180,12 +4394,12 @@
         }
 
         function exportData() {
-            let csv = 'ID,Tipo,Marca,Modelo,Color,Serial,Estado,Agencia,Receptor,Dueno,FechaEntrada,FechaSalida\n';
+            let csv = 'ID,Tipo,Marca,Modelo,Color,Serial,Estado,Agencia,Receptor,Dueño,FechaEntrada,FechaSalida\n';
             inventory.forEach(i => {
-                csv += `"${i.id}","${i.type}","${i.brand}","${i.model}","${i.color}","${i.serial}","${i.status}","${i.agency}","${i.receptor}","${i.owner}","${i.dateIn || '-'}","${i.dateOut || '-'}"\n`;
+                csv += `"${i.id}","${i.type}","${i.brand}","${i.model}","${i.color || ''}","${i.serial}","${i.status}","${i.agency}","${i.receptor}","${i.owner}","${i.dateIn || '-'}","${i.dateOut || '-'}"\n`;
             });
 
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
@@ -4193,7 +4407,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            showToast('Archivo CSV exportado.');
+            showToast('Archivo CSV exportado con compatibilidad UTF-8 (Excel).');
         }
     </script>
 </body>
