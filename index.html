@@ -19,6 +19,10 @@
     <!-- SheetJS CDN for reading Excel files (.xlsx, .xls, .csv) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
+    <!-- Tom Select for searchable dropdowns -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -111,6 +115,13 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-toast { animation: slideInRight 0.25s ease-out forwards; }
+        
+        /* Estilos para TomSelect que combinen con Tailwind */
+        .ts-control { border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; box-shadow: none; background: white; }
+        .ts-control.focus { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); border-radius: 0.5rem; }
+        .ts-dropdown { border: 1px solid #cbd5e1; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); font-size: 0.875rem; margin-top: 4px; z-index: 1000; }
+        .ts-dropdown .option { padding: 0.5rem 0.75rem; }
+        .ts-dropdown .active { background-color: #f1f5f9; color: #0f172a; }
     </style>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
@@ -120,11 +131,11 @@
 
     <!-- TOP NAVBAR RESPONSIVE PARA MÓVIL Y DESKTOP -->
     <header class="bg-slate-900 text-white shadow-md no-print sticky top-0 z-30 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+        <div class="w-full px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
             <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-start">
                 <div class="flex items-center space-x-2.5">
-                    <div class="p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30 shrink-0">
-                        <i class="fa-solid fa-ticket-simple text-lg sm:text-xl"></i>
+                    <div class="shrink-0 flex items-center justify-center bg-transparent pr-2">
+                        <img src="logo.png" alt="Logo Grupo Andino" class="h-12 sm:h-14 w-auto object-contain" onerror="this.onerror=null; this.outerHTML='<div class=\'p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30 shrink-0\'><i class=\'fa-solid fa-ticket-simple text-lg sm:text-xl\'></i></div>';">
                     </div>
                     <div>
                         <div class="flex items-center space-x-1.5">
@@ -821,7 +832,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital de Conformidad *
+                            <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital de Conformidad (Opcional)
                         </label>
                         <div class="flex items-center space-x-2">
                             <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">
@@ -997,7 +1008,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor *
+                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor (Opcional)
                         </label>
                         <button type="button" onclick="clearBatchSignature()" class="text-xs text-rose-600 font-semibold underline">Limpiar</button>
                     </div>
@@ -1537,15 +1548,6 @@
                     <p id="loginErrorMsg" class="text-xs text-rose-600 font-bold mt-1 hidden"></p>
                 </div>
 
-                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
-                    <p class="font-bold text-slate-800 border-b pb-1">Claves predeterminadas de los 6 roles:</p>
-                    <p>👑 Presidente: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">presi123</code></p>
-                    <p>🛡️ Admin: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">admin123</code></p>
-                    <p>👨‍💼 Jefe Técnico: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">jefe123</code></p>
-                    <p>🔧 Técnico Maint: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">tec123</code></p>
-                    <p>📦 Oficina Entrada: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">entrada123</code></p>
-                    <p>🚚 Oficina Salida: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">salida123</code></p>
-                </div>
 
                 <div class="pt-2 flex items-center justify-end space-x-2">
                     <button type="button" id="loginCancelBtn" onclick="closeModal('loginModal')" class="px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition hidden">Cancelar</button>
@@ -1943,16 +1945,29 @@
             }
         }
 
+        const tomSelectInstances = {};
+
         function populateAgencyDropdowns() {
             const selects = [document.getElementById('dispatchAgencySelect'), document.getElementById('batchAgencySelect')];
             selects.forEach(select => {
                 if (!select) return;
+                
+                if (tomSelectInstances[select.id]) {
+                    tomSelectInstances[select.id].destroy();
+                }
+                
                 select.innerHTML = '<option value="">-- Seleccionar Agencia POS --</option>';
                 agencies.forEach(ag => {
                     const opt = document.createElement('option');
                     opt.value = ag.name;
-                    opt.textContent = `${ag.name} (${ag.zone})`;
+                    opt.textContent = `${ag.code} - ${ag.name} (${ag.zone})`;
                     select.appendChild(opt);
+                });
+                
+                tomSelectInstances[select.id] = new TomSelect(select, {
+                    create: false,
+                    sortField: { field: "text", direction: "asc" },
+                    placeholder: "🔍 Buscar código o nombre..."
                 });
             });
         }
@@ -3291,10 +3306,7 @@
                 return;
             }
 
-            if (isCanvasBlank(canvas)) {
-                showToast('Por favor, solicite la firma del receptor antes de continuar.', 'warning');
-                return;
-            }
+
 
             const signatureData = canvas.toDataURL();
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
@@ -3531,10 +3543,7 @@
                 return;
             }
 
-            if (isCanvasBlank(batchCanvas)) {
-                showToast('Por favor, solicite la firma del receptor antes de continuar.', 'warning');
-                return;
-            }
+
 
             const targetType = document.getElementById('batchTargetType').value;
             const owner = document.getElementById('batchOwnerName').value.trim();
