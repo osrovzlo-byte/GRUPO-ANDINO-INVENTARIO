@@ -18,10 +18,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <!-- SheetJS CDN for reading Excel files (.xlsx, .xls, .csv) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- Tom Select for searchable dropdowns -->
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <!-- html2canvas CDN for capturing receipts as PNG images -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- html2pdf.js CDN for exporting receipts to PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -115,13 +115,6 @@
             to { transform: translateY(0); opacity: 1; }
         }
         .animate-toast { animation: slideInRight 0.25s ease-out forwards; }
-        
-        /* Estilos para TomSelect que combinen con Tailwind */
-        .ts-control { border: 1px solid #cbd5e1; border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; box-shadow: none; background: white; }
-        .ts-control.focus { border-color: #10b981; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); border-radius: 0.5rem; }
-        .ts-dropdown { border: 1px solid #cbd5e1; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); font-size: 0.875rem; margin-top: 4px; z-index: 1000; }
-        .ts-dropdown .option { padding: 0.5rem 0.75rem; }
-        .ts-dropdown .active { background-color: #f1f5f9; color: #0f172a; }
     </style>
 </head>
 <body class="h-full flex flex-col font-sans text-slate-800 antialiased selection:bg-brand-500 selection:text-white">
@@ -131,11 +124,11 @@
 
     <!-- TOP NAVBAR RESPONSIVE PARA MÓVIL Y DESKTOP -->
     <header class="bg-slate-900 text-white shadow-md no-print sticky top-0 z-30 border-b border-slate-800">
-        <div class="w-full px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-0 sm:h-16 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0">
             <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-start">
                 <div class="flex items-center space-x-2.5">
-                    <div class="shrink-0 flex items-center justify-center bg-transparent pr-2">
-                        <img src="logo.png" alt="Logo Grupo Andino" class="h-12 sm:h-14 w-auto object-contain" onerror="this.onerror=null; this.outerHTML='<div class=\'p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30 shrink-0\'><i class=\'fa-solid fa-ticket-simple text-lg sm:text-xl\'></i></div>';">
+                    <div class="p-2 bg-brand-600 rounded-xl text-white shadow-lg shadow-brand-600/30 shrink-0">
+                        <i class="fa-solid fa-ticket-simple text-lg sm:text-xl"></i>
                     </div>
                     <div>
                         <div class="flex items-center space-x-1.5">
@@ -441,6 +434,10 @@
                     </tbody>
                 </table>
             </div>
+            <div id="noAgenciesMsg" class="hidden p-8 sm:p-12 text-center text-slate-400">
+                <i class="fa-solid fa-store-slash text-4xl mb-2 text-slate-300"></i>
+                <p class="text-xs sm:text-sm font-medium">No se encontraron agencias que coincidan con la bÃºsqueda (CÃ³digo, Nombre, Receptor o Zona).</p>
+            </div>
         </div>
 
         <!-- VIEW 3: MOVEMENTS LOG TABLE RESPONSIVA -->
@@ -728,6 +725,17 @@
                     </div>
                 </div>
 
+                <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Memoria RAM</label>
+                        <input type="text" id="addRam" placeholder="Ej: 8GB, 16GB..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Disco Duro / Almacenamiento</label>
+                        <input type="text" id="addDisk" placeholder="Ej: 256GB SSD, 1TB HDD..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                    </div>
+                </div>
+
                 <!-- Campos Adicionales si se selecciona Mantenimiento -->
                 <div id="addMaintDetailsContainer" class="hidden p-3 bg-rose-50 rounded-xl border border-rose-200 space-y-2">
                     <p class="text-[11px] font-bold text-rose-900"><i class="fa-solid fa-screwdriver-wrench text-rose-600 mr-1"></i> Datos de Mantenimiento Técnico</p>
@@ -832,7 +840,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital de Conformidad (Opcional)
+                            <i class="fa-solid fa-signature text-emerald-600"></i> Firma Digital de Conformidad *
                         </label>
                         <div class="flex items-center space-x-2">
                             <button type="button" onclick="clearSignature()" class="text-xs text-rose-600 hover:text-rose-800 font-semibold underline">
@@ -1008,7 +1016,7 @@
                 <div class="space-y-1">
                     <div class="flex justify-between items-center">
                         <label class="block text-xs font-bold text-slate-700 uppercase">
-                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor (Opcional)
+                            <i class="fa-solid fa-signature text-blue-600"></i> Firma Digital del Receptor *
                         </label>
                         <button type="button" onclick="clearBatchSignature()" class="text-xs text-rose-600 font-semibold underline">Limpiar</button>
                     </div>
@@ -1210,12 +1218,24 @@
                     <i class="fa-solid fa-print text-brand-400"></i>
                     <span id="receiptModalTitle">Acta Oficial de Recepción y Entrega POS</span>
                 </span>
-                <div class="flex space-x-2">
-                    <button onclick="window.print()" class="px-3 py-1.5 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition flex items-center space-x-1 shadow">
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <button onclick="window.print()" class="px-2.5 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition flex items-center space-x-1 shadow" title="Imprimir Comprobante">
                         <i class="fa-solid fa-print"></i>
                         <span>Imprimir</span>
                     </button>
-                    <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+                    <button onclick="exportReceiptPDF()" class="px-2.5 py-1.5 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition flex items-center space-x-1 shadow" title="Exportar Documento PDF">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>PDF</span>
+                    </button>
+                    <button onclick="exportReceiptImage()" class="px-2.5 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center space-x-1 shadow" title="Exportar como Imagen PNG">
+                        <i class="fa-solid fa-file-image"></i>
+                        <span>Imagen</span>
+                    </button>
+                    <button onclick="shareReceiptWhatsApp()" class="px-2.5 py-1.5 text-xs font-semibold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg transition flex items-center space-x-1 shadow" title="Compartir vía WhatsApp">
+                        <i class="fa-brands fa-whatsapp text-sm"></i>
+                        <span>Compartir</span>
+                    </button>
+                    <button onclick="closeModal('receiptModal')" class="text-slate-400 hover:text-white transition ml-1"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
             </div>
 
@@ -1233,7 +1253,11 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <div>
+                        <p class="font-semibold text-slate-500 uppercase">Código Agencia:</p>
+                        <p class="text-xs sm:text-sm font-black text-indigo-700 font-mono" id="receiptAgencyCode">--</p>
+                    </div>
                     <div>
                         <p class="font-semibold text-slate-500 uppercase">Agencia POS:</p>
                         <p class="text-xs sm:text-sm font-bold text-slate-800" id="receiptAgency">--</p>
@@ -1548,6 +1572,15 @@
                     <p id="loginErrorMsg" class="text-xs text-rose-600 font-bold mt-1 hidden"></p>
                 </div>
 
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-[11px] text-slate-600 space-y-1">
+                    <p class="font-bold text-slate-800 border-b pb-1">Claves predeterminadas de los 6 roles:</p>
+                    <p>👑 Presidente: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">presi123</code></p>
+                    <p>🛡️ Admin: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">admin123</code></p>
+                    <p>👨‍💼 Jefe Técnico: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">jefe123</code></p>
+                    <p>🔧 Técnico Maint: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">tec123</code></p>
+                    <p>📦 Oficina Entrada: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">entrada123</code></p>
+                    <p>🚚 Oficina Salida: <code class="bg-slate-200 px-1 rounded text-slate-800 font-bold">salida123</code></p>
+                </div>
 
                 <div class="pt-2 flex items-center justify-end space-x-2">
                     <button type="button" id="loginCancelBtn" onclick="closeModal('loginModal')" class="px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition hidden">Cancelar</button>
@@ -1670,6 +1703,9 @@
         // Confirmation Modal Callback Holder
         let pendingConfirmCallback = null;
 
+        // Current Receipt Movement ID Holder
+        let currentReceiptMovId = null;
+
         // Security / User Credentials (6 Roles)
         const defaultUserCredentials = {
             president: { name: 'Presidente', password: 'presi123', roleName: 'PRESIDENTE (SOLO VER)' },
@@ -1682,6 +1718,40 @@
 
         let storedUsers = JSON.parse(localStorage.getItem('lotto_users')) || {};
         let userCredentials = { ...defaultUserCredentials, ...storedUsers };
+
+        // HELPER FUNCTIONS (SAFE USERNAME & LOCAL TIME)
+        function getActiveUserName() {
+            if (typeof currentRole !== 'undefined' && currentRole && typeof userCredentials !== 'undefined' && userCredentials[currentRole]) {
+                return userCredentials[currentRole].name;
+            }
+            if (typeof currentRole !== 'undefined' && currentRole && typeof defaultUserCredentials !== 'undefined' && defaultUserCredentials[currentRole]) {
+                return defaultUserCredentials[currentRole].name;
+            }
+            return 'Administrador';
+        }
+
+        function getFormattedNow() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function checkPermission(allowedRoles) {
+            if (!isAuthenticated || !currentRole) {
+                showToast('Debe iniciar sesión para realizar esta acción.', 'error');
+                openLoginModal(true);
+                return false;
+            }
+            if (Array.isArray(allowedRoles) && !allowedRoles.includes(currentRole)) {
+                showToast('No tiene permisos suficientes para esta operación.', 'error');
+                return false;
+            }
+            return true;
+        }
 
         // Dynamic Categories List
         const defaultCategories = ['Laptop', 'CPU Desktop', 'Monitor', 'Impresora Térmica', 'UPS / Batería', 'Lectores Código de Barras', 'Tablet POS', 'Celular Corporativo', 'Wipo / Router 4G', 'Valla / Publicidad', 'Otro'];
@@ -1945,29 +2015,16 @@
             }
         }
 
-        const tomSelectInstances = {};
-
         function populateAgencyDropdowns() {
             const selects = [document.getElementById('dispatchAgencySelect'), document.getElementById('batchAgencySelect')];
             selects.forEach(select => {
                 if (!select) return;
-                
-                if (tomSelectInstances[select.id]) {
-                    tomSelectInstances[select.id].destroy();
-                }
-                
                 select.innerHTML = '<option value="">-- Seleccionar Agencia POS --</option>';
                 agencies.forEach(ag => {
                     const opt = document.createElement('option');
                     opt.value = ag.name;
-                    opt.textContent = `${ag.code} - ${ag.name} (${ag.zone})`;
+                    opt.textContent = `${ag.name} (${ag.zone})`;
                     select.appendChild(opt);
-                });
-                
-                tomSelectInstances[select.id] = new TomSelect(select, {
-                    create: false,
-                    sortField: { field: "text", direction: "asc" },
-                    placeholder: "🔍 Buscar código o nombre..."
                 });
             });
         }
@@ -2576,7 +2633,10 @@
                         </td>
                         <td class="px-3.5 py-2.5">
                             <div class="font-medium text-slate-800">${item.brand} ${item.model}</div>
-                            <div class="text-[11px] text-slate-400">${item.color || 'Sin color'}</div>
+                            <div class="text-[11px] text-slate-400">
+                                ${item.color || 'Sin color'}
+                                ${(item.ram || item.disk) ? `<span class="font-semibold text-slate-600 ml-1">| ${[item.ram, item.disk].filter(Boolean).join(' - ')}</span>` : ''}
+                            </div>
                         </td>
                         <td class="px-3.5 py-2.5 font-mono font-bold text-slate-700">${item.serial}</td>
                         <td class="px-3.5 py-2.5">
@@ -2607,12 +2667,59 @@
             }
         }
 
+        function clearAgencySearch() {
+            const input = document.getElementById('agencySearchInput');
+            if (input) {
+                input.value = '';
+                renderAgenciesTable();
+            }
+        }
+
         function renderAgenciesTable() {
             const tbody = document.getElementById('agenciesTableBody');
+            const emptyMsg = document.getElementById('noAgenciesMsg');
+            const countEl = document.getElementById('agencySearchCount');
             if (!tbody) return;
             tbody.innerHTML = '';
 
-            agencies.forEach(ag => {
+            const query = (document.getElementById('agencySearchInput')?.value || '').toLowerCase().trim();
+
+            const filteredAgencies = agencies.filter(ag => {
+                if (!query) return true;
+                const codeStr = (ag.code || ag.id || '').toLowerCase();
+                const nameStr = (ag.name || '').toLowerCase();
+                const zoneStr = (ag.zone || '').toLowerCase();
+                const addressStr = (ag.address || '').toLowerCase();
+                const ownerStr = (ag.owner || '').toLowerCase();
+                const phoneStr = (ag.phone || '').toLowerCase();
+                const supervisorStr = (ag.supervisor || '').toLowerCase();
+
+                // Search through assigned equipment receptors & owners for this agency
+                const assignedReceptors = inventory.filter(i => i.agency === ag.name && i.status === 'Asignado')
+                    .map(i => `${i.receptor} ${i.owner}`).join(' ').toLowerCase();
+
+                return codeStr.includes(query) || 
+                       nameStr.includes(query) || 
+                       zoneStr.includes(query) || 
+                       addressStr.includes(query) || 
+                       ownerStr.includes(query) || 
+                       phoneStr.includes(query) || 
+                       supervisorStr.includes(query) || 
+                       assignedReceptors.includes(query);
+            });
+
+            if (countEl) {
+                countEl.innerText = `${filteredAgencies.length} de ${agencies.length} agencia(s)`;
+            }
+
+            if (filteredAgencies.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            }
+
+            if (emptyMsg) emptyMsg.classList.add('hidden');
+
+            filteredAgencies.forEach(ag => {
                 const assignedEquip = inventory.filter(i => i.agency === ag.name && i.status === 'Asignado');
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm';
@@ -2677,15 +2784,45 @@
         function renderMovementsTable() {
             const tbody = document.getElementById('movementsTableBody');
             const emptyMsg = document.getElementById('noMovementsMsg');
+            const countEl = document.getElementById('movementSearchCount');
+            if (!tbody) return;
             tbody.innerHTML = '';
 
-            if (movements.length === 0) {
-                emptyMsg.classList.remove('hidden');
+            const query = (document.getElementById('movementSearchInput')?.value || '').toLowerCase().trim();
+
+            const filteredMovs = movements.filter(mov => {
+                if (!query) return true;
+                const dateStr = (mov.date || '').toLowerCase();
+                const typeStr = (mov.type || '').toLowerCase();
+                const agencyStr = (mov.agency || '').toLowerCase();
+                const receptorStr = (mov.receptor || '').toLowerCase();
+                const ownerStr = (mov.owner || '').toLowerCase();
+                const userStr = (mov.user || '').toLowerCase();
+                const obsStr = (mov.obs || '').toLowerCase();
+                
+                let equipItemsStr = '';
+                if (mov.items && mov.items.length > 0) {
+                    equipItemsStr = mov.items.map(it => `${it.type} ${it.brandModel} ${it.serial}`).join(' ').toLowerCase();
+                } else {
+                    equipItemsStr = `${mov.equipType || ''} ${mov.equipSerial || ''}`.toLowerCase();
+                }
+
+                return dateStr.includes(query) || typeStr.includes(query) || agencyStr.includes(query) ||
+                       receptorStr.includes(query) || ownerStr.includes(query) || userStr.includes(query) ||
+                       obsStr.includes(query) || equipItemsStr.includes(query);
+            });
+
+            if (countEl) {
+                countEl.innerText = `${filteredMovs.length} de ${movements.length} movimiento(s)`;
+            }
+
+            if (filteredMovs.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
                 return;
             }
 
-            emptyMsg.classList.add('hidden');
-            movements.slice().reverse().forEach(mov => {
+            if (emptyMsg) emptyMsg.classList.add('hidden');
+            filteredMovs.slice().reverse().forEach(mov => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
 
@@ -2726,17 +2863,37 @@
         function renderMaintenanceTable() {
             const tbody = document.getElementById('maintenanceTableBody');
             const emptyMsg = document.getElementById('noMaintenanceMsg');
+            const countEl = document.getElementById('maintSearchCount');
             if (!tbody) return;
             tbody.innerHTML = '';
 
-            const activeMaint = maintenanceLog.filter(m => m.status === 'En Taller');
+            const query = (document.getElementById('maintSearchInput')?.value || '').toLowerCase().trim();
+
+            const activeMaint = maintenanceLog.filter(m => {
+                if (m.status !== 'En Taller') return false;
+                if (!query) return true;
+
+                const equipType = (m.equipType || '').toLowerCase();
+                const equipSerial = (m.equipSerial || '').toLowerCase();
+                const fault = (m.fault || '').toLowerCase();
+                const workshop = (m.workshop || '').toLowerCase();
+                const dateIn = (m.dateIn || '').toLowerCase();
+
+                return equipType.includes(query) || equipSerial.includes(query) ||
+                       fault.includes(query) || workshop.includes(query) || dateIn.includes(query);
+            });
+
+            if (countEl) {
+                const totalInTaller = maintenanceLog.filter(m => m.status === 'En Taller').length;
+                countEl.innerText = `${activeMaint.length} de ${totalInTaller} en taller`;
+            }
 
             if (activeMaint.length === 0) {
-                emptyMsg.classList.remove('hidden');
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
                 return;
             }
 
-            emptyMsg.classList.add('hidden');
+            if (emptyMsg) emptyMsg.classList.add('hidden');
             const canResolveMaint = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
             activeMaint.forEach(m => {
                 const tr = document.createElement('tr');
@@ -2789,16 +2946,15 @@
         }
 
         function openAddModal() {
-            if (!['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) {
-                showToast('No tiene permisos para registrar nuevos equipos.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head', 'office_entry', 'tech_maintenance'])) return;
             targetAddDestination = 'warehouse';
             document.getElementById('editingEquipmentId').value = '';
             document.getElementById('addModalTitle').innerText = 'Registrar Entrada al Depósito';
 
             document.getElementById('addEquipmentForm').reset();
             populateTypeDropdowns();
+            if (document.getElementById('addRam')) document.getElementById('addRam').value = '';
+            if (document.getElementById('addDisk')) document.getElementById('addDisk').value = '';
 
             const statusSelectContainer = document.getElementById('addInitialStatusContainer');
             if (statusSelectContainer) statusSelectContainer.classList.remove('hidden');
@@ -2819,10 +2975,7 @@
         }
 
         function openEditEquipmentModal(id) {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
-                showToast('No tiene permisos para editar información de equipos.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head'])) return;
 
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -2837,6 +2990,8 @@
             document.getElementById('addBrand').value = item.brand;
             document.getElementById('addModel').value = item.model;
             document.getElementById('addColor').value = item.color || '';
+            if (document.getElementById('addRam')) document.getElementById('addRam').value = item.ram || '';
+            if (document.getElementById('addDisk')) document.getElementById('addDisk').value = item.disk || '';
             document.getElementById('addObs').value = item.obs || '';
 
             const statusSelectContainer = document.getElementById('addInitialStatusContainer');
@@ -2864,6 +3019,8 @@
             const brand = document.getElementById('addBrand').value.trim();
             const model = document.getElementById('addModel').value.trim();
             const color = document.getElementById('addColor').value.trim();
+            const ram = document.getElementById('addRam')?.value.trim() || '';
+            const disk = document.getElementById('addDisk')?.value.trim() || '';
             const obs = document.getElementById('addObs').value.trim();
 
             if (editingId) {
@@ -2884,6 +3041,8 @@
                         brand,
                         model,
                         color,
+                        ram,
+                        disk,
                         obs
                     };
 
@@ -2921,6 +3080,8 @@
                 brand,
                 model,
                 color,
+                ram,
+                disk,
                 status: isMaint ? 'En Mantenimiento' : 'En Depósito',
                 agency: '-',
                 receptor: '-',
@@ -2958,7 +3119,7 @@
                     receptorType: 'Mantenimiento',
                     receptor: workshop,
                     owner: '-',
-                    user: userCredentials[currentRole].name,
+                    user: getActiveUserName(),
                     obs: `Ingreso directo a mantenimiento. Falla: ${obs || 'Revisión inicial'}`,
                     signature: ''
                 });
@@ -2978,7 +3139,7 @@
                     receptorType: '-',
                     receptor: '-',
                     owner: '-',
-                    user: userCredentials[currentRole].name,
+                    user: getActiveUserName(),
                     obs: obs || 'Ingreso inicial a bodega central',
                     signature: ''
                 });
@@ -2991,10 +3152,7 @@
         }
 
         function deleteEquipment(id) {
-            if (currentRole !== 'admin') {
-                showToast('Solo el Administrador puede eliminar equipos.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin'])) return;
             const equip = inventory.find(i => i.id === id);
             if (!equip) return;
 
@@ -3011,10 +3169,7 @@
         }
 
         function openAddAgencyModal() {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
-                showToast('No tiene permisos para crear agencias.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head'])) return;
             document.getElementById('editingAgencyId').value = '';
             document.getElementById('agencyModalTitle').innerText = 'Registrar Nueva Agencia POS';
             const codeInput = document.getElementById('agencyCode');
@@ -3031,10 +3186,7 @@
         }
 
         function openEditAgencyModal(id) {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
-                showToast('No tiene permisos para editar agencias.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head'])) return;
             const ag = agencies.find(a => a.id === id);
             if (!ag) return;
 
@@ -3146,10 +3298,7 @@
         }
 
         function deleteAgency(id) {
-            if (currentRole !== 'admin') {
-                showToast('Solo el Administrador puede eliminar agencias.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin'])) return;
             const ag = agencies.find(a => a.id === id);
             if (!ag) return;
 
@@ -3241,10 +3390,7 @@
         }
 
         function openDispatchModal(id) {
-            if (!['admin', 'tech_head', 'office_exit'].includes(currentRole)) {
-                showToast('No tiene permisos para asignar equipos.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
             const item = inventory.find(i => i.id === id);
             if (!item) return;
 
@@ -3291,9 +3437,16 @@
 
         function processDispatch(e) {
             e.preventDefault();
+            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
             const equipId = document.getElementById('dispatchEquipmentId').value;
             const item = inventory.find(i => i.id === equipId);
             if (!item) return;
+
+            if (item.status !== 'En Depósito') {
+                showToast('El equipo seleccionado ya no está disponible en Depósito Central.', 'warning');
+                closeModal('dispatchModal');
+                return;
+            }
 
             const targetType = document.getElementById('dispatchTargetType').value;
             const agency = document.getElementById('dispatchAgencySelect').value;
@@ -3306,7 +3459,10 @@
                 return;
             }
 
-
+            if (isCanvasBlank(canvas)) {
+                showToast('Por favor, solicite la firma del receptor antes de continuar.', 'warning');
+                return;
+            }
 
             const signatureData = canvas.toDataURL();
             const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
@@ -3328,7 +3484,7 @@
                 receptorType: targetType,
                 receptor,
                 owner,
-                user: userCredentials[currentRole].name,
+                user: getActiveUserName(),
                 obs,
                 signature: signatureData
             };
@@ -3423,7 +3579,7 @@
                 receptorType: 'Devolución de Agencia',
                 receptor: personName,
                 owner: prevOwner,
-                user: userCredentials[currentRole].name,
+                user: getActiveUserName(),
                 obs: `Devolución de ${prevAgency}. Obs: ${obs}`,
                 signature: signatureData
             };
@@ -3439,10 +3595,7 @@
 
         /* --- DESPACHO MÚLTIPLE / COMBO KIT CON BÚSQUEDA Y TELÉFONO/UBICACIÓN --- */
         function openBatchDispatchModal() {
-            if (!['admin', 'tech_head', 'office_exit'].includes(currentRole)) {
-                showToast('No tiene permisos para realizar despachos Combo Kit.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
             populateAgencyDropdowns();
 
             document.getElementById('batchEquipSearchInput').value = '';
@@ -3531,6 +3684,7 @@
 
         function processBatchDispatch(e) {
             e.preventDefault();
+            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
             const checkedBoxes = Array.from(document.querySelectorAll('input[name="batchEquipCheck"]:checked'));
             if (checkedBoxes.length === 0) {
                 showToast('Seleccione al menos un equipo para el kit.', 'warning');
@@ -3543,7 +3697,10 @@
                 return;
             }
 
-
+            if (isCanvasBlank(batchCanvas)) {
+                showToast('Por favor, solicite la firma del receptor antes de continuar.', 'warning');
+                return;
+            }
 
             const targetType = document.getElementById('batchTargetType').value;
             const owner = document.getElementById('batchOwnerName').value.trim();
@@ -3559,7 +3716,7 @@
 
             selectedIds.forEach(id => {
                 const item = inventory.find(i => i.id === id);
-                if (item) {
+                if (item && item.status === 'En Depósito') {
                     item.status = 'Asignado';
                     item.agency = agency;
                     item.owner = owner;
@@ -3575,6 +3732,11 @@
                 }
             });
 
+            if (dispatchedItems.length === 0) {
+                showToast('Ninguno de los equipos seleccionados está disponible en Depósito Central.', 'warning');
+                return;
+            }
+
             const fullObs = `Teléfono: ${phone || 'N/A'} | Ubicación: ${address || 'N/A'}. ${obs}`.trim();
 
             const signatureData = batchCanvas.toDataURL();
@@ -3588,7 +3750,7 @@
                 receptorType: targetType,
                 receptor,
                 owner,
-                user: userCredentials[currentRole].name,
+                user: getActiveUserName(),
                 obs: fullObs,
                 signature: signatureData
             };
@@ -3675,6 +3837,8 @@
                         const brand = getVal(['marca', 'brand']) || 'Generico';
                         const model = getVal(['modelo', 'model']) || 'Standard';
                         const color = getVal(['color']) || 'No especificado';
+                        const ram = getVal(['ram', 'memoria', 'memoriaram', 'memoria ram']);
+                        const disk = getVal(['discoduro', 'disco duro', 'disco', 'almacenamiento', 'ssd', 'hdd']);
                         const agency = getVal(['agencia', 'ubicacion', 'ubicación', 'punto de venta', 'agencia asignada']);
                         const receptor = getVal(['receptor', 'subreceptor']) || '-';
                         const owner = getVal(['dueño', 'dueno', 'titular', 'propiedad']) || '-';
@@ -3704,6 +3868,8 @@
                             brand,
                             model,
                             color,
+                            ram,
+                            disk,
                             serial,
                             agency: hasAgency ? agency : '-',
                             receptor: hasAgency ? receptor : '-',
@@ -3803,7 +3969,7 @@
                 receptorType: 'Carga Masiva',
                 receptor: 'Administrador',
                 owner: 'Grupo Andino',
-                user: userCredentials[currentRole].name,
+                user: getActiveUserName(),
                 obs: `Carga masiva realizada por Administrador: ${addedCount} nuevos, ${updatedCount} actualizados, ${newAgenciesCreated} agencias creadas.`,
                 signature: ''
             });
@@ -4015,10 +4181,24 @@
                 equipSerial: item.serial,
                 fault,
                 workshop,
-                cost,
+                cost: cost ? parseFloat(cost).toFixed(2) : '0.00',
                 dateIn: now,
                 dateOut: '-',
                 status: 'En Taller'
+            });
+
+            movements.push({
+                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                date: now,
+                type: 'Envío a Mantenimiento',
+                items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
+                agency: 'Taller Técnico',
+                receptorType: 'Mantenimiento',
+                receptor: workshop,
+                owner: '-',
+                user: getActiveUserName(),
+                obs: `Envío a taller por falla: ${fault}`,
+                signature: ''
             });
 
             saveData();
@@ -4029,10 +4209,7 @@
         }
 
         function resolveMaintenance(maintId) {
-            if (!['admin', 'tech_head', 'tech_maintenance'].includes(currentRole)) {
-                showToast('No tiene permisos para procesar la salida de taller.', 'error');
-                return;
-            }
+            if (!checkPermission(['admin', 'tech_head', 'tech_maintenance'])) return;
             const maint = maintenanceLog.find(m => m.id === maintId);
             if (!maint) return;
 
@@ -4049,6 +4226,23 @@
                         item.status = 'En Depósito';
                         item.dateIn = now;
                         item.dateOut = '-';
+                        item.agency = '-';
+                        item.receptor = '-';
+                        item.owner = '-';
+
+                        movements.push({
+                            id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                            date: now,
+                            type: 'Reingreso de Mantenimiento',
+                            items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
+                            agency: 'Depósito Central',
+                            receptorType: 'Reparado en Taller',
+                            receptor: maint.workshop || 'Taller Técnico',
+                            owner: '-',
+                            user: getActiveUserName(),
+                            obs: `Salida de taller por reparación completada. Falla resuelta: ${maint.fault || 'Mantenimiento técnico'}. Costo: $${maint.cost || '0.00'}`,
+                            signature: ''
+                        });
                     }
 
                     saveData();
@@ -4211,27 +4405,26 @@
             isDrawing = false;
         }
 
+        function clearCanvasFull(cnv) {
+            if (!cnv) return;
+            const context = cnv.getContext('2d');
+            context.save();
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.clearRect(0, 0, cnv.width, cnv.height);
+            context.restore();
+        }
+
         function clearSignature() {
-            if (canvas) {
-                const context = canvas.getContext('2d');
-                const rect = canvas.getBoundingClientRect();
-                context.clearRect(0, 0, rect.width, rect.height);
-            }
+            if (canvas) clearCanvasFull(canvas);
         }
 
         function clearBatchSignature() {
-            if (batchCanvas) {
-                const context = batchCanvas.getContext('2d');
-                const rect = batchCanvas.getBoundingClientRect();
-                context.clearRect(0, 0, rect.width, rect.height);
-            }
+            if (batchCanvas) clearCanvasFull(batchCanvas);
         }
 
         function clearReturnSignature() {
             if (returnCanvas) {
-                const context = returnCanvas.getContext('2d');
-                const rect = returnCanvas.getBoundingClientRect();
-                context.clearRect(0, 0, rect.width, rect.height);
+                clearCanvasFull(returnCanvas);
                 checkReturnValidation();
             }
         }
@@ -4248,11 +4441,20 @@
         function viewReceipt(movId) {
             const mov = movements.find(m => m.id === movId);
             if (!mov) return;
+            currentReceiptMovId = mov.id;
 
             const isReturn = mov.type.includes('Reingreso') || mov.type.includes('Devolución');
             
             document.getElementById('receiptModalTitle').innerText = isReturn ? 'Acta Oficial de Devolución y Reingreso a Depósito' : 'Acta Oficial de Recepción y Entrega POS';
             document.getElementById('receiptSubtitle').innerText = isReturn ? 'Comprobante Oficial de Devolución y Reingreso de Equipos al Almacén' : 'Comprobante Oficial de Entrega y Recepción de Equipos';
+
+            let agCode = '-';
+            if (mov.agency && mov.agency !== '-') {
+                const ag = agencies.find(a => a.name.toLowerCase().trim() === mov.agency.toLowerCase().trim());
+                if (ag) agCode = ag.code || ag.id;
+            }
+            const receiptAgencyCodeEl = document.getElementById('receiptAgencyCode');
+            if (receiptAgencyCodeEl) receiptAgencyCodeEl.innerText = agCode;
 
             document.getElementById('receiptId').innerText = `#${mov.id}`;
             document.getElementById('receiptDate').innerText = `Fecha: ${mov.date}`;
@@ -4299,6 +4501,78 @@
             }
 
             document.getElementById('receiptModal').classList.remove('hidden');
+        }
+
+        function exportReceiptPDF() {
+            const element = document.getElementById('receiptPrintArea');
+            if (!element) return;
+            showToast('Generando documento PDF...', 'info');
+            const opt = {
+                margin: [6, 6, 6, 6],
+                filename: `Acta_Oficial_POS_${currentReceiptMovId || 'Comprobante'}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            if (typeof html2pdf !== 'undefined') {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    showToast('Documento PDF descargado con éxito.', 'success');
+                }).catch(err => {
+                    console.error(err);
+                    showToast('Error al exportar PDF.', 'error');
+                });
+            } else {
+                window.print();
+            }
+        }
+
+        function exportReceiptImage() {
+            const element = document.getElementById('receiptPrintArea');
+            if (!element) return;
+            showToast('Generando imagen PNG del Acta...', 'info');
+            if (typeof html2canvas !== 'undefined') {
+                html2canvas(element, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = `Acta_Oficial_POS_${currentReceiptMovId || 'Comprobante'}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    showToast('Imagen PNG descargada con éxito.', 'success');
+                }).catch(err => {
+                    console.error(err);
+                    showToast('Error al exportar imagen PNG.', 'error');
+                });
+            } else {
+                showToast('Librería de captura de imagen no disponible.', 'error');
+            }
+        }
+
+        function shareReceiptWhatsApp() {
+            const mov = movements.find(m => m.id === currentReceiptMovId);
+            if (!mov) return;
+            const ag = agencies.find(a => a.name.toLowerCase().trim() === (mov.agency || '').toLowerCase().trim());
+            const agCode = ag ? (ag.code || ag.id) : '-';
+
+            let itemsText = '';
+            if (mov.items && mov.items.length > 0) {
+                itemsText = mov.items.map(it => `• ${it.type} ${it.brandModel || ''} (S/N: ${it.serial})`).join('\n');
+            } else {
+                itemsText = `• ${mov.equipType || 'Equipo'} (S/N: ${mov.equipSerial || 'N/A'})`;
+            }
+
+            const message = `*ACTA OFICIAL DE RECEPCIÓN Y ENTREGA POS*\n` +
+                            `*Grupo Andino - Banca de Loterías*\n\n` +
+                            `📄 *Comprobante:* #${mov.id}\n` +
+                            `📅 *Fecha:* ${mov.date}\n` +
+                            `🏢 *Agencia:* ${mov.agency} (Código: ${agCode})\n` +
+                            `👤 *Receptor:* ${mov.receptor}\n` +
+                            `👔 *Dueño/Titular:* ${mov.owner}\n\n` +
+                            `📦 *EQUIPAMIENTO ENTREGADO:*\n${itemsText}\n\n` +
+                            `✍️ *Firmado digitalmente de conformidad.*`;
+
+            const phone = ag && ag.phone ? ag.phone.replace(/\D/g, '') : '';
+            const encoded = encodeURIComponent(message);
+            const url = phone ? `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}` : `https://api.whatsapp.com/send?text=${encoded}`;
+            window.open(url, '_blank');
         }
 
         function closeModal(id) {
@@ -4636,9 +4910,9 @@
         }
 
         function exportData() {
-            let csv = 'ID,Tipo,Marca,Modelo,Color,Serial,Estado,Agencia,Receptor,Dueño,FechaEntrada,FechaSalida\n';
+            let csv = 'ID,Tipo,Marca,Modelo,Color,RAM,DiscoDuro,Serial,Estado,Agencia,Receptor,Dueño,FechaEntrada,FechaSalida\n';
             inventory.forEach(i => {
-                csv += `"${i.id}","${i.type}","${i.brand}","${i.model}","${i.color || ''}","${i.serial}","${i.status}","${i.agency}","${i.receptor}","${i.owner}","${i.dateIn || '-'}","${i.dateOut || '-'}"\n`;
+                csv += `"${i.id}","${i.type}","${i.brand}","${i.model}","${i.color || ''}","${i.ram || ''}","${i.disk || ''}","${i.serial}","${i.status}","${i.agency}","${i.receptor}","${i.owner}","${i.dateIn || '-'}","${i.dateOut || '-'}"\n`;
             });
 
             const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
