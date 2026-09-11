@@ -1016,9 +1016,14 @@
                         <label class="block text-xs font-bold text-blue-900 uppercase tracking-wide">
                             <i class="fa-solid fa-boxes-stacked text-blue-700 mr-1"></i> SELECCIONAR EQUIPOS *
                         </label>
-                        <div class="relative w-full sm:w-72">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2 text-slate-400 text-xs"></i>
-                            <input type="text" id="batchEquipSearchInput" oninput="filterBatchEquipmentList()" placeholder="Buscar por palabra clave (Epson, HP, S/N...)" class="w-full pl-8 pr-3 py-1 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white">
+                        <div class="relative w-full sm:w-72 flex items-center space-x-1">
+                            <div class="relative w-full">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3 top-2 text-slate-400 text-xs"></i>
+                                <input type="text" id="batchEquipSearchInput" oninput="filterBatchEquipmentList()" placeholder="Buscar por palabra clave (Epson, HP, S/N...)" class="w-full pl-8 pr-3 py-1 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:outline-none bg-white">
+                            </div>
+                            <button type="button" onclick="openScannerModal('batchEquipSearchInput')" class="px-2.5 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition border border-blue-200" title="Escanear QR / C. Barras">
+                                <i class="fa-solid fa-qrcode text-sm"></i>
+                            </button>
                         </div>
                     </div>
 
@@ -1262,10 +1267,13 @@
             <!-- PRINTABLE RECEIPT CONTENT -->
             <div id="receiptPrintArea" class="p-5 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto flex-1 bg-white text-slate-900">
                 <div class="border-b-2 border-slate-900 pb-3 flex justify-between items-start">
-                    <div>
-                        <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-wide">BANCA DE LOTERÍAS</h2>
-                        <p class="text-[10px] sm:text-xs text-slate-700 uppercase tracking-widest font-bold">Departamento de Tecnología e Instalaciones POS - Grupo Andino</p>
-                        <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5" id="receiptSubtitle">Comprobante Oficial de Entrega y Recepción de Equipos</p>
+                    <div class="flex items-center space-x-4">
+                        <img src="icon.ico" alt="Logo Grupo Andino" class="w-12 h-12 object-contain" />
+                        <div>
+                            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-wide">BANCA DE LOTERÍAS</h2>
+                            <p class="text-[10px] sm:text-xs text-slate-700 uppercase tracking-widest font-bold">Departamento de Tecnología e Instalaciones POS - Grupo Andino</p>
+                            <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5" id="receiptSubtitle">Comprobante Oficial de Entrega y Recepción de Equipos</p>
+                        </div>
                     </div>
                     <div class="text-right">
                         <span class="inline-block px-2.5 py-1 bg-slate-100 text-slate-900 text-xs font-mono font-bold rounded-lg border border-slate-300" id="receiptId">#MOV-0000</span>
@@ -1680,7 +1688,7 @@
     <!-- FIREBASE SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdi-qT9an2vdIe92q-fbPCfvVZD5IAn90",
@@ -1700,6 +1708,7 @@
         window.setDoc = setDoc;
         window.getDoc = getDoc;
         window.onSnapshot = onSnapshot;
+        window.collection = collection;
         window.firebaseInitialized = true;
         
         // Trigger a custom event when Firebase is ready
@@ -1867,20 +1876,32 @@
                 }
             });
 
-            // Listen to Movements
-            window.onSnapshot(window.doc(window.db, "lotto_data", "movements"), (docSnap) => {
+            // Listen to Movements (Collection)
+            window.onSnapshot(window.collection(window.db, "lotto_movements"), (querySnapshot) => {
+                let tempMovs = [];
+                querySnapshot.forEach((doc) => {
+                    tempMovs.push(doc.data());
+                });
+                movements = tempMovs.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                renderMovementsTable();
+            });
+
+            // One-time Migration Script for existing movements
+            window.getDoc(window.doc(window.db, "lotto_data", "movements")).then(docSnap => {
                 if (docSnap.exists()) {
-                    movements = docSnap.data().list || [];
-                    lastSavedMovements = JSON.stringify(movements);
-                    renderMovementsTable();
-                } else {
-                    let localMovs = JSON.parse(localStorage.getItem('lotto_movements'));
-                    if (localMovs && localMovs.length > 0) {
-                        movements = localMovs;
-                        window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: movements });
+                    let data = docSnap.data();
+                    if (!data.migrated && data.list && data.list.length > 0) {
+                        console.log("Migrando movimientos a la nueva colección lotto_movements...");
+                        let oldMovs = data.list;
+                        oldMovs.forEach(mov => {
+                            window.setDoc(window.doc(window.db, "lotto_movements", mov.id), mov).catch(err => console.error(err));
+                        });
+                        window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: [], migrated: true }).then(() => {
+                            console.log("Migración completada.");
+                        });
                     }
                 }
-            });
+            }).catch(err => console.error("Error en migración:", err));
 
             // Listen to Maintenance
             window.onSnapshot(window.doc(window.db, "lotto_data", "maintenance"), (docSnap) => {
@@ -2284,6 +2305,14 @@
             }
         }
 
+        function addMovement(movObj) {
+            movements.push(movObj);
+            if (window.db) {
+                window.setDoc(window.doc(window.db, "lotto_movements", movObj.id), movObj).catch(err => console.error("Error saving movement:", err));
+            }
+            localStorage.setItem('lotto_movements', JSON.stringify(movements));
+        }
+
         function saveData() {
             if (window.db) {
                 let currentInv = JSON.stringify(inventory);
@@ -2298,11 +2327,7 @@
                     lastSavedAgencies = currentAgencies;
                 }
 
-                let currentMovs = JSON.stringify(movements);
-                if (currentMovs !== lastSavedMovements) {
-                    window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: movements });
-                    lastSavedMovements = currentMovs;
-                }
+                // Movements are now saved individually via addMovement helper
 
                 let currentMaint = JSON.stringify(maintenanceLog);
                 if (currentMaint !== lastSavedMaintenance) {
@@ -3126,7 +3151,7 @@
             const initialStatus = statusSelect ? statusSelect.value : (targetAddDestination === 'maintenance' ? 'En Mantenimiento' : 'En Depósito');
             const isMaint = initialStatus === 'En Mantenimiento';
 
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
             const newItem = {
                 id: Date.now().toString(),
                 type,
@@ -3164,7 +3189,7 @@
                     status: 'En Taller'
                 });
 
-                movements.push({
+                addMovement({
                     id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                     date: now,
                     type: 'Entrada Mantenimiento',
@@ -3184,7 +3209,7 @@
                 showToast('¡Equipo registrado con éxito directamente en Mantenimiento Técnico!', 'warning');
                 triggerStockToastAlerts([newItem.type]);
             } else {
-                movements.push({
+                addMovement({
                     id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                     date: now,
                     type: 'Entrada Depósito',
@@ -3214,6 +3239,21 @@
                 '¿Eliminar equipo?',
                 `¿Desea eliminar permanentemente el equipo ${equip.type} (${equip.serial})?`,
                 () => {
+                    const now = getFormattedNow();
+                    addMovement({
+                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        date: now,
+                        type: 'Eliminación de Equipo',
+                        items: [{ type: equip.type, brandModel: `${equip.brand} ${equip.model}`, serial: equip.serial, color: equip.color }],
+                        agency: '-',
+                        receptorType: 'Eliminado',
+                        receptor: '-',
+                        owner: '-',
+                        user: getActiveUserName(),
+                        obs: 'Equipo eliminado permanentemente del sistema por administrador.',
+                        signature: ''
+                    });
+
                     inventory = inventory.filter(i => i.id !== id);
                     saveData();
                     renderAll();
@@ -3434,10 +3474,28 @@
                 '¿Eliminar Categoría?',
                 `¿Desea eliminar la categoría "${catName}"?`,
                 () => {
+                    const now = getFormattedNow();
+                    addMovement({
+                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        date: now,
+                        type: 'Eliminación de Categoría',
+                        items: [],
+                        equipType: 'Categoría',
+                        equipSerial: '-',
+                        agency: '-',
+                        receptorType: 'Eliminada',
+                        receptor: '-',
+                        owner: '-',
+                        user: getActiveUserName(),
+                        obs: `Categoría "${catName}" eliminada permanentemente del sistema.`,
+                        signature: ''
+                    });
+
                     equipmentCategories = equipmentCategories.filter(c => c !== catName);
                     saveData();
                     populateTypeDropdowns();
                     renderCategoriesList();
+                    renderMovementsTable();
                     showToast('Categoría eliminada.');
                 }
             );
@@ -3522,7 +3580,7 @@
             }
 
             const signatureData = canvas.toDataURL();
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
             const dispatchedType = item.type;
 
             item.status = 'Asignado';
@@ -3546,7 +3604,7 @@
                 signature: signatureData
             };
 
-            movements.push(movObj);
+            addMovement(movObj);
             saveData();
             renderAll();
             closeModal('dispatchModal');
@@ -3616,7 +3674,7 @@
             const signatureData = returnCanvas.toDataURL();
             const prevAgency = item.agency;
             const prevOwner = item.owner;
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
 
             item.status = 'En Depósito';
             item.agency = '-';
@@ -3641,7 +3699,7 @@
                 signature: signatureData
             };
 
-            movements.push(movObj);
+            addMovement(movObj);
             saveData();
             renderAll();
             closeModal('returnModal');
@@ -3773,7 +3831,7 @@
             const selectedIds = checkedBoxes.map(cb => cb.value);
             const dispatchedItems = [];
             const affectedTypes = new Set();
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
 
             selectedIds.forEach(id => {
                 const item = inventory.find(i => i.id === id);
@@ -3816,7 +3874,7 @@
                 signature: signatureData
             };
 
-            movements.push(movObj);
+            addMovement(movObj);
             saveData();
             renderAll();
             closeModal('batchDispatchModal');
@@ -3881,7 +3939,7 @@
 
                     parsedExcelRows = [];
                     const detectedAgencies = new Set();
-                    const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+                    const now = getFormattedNow();
 
                     rawRows.forEach((r, idx) => {
                         const getVal = (keys) => {
@@ -3988,7 +4046,7 @@
             let updatedCount = 0;
             let newAgenciesCreated = 0;
 
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
 
             parsedExcelRows.forEach(row => {
                 if (row.agency !== '-' && !agencies.some(a => a.name.toLowerCase() === row.agency.toLowerCase())) {
@@ -4021,7 +4079,7 @@
                 }
             });
 
-            movements.push({
+            addMovement({
                 id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                 date: now,
                 type: 'Importación Masiva Excel',
@@ -4227,7 +4285,7 @@
             const workshop = document.getElementById('maintWorkshop').value.trim();
             const cost = document.getElementById('maintCost').value;
 
-            const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+            const now = getFormattedNow();
             const maintType = item.type;
 
             item.status = 'En Mantenimiento';
@@ -4248,7 +4306,7 @@
                 status: 'En Taller'
             });
 
-            movements.push({
+            addMovement({
                 id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                 date: now,
                 type: 'Envío a Mantenimiento',
@@ -4278,7 +4336,7 @@
                 '¿Reingresar del Taller?',
                 `¿Confirmar reparación y reingreso del equipo (${maint.equipSerial}) al Depósito Central?`,
                 () => {
-                    const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+                    const now = getFormattedNow();
                     maint.status = 'Reparado';
                     maint.dateOut = now;
 
@@ -4291,7 +4349,7 @@
                         item.receptor = '-';
                         item.owner = '-';
 
-                        movements.push({
+                        addMovement({
                             id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                             date: now,
                             type: 'Reingreso de Mantenimiento',
@@ -4823,6 +4881,12 @@
                 if (input) {
                     input.value = scannedCode;
                     input.focus();
+                }
+            } else if (activeScanTarget === 'batchEquipSearchInput') {
+                const input = document.getElementById('batchEquipSearchInput');
+                if (input) {
+                    input.value = scannedCode;
+                    filterBatchEquipmentList();
                 }
             } else if (activeScanTarget === 'search') {
                 switchTab('inventory');
