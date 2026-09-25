@@ -458,7 +458,15 @@
                     <h3 class="font-bold text-slate-800 text-xs sm:text-sm">Directorio Oficial de Agencias / Bancas POS</h3>
                     <p class="text-[11px] sm:text-xs text-slate-500">Puntos de venta habilitados para instalación de equipos</p>
                 </div>
-                <div class="flex items-center space-x-2 w-full sm:w-auto justify-end shrink-0">
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end shrink-0">
+                    <button id="btnSyncAgenciesCloud" onclick="forceSyncAgenciesToCloud()" class="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1" title="Sincronizar agencias con la nube Firebase">
+                        <i class="fa-solid fa-cloud-arrow-up text-amber-600"></i>
+                        <span>Sincronizar Nube</span>
+                    </button>
+                    <button id="btnExportAgencies" onclick="exportExcelAgencies('xlsx')" class="px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-800 border border-blue-300 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1" title="Descargar catálogo de agencias en Excel">
+                        <i class="fa-solid fa-file-arrow-down text-blue-600"></i>
+                        <span>Exportar Agencias</span>
+                    </button>
                     <button id="btnImportAgenciesExcel" onclick="openAgenciesExcelImportModal()" class="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-semibold shadow-sm transition flex items-center space-x-1" title="Cargar catálogo de agencias desde Excel">
                         <i class="fa-solid fa-file-excel text-emerald-600"></i>
                         <span>Importar Excel Agencias</span>
@@ -2008,6 +2016,25 @@
                             <i class="fa-solid fa-upload text-blue-400"></i>
                             <span>Restaurar Desde .JSON</span>
                             <input type="file" id="jsonBackupInput" accept=".json" class="hidden" onchange="importJSONBackup(event)">
+                        </label>
+                    </div>
+
+                    <!-- FUSIÓN MULTI-EQUIPO INTELIGENTE -->
+                    <div class="p-3 bg-indigo-50/70 rounded-xl border border-indigo-200 text-xs text-indigo-950 space-y-1.5">
+                        <div class="flex items-center justify-between">
+                            <p class="font-bold flex items-center gap-1.5 text-indigo-900">
+                                <i class="fa-solid fa-code-merge text-indigo-600"></i>
+                                <span>Fusión Multi-Equipo (Unir datos de 2 o 3 PCs)</span>
+                            </p>
+                            <span class="text-[10px] font-bold bg-indigo-200/80 text-indigo-800 px-2 py-0.5 rounded-full">Sin Pérdida de Datos</span>
+                        </div>
+                        <p class="text-[11px] text-slate-600 leading-relaxed">
+                            ¿Trabajó en varios computadores sin sincronizar con la nube? Seleccione los respaldos JSON de las 2 o 3 computadoras. El sistema integrará automáticamente todos los movimientos, nuevas agencias y estados del día sin sobrescribir ni perder ningún registro.
+                        </p>
+                        <label class="w-full mt-1 py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow transition flex items-center justify-center space-x-1.5 cursor-pointer">
+                            <i class="fa-solid fa-object-ungroup"></i>
+                            <span>Seleccionar y Fusionar Varios Archivos JSON</span>
+                            <input type="file" id="jsonMultiMergeInput" accept=".json" multiple class="hidden" onchange="mergeMultipleJSONBackups(event)">
                         </label>
                     </div>
                 </div>
@@ -19560,6 +19587,13 @@ service cloud.firestore {
                     badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-rose-400 animate-ping"></span><span class="hidden md:inline" id="cloudStatusText">Reglas Expiradas (Clic)</span>';
                 }
                 if (banner) banner.classList.remove('hidden');
+            } else if (status === 'quota_exceeded') {
+                if (badge) {
+                    badge.className = "px-2.5 py-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded-lg text-xs font-semibold border border-amber-500/40 transition flex items-center space-x-1.5 shrink-0 cursor-pointer";
+                    badge.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span><span class="hidden md:inline" id="cloudStatusText">Cuota Nube Diaria (Modo Local)</span>';
+                    badge.title = "Cuota diaria de Firebase alcanzada. Los datos se guardan de forma segura localmente. Puedes transferirlos con el botón Exportar Agencias o pasar a plan Blaze en Firebase.";
+                }
+                if (banner) banner.classList.add('hidden');
             } else {
                 if (badge) {
                     badge.className = "px-2.5 py-1.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded-lg text-xs font-semibold border border-amber-500/40 transition flex items-center space-x-1.5 shrink-0";
@@ -19572,6 +19606,8 @@ service cloud.firestore {
             console.warn("Firestore sync error on " + source + ":", err);
             if (err && (err.code === 'permission-denied' || (err.message && err.message.toLowerCase().includes('permission')))) {
                 updateCloudStatusUI('permission_error');
+            } else if (err && (err.code === 'resource-exhausted' || (err.message && (err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('exhausted') || err.message.includes('429'))))) {
+                updateCloudStatusUI('quota_exceeded');
             } else {
                 updateCloudStatusUI('offline');
             }
@@ -19586,14 +19622,14 @@ service cloud.firestore {
                 function loadDataFromFirestore() {
             showToast('Conectando a la nube...', 'info');
             
-            // Listen to Inventory with Smart Merge (Never lose local or newly added items)
+            // 1. Escuchar Inventario con Smart Merge (Solo lectura y recepción segura, sin bucles de escritura)
             window.onSnapshot(window.doc(window.db, "lotto_data", "inventory"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     const cloudList = docSnap.data().list || [];
                     cloudList.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
 
-                    // Smart Merge: Index by uppercase serial or unique ID (excluyendo eliminados)
+                    // Smart Merge: Index por serial en mayúsculas o ID único (excluyendo eliminados)
                     const invMap = new Map();
                     cloudList.forEach(item => {
                         if (!item || isEquipmentDeleted(item.serial, item.id)) return;
@@ -19601,78 +19637,86 @@ service cloud.firestore {
                         invMap.set(key, item);
                     });
 
-                    let localOnlyItemsFound = 0;
+                    // Preservar equipos que se hayan registrado localmente mientras estaba offline
+                    let localOnlyItemsFound = false;
                     inventory.forEach(localItem => {
                         if (!localItem || isEquipmentDeleted(localItem.serial, localItem.id)) return;
                         const key = (localItem.serial && localItem.serial.trim()) ? localItem.serial.trim().toUpperCase() : ('ID_' + localItem.id);
                         if (!invMap.has(key)) {
                             invMap.set(key, localItem);
-                            localOnlyItemsFound++;
+                            localOnlyItemsFound = true;
                         }
                     });
+                    if (localOnlyItemsFound && !localStorage.getItem('lotto_pending_inventory_sync')) {
+                        localStorage.setItem('lotto_pending_inventory_sync', 'true');
+                    }
 
                     inventory = Array.from(invMap.values()).filter(i => !isEquipmentDeleted(i.serial, i.id));
 
-                    // Auto-recovery from movements history if any item was referenced in movements
-                    const recovered = autoRecoverMissingEquipmentsFromMovements();
+                    // Auto-recuperación desde movimientos de auditoría si falta algún equipo
+                    autoRecoverMissingEquipmentsFromMovements();
                     inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
 
                     lastSavedInventory = JSON.stringify(inventory);
                     localStorage.setItem('lotto_inventory', lastSavedInventory);
                     renderAll();
 
-                    // If local items were preserved or auto-recovered that the cloud document was missing, push update to cloud
-                    if ((localOnlyItemsFound > 0 || recovered > 0 || inventory.length !== cloudList.length) && window.db) {
-                        console.log(`[Sync] Sincronizando ${inventory.length} equipos unificados a la nube...`);
+                    // Reintentar si había cambios pendientes guardados localmente mientras estuvo offline
+                    if (localStorage.getItem('lotto_pending_inventory_sync') === 'true' && window.db) {
                         window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory })
                             .then(() => {
-                                console.log('[Sync] Nube actualizada exitosamente con inventario unificado.');
+                                localStorage.removeItem('lotto_pending_inventory_sync');
+                                console.log('[Sync] Inventario pendiente sincronizado exitosamente con la nube.');
                             })
-                            .catch(err => handleFirestoreError(err, 'inventory-push'));
-                    }
-                } else {
-                    if (inventory.length > 0) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory }).catch(err => handleFirestoreError(err, 'inventory'));
+                            .catch(err => handleFirestoreError(err, 'inventory-pending-push'));
                     }
                 }
             }, (err) => handleFirestoreError(err, 'inventory'));
 
-            // Listen to Agencies with Smart Merge
+            // 2. Escuchar Directorio de Agencias con Smart Merge (Bidireccional entre equipos sin saturar cuota)
             window.onSnapshot(window.doc(window.db, "lotto_data", "agencies"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     const cloudAg = docSnap.data().list || [];
-                    const agMap = new Map();
-                    cloudAg.forEach(a => { if (a && a.name) agMap.set(a.name.trim().toLowerCase(), a); });
-                    
-                    let localOnlyAg = 0;
-                    agencies.forEach(a => {
-                        if (!a || !a.name) return;
-                        const key = a.name.trim().toLowerCase();
-                        if (!agMap.has(key)) {
-                            agMap.set(key, a);
-                            localOnlyAg++;
+                    if (Array.isArray(cloudAg) && cloudAg.length > 0) {
+                        const agMap = new Map();
+                        cloudAg.forEach(a => { if (a && a.name) agMap.set(a.name.trim().toLowerCase(), a); });
+                        
+                        // Preservar agencias que se hayan registrado localmente en este equipo
+                        let localOnlyAgenciesFound = false;
+                        agencies.forEach(a => {
+                            if (!a || !a.name) return;
+                            const key = a.name.trim().toLowerCase();
+                            if (!agMap.has(key)) {
+                                agMap.set(key, a);
+                                localOnlyAgenciesFound = true;
+                            }
+                        });
+                        if (localOnlyAgenciesFound && !localStorage.getItem('lotto_pending_agencies_sync')) {
+                            localStorage.setItem('lotto_pending_agencies_sync', 'true');
                         }
-                    });
 
-                    agencies = Array.from(agMap.values());
-                    lastSavedAgencies = JSON.stringify(agencies);
-                    localStorage.setItem('lotto_agencies', lastSavedAgencies);
-                    populateAgencyDropdowns();
-                    renderAgenciesTable();
-                    updateDashboardStats();
+                        agencies = Array.from(agMap.values());
+                        lastSavedAgencies = JSON.stringify(agencies);
+                        localStorage.setItem('lotto_agencies', lastSavedAgencies);
+                        populateAgencyDropdowns();
+                        renderAgenciesTable();
+                        updateDashboardStats();
 
-                    if ((localOnlyAg > 0 || agencies.length > cloudAg.length) && window.db) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies }).catch(err => handleFirestoreError(err, 'agencies-push'));
-                    }
-                } else {
-                    if (agencies.length > 0) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies }).catch(err => handleFirestoreError(err, 'agencies'));
+                        // Reintentar sincronización pendiente si falló previamente por cuota o red
+                        if (localStorage.getItem('lotto_pending_agencies_sync') === 'true' && window.db) {
+                            window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+                                .then(() => {
+                                    localStorage.removeItem('lotto_pending_agencies_sync');
+                                    console.log('[Sync] Agencias pendientes sincronizadas con la nube con éxito.');
+                                })
+                                .catch(err => handleFirestoreError(err, 'agencies-pending-push'));
+                        }
                     }
                 }
             }, (err) => handleFirestoreError(err, 'agencies'));
 
-            // Listen to Movements (Collection) with Auto-Recovery check
+            // 3. Escuchar Historial de Movimientos
             window.onSnapshot(window.collection(window.db, "lotto_movements"), (querySnapshot) => {
                 updateCloudStatusUI('connected');
                 let tempMovs = [];
@@ -19691,55 +19735,21 @@ service cloud.firestore {
                 updateDeletedEquipmentFromMovements();
                 inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
 
-                // Check if any movements contain equipment not yet in inventory!
-                const recovered = autoRecoverMissingEquipmentsFromMovements();
+                autoRecoverMissingEquipmentsFromMovements();
                 inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
-
-                if (recovered > 0) {
-                    lastSavedInventory = JSON.stringify(inventory);
-                    localStorage.setItem('lotto_inventory', lastSavedInventory);
-                    renderAll();
-                    if (window.db) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory }).catch(e => {});
-                    }
-                }
-
-                if (window.db && querySnapshot.size < movements.length) {
-                    movements.forEach(mov => {
-                        if (!tempMovs.some(tm => tm.id === mov.id)) {
-                            window.setDoc(window.doc(window.db, "lotto_movements", mov.id), mov).catch(e => {});
-                        }
-                    });
-                }
             }, (err) => handleFirestoreError(err, 'movements'));
 
-            // One-time Migration Script for existing movements
-            window.getDoc(window.doc(window.db, "lotto_data", "movements")).then(docSnap => {
-                if (docSnap.exists()) {
-                    let data = docSnap.data();
-                    if (!data.migrated && data.list && data.list.length > 0) {
-                        let oldMovs = data.list;
-                        oldMovs.forEach(mov => {
-                            window.setDoc(window.doc(window.db, "lotto_movements", mov.id), mov).catch(err => console.error(err));
-                        });
-                        window.setDoc(window.doc(window.db, "lotto_data", "movements"), { list: [], migrated: true }).catch(e => {});
-                    }
-                }
-            }).catch(err => handleFirestoreError(err, 'movements-migration'));
-
-            // Listen to Maintenance with Smart Merge
+            // 4. Escuchar Mantenimiento Técnico con Smart Merge
             window.onSnapshot(window.doc(window.db, "lotto_data", "maintenance"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     const cloudMaint = docSnap.data().list || [];
                     const maintMap = new Map();
                     cloudMaint.forEach(m => { if (m && m.id) maintMap.set(m.id, m); });
-                    let localOnlyMaint = 0;
                     maintenanceLog.forEach(m => {
                         if (!m || !m.id) return;
                         if (!maintMap.has(m.id)) {
                             maintMap.set(m.id, m);
-                            localOnlyMaint++;
                         }
                     });
                     maintenanceLog = Array.from(maintMap.values());
@@ -19747,17 +19757,15 @@ service cloud.firestore {
                     localStorage.setItem('lotto_maintenance', lastSavedMaintenance);
                     renderMaintenanceTable();
 
-                    if ((localOnlyMaint > 0 || maintenanceLog.length > cloudMaint.length) && window.db) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog }).catch(err => handleFirestoreError(err, 'maintenance-push'));
-                    }
-                } else {
-                    if (maintenanceLog.length > 0) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog }).catch(err => handleFirestoreError(err, 'maintenance'));
+                    if (localStorage.getItem('lotto_pending_maintenance_sync') === 'true' && window.db) {
+                        window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog })
+                            .then(() => { localStorage.removeItem('lotto_pending_maintenance_sync'); })
+                            .catch(err => handleFirestoreError(err, 'maintenance-pending-push'));
                     }
                 }
             }, (err) => handleFirestoreError(err, 'maintenance'));
             
-            // Listen to Settings (Categories & Thresholds)
+            // 5. Escuchar Configuración (Categorías y Umbrales)
             window.onSnapshot(window.doc(window.db, "lotto_data", "settings"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
@@ -19766,28 +19774,18 @@ service cloud.firestore {
                     stockThresholds = data.thresholds || defaultStockThresholds;
                     lastSavedSettings = JSON.stringify({ categories: equipmentCategories, thresholds: stockThresholds });
                     populateTypeDropdowns();
-                } else {
-                    let localCat = JSON.parse(localStorage.getItem('lotto_categories'));
-                    let localThresh = JSON.parse(localStorage.getItem('lotto_stock_thresholds'));
-                    if (localCat) equipmentCategories = localCat;
-                    if (localThresh) stockThresholds = localThresh;
-                    window.setDoc(window.doc(window.db, "lotto_data", "settings"), { categories: equipmentCategories, thresholds: stockThresholds }).catch(e => {});
                 }
             }, (err) => handleFirestoreError(err, 'settings'));
 
-            // Listen to Users
+            // 6. Escuchar Credenciales y Roles de Usuarios
             window.onSnapshot(window.doc(window.db, "lotto_data", "users"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     userCredentials = { ...defaultUserCredentials, ...docSnap.data().data };
-                } else {
-                    let localUsers = JSON.parse(localStorage.getItem('lotto_users')) || {};
-                    userCredentials = { ...defaultUserCredentials, ...localUsers };
-                    window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials }).catch(e => {});
                 }
             }, (err) => handleFirestoreError(err, 'users'));
 
-            // Listen to Deleted Items Tracking
+            // 7. Escuchar Registro de Equipos Eliminados
             window.onSnapshot(window.doc(window.db, "lotto_data", "deleted_items"), (docSnap) => {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
@@ -20029,6 +20027,10 @@ service cloud.firestore {
             if (btnAdd) btnAdd.style.display = (['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) ? 'flex' : 'none';
             if (btnBatch) btnBatch.style.display = (['admin', 'tech_head', 'office_exit'].includes(currentRole)) ? 'flex' : 'none';
             if (btnImportExcel) btnImportExcel.style.display = (['admin', 'tech_head', 'office_entry'].includes(currentRole)) ? 'flex' : 'none';
+            const btnSyncAgenciesCloud = document.getElementById('btnSyncAgenciesCloud');
+            const btnExportAgencies = document.getElementById('btnExportAgencies');
+            if (btnSyncAgenciesCloud) btnSyncAgenciesCloud.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
+            if (btnExportAgencies) btnExportAgencies.style.display = 'flex';
             if (btnImportAgenciesExcel) btnImportAgenciesExcel.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
             if (btnAddAgency) btnAddAgency.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
             if (btnManageTypes) btnManageTypes.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
@@ -20220,7 +20222,10 @@ service cloud.firestore {
         function addMovement(movObj) {
             movements.push(movObj);
             if (window.db) {
-                window.setDoc(window.doc(window.db, "lotto_movements", movObj.id), movObj).catch(err => console.error("Error saving movement:", err));
+                window.setDoc(window.doc(window.db, "lotto_movements", movObj.id), movObj).catch(err => {
+                    console.error("Error saving movement:", err);
+                    handleFirestoreError(err, 'addMovement');
+                });
             }
             safeSetLocalStorage('lotto_movements', JSON.stringify(movements));
         }
@@ -20242,22 +20247,40 @@ service cloud.firestore {
                 let currentInv = JSON.stringify(inventory);
                 if (currentInv !== lastSavedInventory) {
                     window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory })
-                        .then(() => { lastSavedInventory = currentInv; })
-                        .catch(err => handleFirestoreError(err, 'saveInventory'));
+                        .then(() => { 
+                            lastSavedInventory = currentInv; 
+                            localStorage.removeItem('lotto_pending_inventory_sync');
+                        })
+                        .catch(err => {
+                            localStorage.setItem('lotto_pending_inventory_sync', 'true');
+                            handleFirestoreError(err, 'saveInventory');
+                        });
                 }
 
                 let currentAgencies = JSON.stringify(agencies);
                 if (currentAgencies !== lastSavedAgencies) {
                     window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
-                        .then(() => { lastSavedAgencies = currentAgencies; })
-                        .catch(err => handleFirestoreError(err, 'saveAgencies'));
+                        .then(() => { 
+                            lastSavedAgencies = currentAgencies; 
+                            localStorage.removeItem('lotto_pending_agencies_sync');
+                        })
+                        .catch(err => {
+                            localStorage.setItem('lotto_pending_agencies_sync', 'true');
+                            handleFirestoreError(err, 'saveAgencies');
+                        });
                 }
 
                 let currentMaint = JSON.stringify(maintenanceLog);
                 if (currentMaint !== lastSavedMaintenance) {
                     window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog })
-                        .then(() => { lastSavedMaintenance = currentMaint; })
-                        .catch(err => handleFirestoreError(err, 'saveMaintenance'));
+                        .then(() => { 
+                            lastSavedMaintenance = currentMaint; 
+                            localStorage.removeItem('lotto_pending_maintenance_sync');
+                        })
+                        .catch(err => {
+                            localStorage.setItem('lotto_pending_maintenance_sync', 'true');
+                            handleFirestoreError(err, 'saveMaintenance');
+                        });
                 }
 
                 let currentSettings = JSON.stringify({ categories: equipmentCategories, thresholds: stockThresholds });
@@ -20267,6 +20290,29 @@ service cloud.firestore {
                         .catch(err => handleFirestoreError(err, 'saveSettings'));
                 }
             }
+        }
+
+        // Sincronización manual forzada de agencias con la nube
+        function forceSyncAgenciesToCloud() {
+            if (!window.db) {
+                showToast('Base de datos en la nube no inicializada (Modo Local).', 'warning');
+                return;
+            }
+            showToast('Sincronizando agencias con la nube...', 'info');
+            window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+                .then(() => {
+                    lastSavedAgencies = JSON.stringify(agencies);
+                    localStorage.removeItem('lotto_pending_agencies_sync');
+                    showToast(`¡${agencies.length} agencias sincronizadas exitosamente con la nube!`, 'success');
+                })
+                .catch(err => {
+                    handleFirestoreError(err, 'forceSyncAgencies');
+                    if (err && (err.code === 'resource-exhausted' || (err.message && err.message.toLowerCase().includes('quota')))) {
+                        showToast('Cuota gratuita diaria de Firebase excedida (429). Puedes usar "Exportar Agencias" para pasarlas en Excel al otro equipo.', 'warning');
+                    } else {
+                        showToast('Error al sincronizar con la nube: ' + (err.message || 'Verifique conexión'), 'error');
+                    }
+                });
         }
 
 
@@ -24917,6 +24963,184 @@ service cloud.firestore {
                 }
             };
             reader.readAsText(file);
+        }
+
+        // FUSIÓN MULTI-EQUIPO INTELIGENTE DE RESPALDOS JSON
+        function mergeMultipleJSONBackups(e) {
+            const files = Array.from(e.target.files);
+            if (!files || files.length === 0) return;
+
+            if (files.length === 1) {
+                importJSONBackup(e);
+                return;
+            }
+
+            const promises = files.map(file => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (evt) => {
+                        try {
+                            const parsed = JSON.parse(evt.target.result);
+                            resolve({ name: file.name, data: parsed });
+                        } catch (err) {
+                            reject(`Error al leer archivo ${file.name}`);
+                        }
+                    };
+                    reader.onerror = () => reject(`Error de lectura en ${file.name}`);
+                    reader.readAsText(file);
+                });
+            });
+
+            Promise.all(promises).then(results => {
+                const movMap = new Map();
+                movements.forEach(m => { if (m && m.id) movMap.set(m.id, m); });
+
+                const agMap = new Map();
+                agencies.forEach(a => { if (a && a.name) agMap.set(a.name.trim().toLowerCase(), a); });
+
+                const maintMap = new Map();
+                maintenanceLog.forEach(m => { if (m && m.id) maintMap.set(m.id, m); });
+
+                const invMap = new Map();
+                inventory.forEach(i => {
+                    if (!i) return;
+                    const key = (i.serial && i.serial.trim()) ? i.serial.trim().toUpperCase() : ('ID_' + i.id);
+                    invMap.set(key, i);
+                });
+
+                let totalNewMovements = 0;
+                let totalNewAgencies = 0;
+
+                results.forEach(res => {
+                    const d = res.data;
+                    if (!d) return;
+
+                    // Movimientos
+                    if (Array.isArray(d.movements)) {
+                        d.movements.forEach(m => {
+                            if (m && m.id && !movMap.has(m.id)) {
+                                movMap.set(m.id, m);
+                                totalNewMovements++;
+                            }
+                        });
+                    }
+
+                    // Agencias
+                    if (Array.isArray(d.agencies)) {
+                        d.agencies.forEach(a => {
+                            if (a && a.name) {
+                                const k = a.name.trim().toLowerCase();
+                                if (!agMap.has(k)) {
+                                    agMap.set(k, a);
+                                    totalNewAgencies++;
+                                } else {
+                                    const cur = agMap.get(k);
+                                    if (!cur.phone && a.phone) cur.phone = a.phone;
+                                    if (!cur.address && a.address) cur.address = a.address;
+                                    if (!cur.owner && a.owner) cur.owner = a.owner;
+                                }
+                            }
+                        });
+                    }
+
+                    // Mantenimiento
+                    if (Array.isArray(d.maintenanceLog)) {
+                        d.maintenanceLog.forEach(m => {
+                            if (m && m.id && !maintMap.has(m.id)) maintMap.set(m.id, m);
+                        });
+                    }
+
+                    // Equipos nuevos
+                    if (Array.isArray(d.inventory)) {
+                        d.inventory.forEach(item => {
+                            if (!item) return;
+                            const key = (item.serial && item.serial.trim()) ? item.serial.trim().toUpperCase() : ('ID_' + item.id);
+                            if (!invMap.has(key)) {
+                                invMap.set(key, item);
+                            }
+                        });
+                    }
+                });
+
+                // Ordenar movimientos cronológicamente
+                movements = Array.from(movMap.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+                agencies = Array.from(agMap.values());
+                maintenanceLog = Array.from(maintMap.values());
+                inventory = Array.from(invMap.values());
+
+                // Actualizar el estado de cada equipo según su ÚLTIMO movimiento en el historial fusionado
+                const lastMovBySerial = new Map();
+                movements.forEach(mov => {
+                    if (!mov || !Array.isArray(mov.items)) return;
+                    mov.items.forEach(it => {
+                        if (it && it.serial && it.serial !== '-') {
+                            const s = it.serial.trim().toUpperCase();
+                            lastMovBySerial.set(s, mov);
+                        }
+                    });
+                });
+
+                inventory.forEach(eq => {
+                    if (!eq || !eq.serial) return;
+                    const s = eq.serial.trim().toUpperCase();
+                    if (lastMovBySerial.has(s)) {
+                        const lastM = lastMovBySerial.get(s);
+                        const t = (lastM.type || '').toLowerCase();
+                        if (t.includes('despacho') || t.includes('asignación') || t.includes('combo')) {
+                            eq.status = 'En Agencia';
+                            if (lastM.agency) eq.agency = lastM.agency;
+                            if (lastM.receptor) eq.receptor = lastM.receptor;
+                            if (lastM.owner) eq.owner = lastM.owner;
+                        } else if (t.includes('reingreso') || t.includes('retorno') || t.includes('depósito')) {
+                            eq.status = 'En Depósito';
+                            eq.agency = '';
+                            eq.receptor = '';
+                        } else if (t.includes('mantenimiento') || t.includes('taller')) {
+                            eq.status = 'En Mantenimiento';
+                        }
+                    }
+                });
+
+                // Limpiar eliminados si los hay
+                if (typeof updateDeletedEquipmentFromMovements === 'function') updateDeletedEquipmentFromMovements();
+                if (typeof isEquipmentDeleted === 'function') {
+                    inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                }
+                if (typeof autoRecoverMissingEquipmentsFromMovements === 'function') autoRecoverMissingEquipmentsFromMovements();
+                if (typeof isEquipmentDeleted === 'function') {
+                    inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                }
+
+                saveData();
+                populateTypeDropdowns();
+                populateAgencyDropdowns();
+                renderAll();
+                closeModal('backupModal');
+
+                // Descargar automáticamente el respaldo consolidado maestro
+                const consolidatedData = {
+                    inventory,
+                    agencies,
+                    movements,
+                    maintenanceLog,
+                    categories: equipmentCategories,
+                    stockThresholds,
+                    exportDate: getFormattedNow(),
+                    mergedFrom: files.map(f => f.name)
+                };
+                const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'application/json' });
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `Respaldo_FUSION_CONSOLIDADA_${getFormattedDateOnly()}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                showToast(`¡Fusión Multi-Equipo Exitosa! Se unieron ${files.length} respaldos: +${totalNewMovements} movimientos y +${totalNewAgencies} agencias integrados sin pérdida de datos.`, 'success');
+            }).catch(err => {
+                console.error(err);
+                showToast(typeof err === 'string' ? err : 'Error al procesar la fusión de respaldos.', 'error');
+            });
         }
 
         // CSV RÁPIDO DE INVENTARIO
