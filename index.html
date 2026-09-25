@@ -1647,10 +1647,12 @@
                         <table class="receipt-equip-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 28%;">CATEGORÍA / EQUIPO</th>
-                                    <th style="width: 32%;">MARCA Y MODELO</th>
-                                    <th style="width: 18%;">COLOR</th>
-                                    <th style="width: 22%;">NÚMERO DE SERIAL</th>
+                                    <th style="width: 20%;">CATEGORÍA / EQUIPO</th>
+                                    <th style="width: 22%;">MARCA Y MODELO</th>
+                                    <th style="width: 12%;">COLOR</th>
+                                    <th style="width: 12%;">MEMORIA RAM</th>
+                                    <th style="width: 14%;">DISCO DURO</th>
+                                    <th style="width: 20%;">NÚMERO DE SERIAL</th>
                                 </tr>
                             </thead>
                             <tbody id="receiptEquipTableBody">
@@ -19328,6 +19330,95 @@ service cloud.firestore {
         let movements = [];
         let maintenanceLog = [];
 
+        // Tracking de equipos eliminados permanentemente por el Administrador
+        let deletedEquipmentSerials = new Set();
+        let deletedEquipmentIds = new Set();
+
+        function initDeletedEquipmentTracking() {
+            try {
+                const storedSerials = JSON.parse(localStorage.getItem('lotto_deleted_serials') || '[]');
+                if (Array.isArray(storedSerials)) {
+                    storedSerials.forEach(s => { if (s && String(s).trim() !== '-') deletedEquipmentSerials.add(String(s).trim().toUpperCase()); });
+                }
+                const storedIds = JSON.parse(localStorage.getItem('lotto_deleted_ids') || '[]');
+                if (Array.isArray(storedIds)) {
+                    storedIds.forEach(id => { if (id) deletedEquipmentIds.add(String(id)); });
+                }
+            } catch (e) {
+                console.warn('[Deleted] Error cargando tracking de eliminados:', e);
+            }
+
+            // Escanear historial de movimientos para detectar eliminaciones
+            updateDeletedEquipmentFromMovements();
+        }
+
+        function updateDeletedEquipmentFromMovements() {
+            if (!Array.isArray(movements)) return;
+            const sorted = [...movements].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            const lastMovForSerial = new Map();
+            sorted.forEach(m => {
+                if (m && Array.isArray(m.items)) {
+                    m.items.forEach(it => {
+                        if (it && it.serial && String(it.serial).trim() && String(it.serial).trim() !== '-') {
+                            lastMovForSerial.set(String(it.serial).trim().toUpperCase(), m);
+                        }
+                    });
+                }
+            });
+
+            lastMovForSerial.forEach((m, s) => {
+                const isElim = (m.type && m.type.toLowerCase().includes('eliminación')) || (m.receptorType && m.receptorType.toLowerCase().includes('eliminad'));
+                if (isElim) {
+                    deletedEquipmentSerials.add(s);
+                }
+            });
+
+            saveDeletedEquipmentTracking();
+        }
+
+        function isEquipmentDeleted(serial, id) {
+            if (serial && String(serial).trim() && String(serial).trim() !== '-') {
+                const sUpper = String(serial).trim().toUpperCase();
+                if (deletedEquipmentSerials.has(sUpper)) return true;
+            }
+            if (id && deletedEquipmentIds.has(String(id))) return true;
+            return false;
+        }
+
+        function markEquipmentAsDeleted(serial, id) {
+            if (serial && String(serial).trim() && String(serial).trim() !== '-') {
+                deletedEquipmentSerials.add(String(serial).trim().toUpperCase());
+            }
+            if (id) {
+                deletedEquipmentIds.add(String(id));
+            }
+            saveDeletedEquipmentTracking();
+        }
+
+        function unmarkEquipmentAsDeleted(serial, id) {
+            if (serial && String(serial).trim() && String(serial).trim() !== '-') {
+                deletedEquipmentSerials.delete(String(serial).trim().toUpperCase());
+            }
+            if (id) {
+                deletedEquipmentIds.delete(String(id));
+            }
+            saveDeletedEquipmentTracking();
+        }
+
+        function saveDeletedEquipmentTracking() {
+            try {
+                localStorage.setItem('lotto_deleted_serials', JSON.stringify(Array.from(deletedEquipmentSerials)));
+                localStorage.setItem('lotto_deleted_ids', JSON.stringify(Array.from(deletedEquipmentIds)));
+            } catch (e) {}
+            if (window.db) {
+                window.setDoc(window.doc(window.db, "lotto_data", "deleted_items"), {
+                    serials: Array.from(deletedEquipmentSerials),
+                    ids: Array.from(deletedEquipmentIds),
+                    updatedAt: getFormattedNow()
+                }).catch(e => {});
+            }
+        }
+
         // Auto-recovery: Reconstructs any equipment referenced in movements that is missing from inventory
         function autoRecoverMissingEquipmentsFromMovements() {
             let recoveredCount = 0;
@@ -19335,10 +19426,17 @@ service cloud.firestore {
 
             movements.forEach(mov => {
                 if (!mov || !Array.isArray(mov.items)) return;
+                // NUNCA auto-recuperar equipos de un movimiento de eliminación
+                const isElimMov = (mov.type && mov.type.toLowerCase().includes('eliminación')) || (mov.receptorType && mov.receptorType.toLowerCase().includes('eliminad'));
+                if (isElimMov) return;
+
                 mov.items.forEach(item => {
                     if (!item || !item.serial) return;
                     const s = item.serial.trim().toUpperCase();
                     if (s && s !== '-' && !invSerials.has(s)) {
+                        // NUNCA auto-recuperar si el serial o ID fue eliminado por el administrador
+                        if (isEquipmentDeleted(s, item.id)) return;
+
                         let brand = 'Genérico';
                         let model = item.brandModel || item.model || '-';
                         if (item.brandModel) {
@@ -19356,8 +19454,9 @@ service cloud.firestore {
                             brand: brand,
                             model: model,
                             color: item.color || 'Negro',
-                            ram: '',
-                            disk: '',
+                            ram: item.ram || '',
+                            disk: item.disk || '',
+                            processor: item.processor || '',
                             status: isMaint ? 'En Mantenimiento' : (isAssigned ? 'Asignado' : 'En Depósito'),
                             agency: isAssigned ? mov.agency : '-',
                             receptor: mov.receptor || '-',
@@ -19379,11 +19478,11 @@ service cloud.firestore {
         function mergeItemLists(baseList, localList, keyFn) {
             const map = new Map();
             (baseList || []).forEach(item => {
-                if (item) map.set(keyFn(item), { ...item });
+                if (item && !isEquipmentDeleted(item.serial, item.id)) map.set(keyFn(item), { ...item });
             });
             if (Array.isArray(localList)) {
                 localList.forEach(item => {
-                    if (!item) return;
+                    if (!item || isEquipmentDeleted(item.serial, item.id)) return;
                     const k = keyFn(item);
                     if (!map.has(k)) {
                         map.set(k, { ...item });
@@ -19397,22 +19496,28 @@ service cloud.firestore {
 
         function initializeLocalData() {
             try {
-                const localInv = JSON.parse(localStorage.getItem('lotto_inventory'));
-                inventory = mergeItemLists(initialInventory, localInv, i => (i && i.serial && i.serial.trim()) ? i.serial.trim().toUpperCase() : ('ID_' + (i ? i.id : Math.random())));
-                inventory.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
-
-                const localAg = JSON.parse(localStorage.getItem('lotto_agencies'));
-                agencies = mergeItemLists(initialAgencies, localAg, a => (a && a.name ? a.name.trim().toLowerCase() : ('ID_' + (a ? a.id : Math.random()))));
-
+                // Cargar primero movimientos para tener historial de eliminaciones
                 const localMov = JSON.parse(localStorage.getItem('lotto_movements'));
                 movements = mergeItemLists(initialMovements, localMov, m => (m && m.id) ? m.id : ('MOV_' + (m ? m.date : '') + '_' + Math.random()));
                 movements.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+                // Inicializar tracking de equipos eliminados
+                initDeletedEquipmentTracking();
+
+                const localInv = JSON.parse(localStorage.getItem('lotto_inventory'));
+                inventory = mergeItemLists(initialInventory, localInv, i => (i && i.serial && i.serial.trim()) ? i.serial.trim().toUpperCase() : ('ID_' + (i ? i.id : Math.random())));
+                inventory.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+
+                const localAg = JSON.parse(localStorage.getItem('lotto_agencies'));
+                agencies = mergeItemLists(initialAgencies, localAg, a => (a && a.name ? a.name.trim().toLowerCase() : ('ID_' + (a ? a.id : Math.random()))));
 
                 const localMaint = JSON.parse(localStorage.getItem('lotto_maintenance'));
                 maintenanceLog = mergeItemLists(initialMaintenance, localMaint, m => (m && m.id) ? m.id : ('MNT_' + (m && m.equipSerial ? m.equipSerial : Math.random())));
 
                 // Auto-recover any equipment that exists in movements but missing in inventory
                 autoRecoverMissingEquipmentsFromMovements();
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
 
                 localStorage.setItem('lotto_inventory', JSON.stringify(inventory));
                 localStorage.setItem('lotto_agencies', JSON.stringify(agencies));
@@ -19420,12 +19525,14 @@ service cloud.firestore {
                 localStorage.setItem('lotto_maintenance', JSON.stringify(maintenanceLog));
             } catch (err) {
                 console.error("Error cargando datos locales:", err);
-                inventory = [...initialInventory];
+                initDeletedEquipmentTracking();
+                inventory = [...initialInventory].filter(i => !isEquipmentDeleted(i.serial, i.id));
                 inventory.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
                 agencies = [...initialAgencies];
                 movements = [...initialMovements];
                 maintenanceLog = [...initialMaintenance];
                 autoRecoverMissingEquipmentsFromMovements();
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
             }
         }
         initializeLocalData();
@@ -19486,17 +19593,17 @@ service cloud.firestore {
                     const cloudList = docSnap.data().list || [];
                     cloudList.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
 
-                    // Smart Merge: Index by uppercase serial or unique ID
+                    // Smart Merge: Index by uppercase serial or unique ID (excluyendo eliminados)
                     const invMap = new Map();
                     cloudList.forEach(item => {
-                        if (!item) return;
+                        if (!item || isEquipmentDeleted(item.serial, item.id)) return;
                         const key = (item.serial && item.serial.trim()) ? item.serial.trim().toUpperCase() : ('ID_' + item.id);
                         invMap.set(key, item);
                     });
 
                     let localOnlyItemsFound = 0;
                     inventory.forEach(localItem => {
-                        if (!localItem) return;
+                        if (!localItem || isEquipmentDeleted(localItem.serial, localItem.id)) return;
                         const key = (localItem.serial && localItem.serial.trim()) ? localItem.serial.trim().toUpperCase() : ('ID_' + localItem.id);
                         if (!invMap.has(key)) {
                             invMap.set(key, localItem);
@@ -19504,17 +19611,18 @@ service cloud.firestore {
                         }
                     });
 
-                    inventory = Array.from(invMap.values());
+                    inventory = Array.from(invMap.values()).filter(i => !isEquipmentDeleted(i.serial, i.id));
 
                     // Auto-recovery from movements history if any item was referenced in movements
                     const recovered = autoRecoverMissingEquipmentsFromMovements();
+                    inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
 
                     lastSavedInventory = JSON.stringify(inventory);
                     localStorage.setItem('lotto_inventory', lastSavedInventory);
                     renderAll();
 
                     // If local items were preserved or auto-recovered that the cloud document was missing, push update to cloud
-                    if ((localOnlyItemsFound > 0 || recovered > 0 || inventory.length > cloudList.length) && window.db) {
+                    if ((localOnlyItemsFound > 0 || recovered > 0 || inventory.length !== cloudList.length) && window.db) {
                         console.log(`[Sync] Sincronizando ${inventory.length} equipos unificados a la nube...`);
                         window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory })
                             .then(() => {
@@ -19579,8 +19687,14 @@ service cloud.firestore {
                 localStorage.setItem('lotto_movements', JSON.stringify(movements));
                 renderMovementsTable();
 
+                // Actualizar tracking de eliminaciones desde movimientos
+                updateDeletedEquipmentFromMovements();
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+
                 // Check if any movements contain equipment not yet in inventory!
                 const recovered = autoRecoverMissingEquipmentsFromMovements();
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+
                 if (recovered > 0) {
                     lastSavedInventory = JSON.stringify(inventory);
                     localStorage.setItem('lotto_inventory', lastSavedInventory);
@@ -19672,6 +19786,42 @@ service cloud.firestore {
                     window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials }).catch(e => {});
                 }
             }, (err) => handleFirestoreError(err, 'users'));
+
+            // Listen to Deleted Items Tracking
+            window.onSnapshot(window.doc(window.db, "lotto_data", "deleted_items"), (docSnap) => {
+                updateCloudStatusUI('connected');
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    let changed = false;
+                    if (Array.isArray(data.serials)) {
+                        data.serials.forEach(s => {
+                            if (s && String(s).trim() !== '-' && !deletedEquipmentSerials.has(String(s).trim().toUpperCase())) {
+                                deletedEquipmentSerials.add(String(s).trim().toUpperCase());
+                                changed = true;
+                            }
+                        });
+                    }
+                    if (Array.isArray(data.ids)) {
+                        data.ids.forEach(id => {
+                            if (id && !deletedEquipmentIds.has(String(id))) {
+                                deletedEquipmentIds.add(String(id));
+                                changed = true;
+                            }
+                        });
+                    }
+                    if (changed) {
+                        try {
+                            localStorage.setItem('lotto_deleted_serials', JSON.stringify(Array.from(deletedEquipmentSerials)));
+                            localStorage.setItem('lotto_deleted_ids', JSON.stringify(Array.from(deletedEquipmentIds)));
+                        } catch (e) {}
+                        const prevLen = inventory.length;
+                        inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                        if (inventory.length !== prevLen) {
+                            renderAll();
+                        }
+                    }
+                }
+            }, (err) => handleFirestoreError(err, 'deleted_items'));
             
             showToast('Sincronización activa', 'success');
         }
@@ -20083,6 +20233,10 @@ service cloud.firestore {
             try { localStorage.setItem('lotto_maintenance', JSON.stringify(maintenanceLog)); } catch (e) { safeSetLocalStorage('lotto_maintenance', JSON.stringify(maintenanceLog)); }
             try { localStorage.setItem('lotto_categories', JSON.stringify(equipmentCategories)); } catch (e) { safeSetLocalStorage('lotto_categories', JSON.stringify(equipmentCategories)); }
             try { localStorage.setItem('lotto_stock_thresholds', JSON.stringify(stockThresholds)); } catch (e) { safeSetLocalStorage('lotto_stock_thresholds', JSON.stringify(stockThresholds)); }
+            try {
+                if (typeof deletedEquipmentSerials !== 'undefined') localStorage.setItem('lotto_deleted_serials', JSON.stringify(Array.from(deletedEquipmentSerials)));
+                if (typeof deletedEquipmentIds !== 'undefined') localStorage.setItem('lotto_deleted_ids', JSON.stringify(Array.from(deletedEquipmentIds)));
+            } catch (e) {}
 
             if (window.db) {
                 let currentInv = JSON.stringify(inventory);
@@ -21108,11 +21262,15 @@ service cloud.firestore {
                         });
                     }
 
+                    if (typeof unmarkEquipmentAsDeleted === 'function') {
+                        unmarkEquipmentAsDeleted(serial, editingId);
+                    }
+
                     addMovement({
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: getFormattedNow(),
                         type: 'Edición de Equipo',
-                        items: [{ type: type, brandModel: `${brand} ${model}`, serial: serial, color: color }],
+                        items: [{ type: type, brandModel: `${brand} ${model}`, serial: serial, color: color, ram: ram || '', disk: disk || '', processor: processor || '' }],
                         agency: item.agency || '-',
                         receptorType: 'Modificación',
                         receptor: item.receptor || '-',
@@ -21194,6 +21352,12 @@ service cloud.firestore {
                     }
                 });
 
+                if (typeof unmarkEquipmentAsDeleted === 'function') {
+                    parsed.serials.forEach((srl, idx) => {
+                        unmarkEquipmentAsDeleted(srl, (baseTime + idx).toString());
+                    });
+                }
+
                 const firstSerial = parsed.serials[0];
                 const lastSerial = parsed.serials[parsed.serials.length - 1];
 
@@ -21203,7 +21367,7 @@ service cloud.firestore {
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: now,
                         type: 'Entrada Mantenimiento',
-                        items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color })),
+                        items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color, ram: it.ram || '', disk: it.disk || '', processor: it.processor || '' })),
                         agency: 'Taller Técnico / Mantenimiento',
                         receptorType: 'Mantenimiento',
                         receptor: workshop,
@@ -21223,7 +21387,7 @@ service cloud.firestore {
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: now,
                         type: 'Entrada Depósito',
-                        items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color })),
+                        items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color, ram: it.ram || '', disk: it.disk || '', processor: it.processor || '' })),
                         agency: 'Depósito Central',
                         receptorType: '-',
                         receptor: '-',
@@ -21269,6 +21433,10 @@ service cloud.firestore {
 
             inventory.push(newItem);
 
+            if (typeof unmarkEquipmentAsDeleted === 'function') {
+                unmarkEquipmentAsDeleted(newItem.serial, newItem.id);
+            }
+
             if (isMaint) {
                 const workshop = document.getElementById('addMaintWorkshop')?.value.trim() || 'Taller Central';
                 const cost = document.getElementById('addMaintCost')?.value || '0.00';
@@ -21290,7 +21458,7 @@ service cloud.firestore {
                     id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                     date: now,
                     type: 'Entrada Mantenimiento',
-                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color }],
+                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color, ram: newItem.ram || '', disk: newItem.disk || '', processor: newItem.processor || '' }],
                     agency: 'Taller Técnico / Mantenimiento',
                     receptorType: 'Mantenimiento',
                     receptor: workshop,
@@ -21310,7 +21478,7 @@ service cloud.firestore {
                     id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                     date: now,
                     type: 'Entrada Depósito',
-                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color }],
+                    items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color, ram: newItem.ram || '', disk: newItem.disk || '', processor: newItem.processor || '' }],
                     agency: 'Depósito Central',
                     receptorType: '-',
                     receptor: '-',
@@ -21329,7 +21497,7 @@ service cloud.firestore {
 
         function deleteEquipment(id) {
             if (!checkPermission(['admin'])) return;
-            const equip = inventory.find(i => i.id === id);
+            const equip = inventory.find(i => String(i.id) === String(id));
             if (!equip) return;
 
             showConfirm(
@@ -21337,11 +21505,18 @@ service cloud.firestore {
                 `¿Desea eliminar permanentemente el equipo ${equip.type} (${equip.serial})?`,
                 () => {
                     const now = getFormattedNow();
+                    const serialToDel = (equip.serial || '').trim().toUpperCase();
+                    const idToDel = String(equip.id);
+
+                    if (typeof markEquipmentAsDeleted === 'function') {
+                        markEquipmentAsDeleted(serialToDel, idToDel);
+                    }
+
                     addMovement({
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: now,
                         type: 'Eliminación de Equipo',
-                        items: [{ type: equip.type, brandModel: `${equip.brand} ${equip.model}`, serial: equip.serial, color: equip.color }],
+                        items: [{ type: equip.type, brandModel: `${equip.brand} ${equip.model}`, serial: equip.serial, color: equip.color, ram: equip.ram || '', disk: equip.disk || '', processor: equip.processor || '' }],
                         agency: '-',
                         receptorType: 'Eliminado',
                         receptor: '-',
@@ -21351,7 +21526,11 @@ service cloud.firestore {
                         signature: ''
                     });
 
-                    inventory = inventory.filter(i => i.id !== id);
+                    inventory = inventory.filter(i => {
+                        if (String(i.id) === idToDel) return false;
+                        if (serialToDel && serialToDel !== '-' && String(i.serial || '').trim().toUpperCase() === serialToDel) return false;
+                        return true;
+                    });
                     saveData();
                     renderAll();
                     showToast('Equipo eliminado del sistema.');
@@ -21764,7 +21943,7 @@ service cloud.firestore {
                     id: movId,
                     date: now,
                     type: 'Salida / Asignación',
-                    items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
+                    items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color, ram: item.ram || '', disk: item.disk || '', processor: item.processor || '' }],
                     agency,
                     receptorType: targetType,
                     receptor,
@@ -21884,7 +22063,7 @@ service cloud.firestore {
                     id: movId,
                     date: now,
                     type: 'Reingreso / Devolución',
-                    items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
+                    items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color, ram: item.ram || '', disk: item.disk || '', processor: item.processor || '' }],
                     agency: prevAgency,
                     receptorType: 'Devolución de Agencia',
                     receptor: personName,
@@ -22076,7 +22255,10 @@ service cloud.firestore {
                         type: item.type,
                         brandModel: `${item.brand} ${item.model}`,
                         serial: item.serial,
-                        color: item.color
+                        color: item.color,
+                        ram: item.ram || '',
+                        disk: item.disk || '',
+                        processor: item.processor || ''
                     });
                 }
             });
@@ -22441,6 +22623,9 @@ service cloud.firestore {
                         obs: row.obs || ''
                     });
                     addedCount++;
+                }
+                if (typeof unmarkEquipmentAsDeleted === 'function') {
+                    unmarkEquipmentAsDeleted(row.serial, row.id || (existingIdx >= 0 ? inventory[existingIdx].id : ''));
                 }
             });
 
@@ -23436,15 +23621,22 @@ service cloud.firestore {
                 type: mov.equipType || 'Equipo',
                 brandModel: mov.equipBrandModel || '-',
                 color: mov.equipColor || '-',
-                serial: mov.equipSerial || '-'
+                serial: mov.equipSerial || '-',
+                ram: mov.equipRam || '-',
+                disk: mov.equipDisk || '-'
             }];
 
             items.forEach(it => {
+                const invItem = inventory.find(i => (it.serial && String(i.serial) === String(it.serial)) || (it.id && String(i.id) === String(it.id)));
+                const ram = it.ram || (invItem ? invItem.ram : '') || '-';
+                const disk = it.disk || (invItem ? invItem.disk : '') || '-';
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>` + escapeWordXml(it.type || 'Equipo') + `</strong></td>
                     <td>` + escapeWordXml(it.brandModel || '-') + `</td>
                     <td>` + escapeWordXml(it.color || '-') + `</td>
+                    <td>` + escapeWordXml(ram) + `</td>
+                    <td>` + escapeWordXml(disk) + `</td>
                     <td><code>` + escapeWordXml(it.serial || '-') + `</code></td>
                 `;
                 tbody.appendChild(tr);
@@ -23566,17 +23758,24 @@ service cloud.firestore {
                     type: mov.equipType || 'Equipo',
                     brandModel: mov.equipBrandModel || '-',
                     color: mov.equipColor || '-',
-                    serial: mov.equipSerial || '-'
+                    serial: mov.equipSerial || '-',
+                    ram: mov.equipRam || '-',
+                    disk: mov.equipDisk || '-'
                 }];
 
                 let equipRowsXml = '';
                 items.forEach(it => {
+                    const invItem = inventory.find(i => (it.serial && String(i.serial) === String(it.serial)) || (it.id && String(i.id) === String(it.id)));
+                    const ram = it.ram || (invItem ? invItem.ram : '') || '-';
+                    const disk = it.disk || (invItem ? invItem.disk : '') || '-';
                     equipRowsXml += `
       <w:tr>
-        <w:tc><w:tcPr><w:tcW w:w="2700" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="17"/><w:color w:val="0B3C8C"/></w:rPr><w:t>${escapeWordXml(it.type || 'Equipo')}</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="3100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="17"/><w:color w:val="222222"/></w:rPr><w:t>${escapeWordXml(it.brandModel || '-')}</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="1600" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="17"/><w:color w:val="444444"/></w:rPr><w:t>${escapeWordXml(it.color || '-')}</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="17"/><w:color w:val="0B3C8C"/></w:rPr><w:t>${escapeWordXml(it.serial || '-')}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>${escapeWordXml(it.type || 'Equipo')}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="222222"/></w:rPr><w:t>${escapeWordXml(it.brandModel || '-')}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="444444"/></w:rPr><w:t>${escapeWordXml(it.color || '-')}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="444444"/></w:rPr><w:t>${escapeWordXml(ram)}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1300" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:sz w:val="16"/><w:color w:val="444444"/></w:rPr><w:t>${escapeWordXml(disk)}</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1900" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="FFFFFF"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:rFonts w:ascii="Consolas" w:hAnsi="Consolas"/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>${escapeWordXml(it.serial || '-')}</w:t></w:r></w:p></w:tc>
       </w:tr>`;
                 });
 
@@ -23785,10 +23984,12 @@ service cloud.firestore {
         </w:tblBorders>
       </w:tblPr>
       <w:tr>
-        <w:tc><w:tcPr><w:tcW w:w="2700" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>CATEGORÍA / EQUIPO</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="3100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>MARCA Y MODELO</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="1600" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>COLOR</w:t></w:r></w:p></w:tc>
-        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="16"/><w:color w:val="0B3C8C"/></w:rPr><w:t>NÚMERO DE SERIAL</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="2000" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>CATEGORÍA / EQUIPO</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="2200" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>MARCA Y MODELO</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>COLOR</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1100" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>MEMORIA RAM</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1300" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>DISCO DURO</w:t></w:r></w:p></w:tc>
+        <w:tc><w:tcPr><w:tcW w:w="1900" w:type="dxa"/><w:shd w:val="clear" w:color="auto" w:fill="E8EEF8"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:sz w:val="15"/><w:color w:val="0B3C8C"/></w:rPr><w:t>NÚMERO DE SERIAL</w:t></w:r></w:p></w:tc>
       </w:tr>
       ${equipRowsXml}
     </w:tbl>
@@ -23983,7 +24184,13 @@ service cloud.firestore {
 
             let itemsText = '';
             if (mov.items && mov.items.length > 0) {
-                itemsText = mov.items.map(it => `• ` + it.type + ` ` + (it.brandModel || '') + ` (S/N: ` + it.serial + `)`).join('\n');
+                itemsText = mov.items.map(it => {
+                    const invItem = inventory.find(i => (it.serial && String(i.serial) === String(it.serial)) || (it.id && String(i.id) === String(it.id)));
+                    const ram = it.ram || (invItem ? invItem.ram : '');
+                    const disk = it.disk || (invItem ? invItem.disk : '');
+                    const specs = [ram ? `RAM: ${ram}` : '', disk ? `Disco: ${disk}` : ''].filter(Boolean).join(', ');
+                    return `• ` + it.type + ` ` + (it.brandModel || '') + (specs ? ` [${specs}]` : '') + ` (S/N: ` + it.serial + `)`;
+                }).join('\n');
             } else {
                 itemsText = `• ` + (mov.equipType || 'Equipo') + ` (S/N: ` + (mov.equipSerial || 'N/A') + `)`;
             }
