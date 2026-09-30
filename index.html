@@ -19446,6 +19446,113 @@ service cloud.firestore {
             }
         }
 
+        // Tracking de agencias eliminadas permanentemente por el Administrador
+        let deletedAgencyCodes = new Set();
+        let deletedAgencyNames = new Set();
+        let deletedAgencyIds = new Set();
+
+        function initDeletedAgenciesTracking() {
+            try {
+                const storedCodes = JSON.parse(localStorage.getItem('lotto_deleted_agency_codes') || '[]');
+                if (Array.isArray(storedCodes)) {
+                    storedCodes.forEach(c => { if (c && String(c).trim() !== '-') deletedAgencyCodes.add(String(c).trim().toUpperCase()); });
+                }
+                const storedNames = JSON.parse(localStorage.getItem('lotto_deleted_agency_names') || '[]');
+                if (Array.isArray(storedNames)) {
+                    storedNames.forEach(n => { if (n && String(n).trim()) deletedAgencyNames.add(String(n).trim().toUpperCase()); });
+                }
+                const storedIds = JSON.parse(localStorage.getItem('lotto_deleted_agency_ids') || '[]');
+                if (Array.isArray(storedIds)) {
+                    storedIds.forEach(id => { if (id) deletedAgencyIds.add(String(id).trim().toUpperCase()); });
+                }
+            } catch (e) {
+                console.warn('[Deleted] Error cargando tracking de agencias eliminadas:', e);
+            }
+
+            updateDeletedAgenciesFromMovements();
+        }
+
+        function updateDeletedAgenciesFromMovements() {
+            if (!Array.isArray(movements)) return;
+            const sorted = [...movements].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+            sorted.forEach(m => {
+                if (!m) return;
+                const type = (m.type || '').toLowerCase();
+                const isElim = type.includes('eliminación agencia') || type.includes('eliminacion agencia') || (m.receptorType && m.receptorType.toLowerCase().includes('eliminad'));
+                const isNew = type.includes('nueva agencia');
+
+                let agName = (m.agency && m.agency !== '-' && m.agency !== 'Catálogo Agencias') ? m.agency.trim().toUpperCase() : '';
+                let agCode = '';
+                let agId = '';
+
+                if (m.obs) {
+                    const codeMatch = m.obs.match(/Cód:\s*([A-Za-z0-9\-_]+)/i);
+                    if (codeMatch && codeMatch[1]) agCode = codeMatch[1].trim().toUpperCase();
+                    const idMatch = m.obs.match(/ID:\s*([A-Za-z0-9\-_]+)/i);
+                    if (idMatch && idMatch[1]) agId = idMatch[1].trim().toUpperCase();
+                }
+
+                if (isElim) {
+                    if (agName) deletedAgencyNames.add(agName);
+                    if (agCode) deletedAgencyCodes.add(agCode);
+                    if (agId) deletedAgencyIds.add(agId);
+                } else if (isNew) {
+                    if (agName) deletedAgencyNames.delete(agName);
+                    if (agCode) deletedAgencyCodes.delete(agCode);
+                    if (agId) deletedAgencyIds.delete(agId);
+                }
+            });
+
+            saveDeletedAgenciesTracking();
+        }
+
+        function isAgencyDeleted(id, code, name) {
+            if (id) {
+                const idNorm = String(id).trim().toUpperCase();
+                if (deletedAgencyIds.has(idNorm) || deletedAgencyCodes.has(idNorm)) return true;
+            }
+            if (code) {
+                const codeNorm = String(code).trim().toUpperCase();
+                if (deletedAgencyCodes.has(codeNorm) || deletedAgencyIds.has(codeNorm)) return true;
+            }
+            if (name) {
+                const nameNorm = String(name).trim().toUpperCase();
+                if (deletedAgencyNames.has(nameNorm)) return true;
+            }
+            return false;
+        }
+
+        function markAgencyAsDeleted(id, code, name) {
+            if (id) deletedAgencyIds.add(String(id).trim().toUpperCase());
+            if (code) deletedAgencyCodes.add(String(code).trim().toUpperCase());
+            if (name) deletedAgencyNames.add(String(name).trim().toUpperCase());
+            saveDeletedAgenciesTracking();
+        }
+
+        function unmarkAgencyAsDeleted(id, code, name) {
+            if (id) deletedAgencyIds.delete(String(id).trim().toUpperCase());
+            if (code) deletedAgencyCodes.delete(String(code).trim().toUpperCase());
+            if (name) deletedAgencyNames.delete(String(name).trim().toUpperCase());
+            saveDeletedAgenciesTracking();
+        }
+
+        function saveDeletedAgenciesTracking() {
+            try {
+                localStorage.setItem('lotto_deleted_agency_codes', JSON.stringify(Array.from(deletedAgencyCodes)));
+                localStorage.setItem('lotto_deleted_agency_names', JSON.stringify(Array.from(deletedAgencyNames)));
+                localStorage.setItem('lotto_deleted_agency_ids', JSON.stringify(Array.from(deletedAgencyIds)));
+            } catch (e) {}
+            if (window.db) {
+                window.setDoc(window.doc(window.db, "lotto_data", "deleted_agencies"), {
+                    codes: Array.from(deletedAgencyCodes),
+                    names: Array.from(deletedAgencyNames),
+                    ids: Array.from(deletedAgencyIds),
+                    updatedAt: getFormattedNow()
+                }).catch(e => {});
+            }
+        }
+
         // Auto-recovery: Reconstructs any equipment referenced in movements that is missing from inventory
         function autoRecoverMissingEquipmentsFromMovements() {
             let recoveredCount = 0;
@@ -19505,11 +19612,16 @@ service cloud.firestore {
         function mergeItemLists(baseList, localList, keyFn) {
             const map = new Map();
             (baseList || []).forEach(item => {
-                if (item && !isEquipmentDeleted(item.serial, item.id)) map.set(keyFn(item), { ...item });
+                if (!item) return;
+                if (typeof isEquipmentDeleted === 'function' && isEquipmentDeleted(item.serial, item.id)) return;
+                if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(item.id, item.code, item.name)) return;
+                map.set(keyFn(item), { ...item });
             });
             if (Array.isArray(localList)) {
                 localList.forEach(item => {
-                    if (!item || isEquipmentDeleted(item.serial, item.id)) return;
+                    if (!item) return;
+                    if (typeof isEquipmentDeleted === 'function' && isEquipmentDeleted(item.serial, item.id)) return;
+                    if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(item.id, item.code, item.name)) return;
                     const k = keyFn(item);
                     if (!map.has(k)) {
                         map.set(k, { ...item });
@@ -19528,8 +19640,9 @@ service cloud.firestore {
                 movements = mergeItemLists(initialMovements, localMov, m => (m && m.id) ? m.id : ('MOV_' + (m ? m.date : '') + '_' + Math.random()));
                 movements.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-                // Inicializar tracking de equipos eliminados
+                // Inicializar tracking de equipos Y agencias eliminados
                 initDeletedEquipmentTracking();
+                initDeletedAgenciesTracking();
 
                 const localInv = JSON.parse(localStorage.getItem('lotto_inventory'));
                 inventory = mergeItemLists(initialInventory, localInv, i => (i && i.serial && i.serial.trim()) ? i.serial.trim().toUpperCase() : ('ID_' + (i ? i.id : Math.random())));
@@ -19538,6 +19651,7 @@ service cloud.firestore {
 
                 const localAg = JSON.parse(localStorage.getItem('lotto_agencies'));
                 agencies = mergeItemLists(initialAgencies, localAg, a => (a && a.name ? a.name.trim().toLowerCase() : ('ID_' + (a ? a.id : Math.random()))));
+                agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
 
                 const localMaint = JSON.parse(localStorage.getItem('lotto_maintenance'));
                 maintenanceLog = mergeItemLists(initialMaintenance, localMaint, m => (m && m.id) ? m.id : ('MNT_' + (m && m.equipSerial ? m.equipSerial : Math.random())));
@@ -19553,13 +19667,15 @@ service cloud.firestore {
             } catch (err) {
                 console.error("Error cargando datos locales:", err);
                 initDeletedEquipmentTracking();
+                initDeletedAgenciesTracking();
                 inventory = [...initialInventory].filter(i => !isEquipmentDeleted(i.serial, i.id));
                 inventory.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
-                agencies = [...initialAgencies];
+                agencies = [...initialAgencies].filter(a => !isAgencyDeleted(a.id, a.code, a.name));
                 movements = [...initialMovements];
                 maintenanceLog = [...initialMaintenance];
                 autoRecoverMissingEquipmentsFromMovements();
                 inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
             }
         }
         initializeLocalData();
@@ -19678,14 +19794,19 @@ service cloud.firestore {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     const cloudAg = docSnap.data().list || [];
-                    if (Array.isArray(cloudAg) && cloudAg.length > 0) {
+                    if (Array.isArray(cloudAg)) {
                         const agMap = new Map();
-                        cloudAg.forEach(a => { if (a && a.name) agMap.set(a.name.trim().toLowerCase(), a); });
+                        cloudAg.forEach(a => {
+                            if (!a || !a.name) return;
+                            if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return;
+                            agMap.set(a.name.trim().toLowerCase(), a);
+                        });
                         
-                        // Preservar agencias que se hayan registrado localmente en este equipo
+                        // Preservar agencias que se hayan registrado localmente en este equipo (excluyendo eliminadas)
                         let localOnlyAgenciesFound = false;
                         agencies.forEach(a => {
                             if (!a || !a.name) return;
+                            if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return;
                             const key = a.name.trim().toLowerCase();
                             if (!agMap.has(key)) {
                                 agMap.set(key, a);
@@ -19696,7 +19817,7 @@ service cloud.firestore {
                             localStorage.setItem('lotto_pending_agencies_sync', 'true');
                         }
 
-                        agencies = Array.from(agMap.values());
+                        agencies = Array.from(agMap.values()).filter(a => typeof isAgencyDeleted !== 'function' || !isAgencyDeleted(a.id, a.code, a.name));
                         lastSavedAgencies = JSON.stringify(agencies);
                         localStorage.setItem('lotto_agencies', lastSavedAgencies);
                         populateAgencyDropdowns();
@@ -19733,7 +19854,17 @@ service cloud.firestore {
 
                 // Actualizar tracking de eliminaciones desde movimientos
                 updateDeletedEquipmentFromMovements();
+                if (typeof updateDeletedAgenciesFromMovements === 'function') {
+                    updateDeletedAgenciesFromMovements();
+                }
                 inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                const prevAgLen = agencies.length;
+                agencies = agencies.filter(a => typeof isAgencyDeleted !== 'function' || !isAgencyDeleted(a.id, a.code, a.name));
+                if (agencies.length !== prevAgLen) {
+                    populateAgencyDropdowns();
+                    renderAgenciesTable();
+                    updateDashboardStats();
+                }
 
                 autoRecoverMissingEquipmentsFromMovements();
                 inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
@@ -19820,6 +19951,52 @@ service cloud.firestore {
                     }
                 }
             }, (err) => handleFirestoreError(err, 'deleted_items'));
+
+            // 8. Escuchar Registro de Agencias Eliminadas
+            window.onSnapshot(window.doc(window.db, "lotto_data", "deleted_agencies"), (docSnap) => {
+                updateCloudStatusUI('connected');
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    let changed = false;
+                    if (Array.isArray(data.codes)) {
+                        data.codes.forEach(c => {
+                            const sc = String(c || '').trim();
+                            if (sc && !deletedAgencyCodes.has(sc)) {
+                                deletedAgencyCodes.add(sc);
+                                changed = true;
+                            }
+                        });
+                    }
+                    if (Array.isArray(data.names)) {
+                        data.names.forEach(n => {
+                            const sn = String(n || '').trim().toUpperCase();
+                            if (sn && !deletedAgencyNames.has(sn)) {
+                                deletedAgencyNames.add(sn);
+                                changed = true;
+                            }
+                        });
+                    }
+                    if (Array.isArray(data.ids)) {
+                        data.ids.forEach(id => {
+                            const sid = String(id || '').trim();
+                            if (sid && !deletedAgencyIds.has(sid)) {
+                                deletedAgencyIds.add(sid);
+                                changed = true;
+                            }
+                        });
+                    }
+                    if (changed) {
+                        saveDeletedAgenciesTracking();
+                        const prevLen = agencies.length;
+                        agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+                        if (agencies.length !== prevLen) {
+                            populateAgencyDropdowns();
+                            renderAgenciesTable();
+                            updateDashboardStats();
+                        }
+                    }
+                }
+            }, (err) => handleFirestoreError(err, 'deleted_agencies'));
             
             showToast('Sincronización activa', 'success');
         }
@@ -20231,6 +20408,10 @@ service cloud.firestore {
         }
 
         function saveData() {
+            // Depurar eliminados antes de guardar
+            if (typeof isEquipmentDeleted === 'function') inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+            if (typeof isAgencyDeleted === 'function') agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+
             // Guardado local obligatorio primero
             try { localStorage.setItem('lotto_inventory', JSON.stringify(inventory)); } catch (e) { safeSetLocalStorage('lotto_inventory', JSON.stringify(inventory)); }
             try { localStorage.setItem('lotto_agencies', JSON.stringify(agencies)); } catch (e) { safeSetLocalStorage('lotto_agencies', JSON.stringify(agencies)); }
@@ -20241,6 +20422,7 @@ service cloud.firestore {
             try {
                 if (typeof deletedEquipmentSerials !== 'undefined') localStorage.setItem('lotto_deleted_serials', JSON.stringify(Array.from(deletedEquipmentSerials)));
                 if (typeof deletedEquipmentIds !== 'undefined') localStorage.setItem('lotto_deleted_ids', JSON.stringify(Array.from(deletedEquipmentIds)));
+                if (typeof saveDeletedAgenciesTracking === 'function') saveDeletedAgenciesTracking();
             } catch (e) {}
 
             if (window.db) {
@@ -20268,6 +20450,15 @@ service cloud.firestore {
                             localStorage.setItem('lotto_pending_agencies_sync', 'true');
                             handleFirestoreError(err, 'saveAgencies');
                         });
+                }
+
+                // Sincronizar tracking de agencias eliminadas con Firestore
+                if (typeof deletedAgencyCodes !== 'undefined' && (deletedAgencyCodes.size > 0 || deletedAgencyNames.size > 0 || deletedAgencyIds.size > 0)) {
+                    window.setDoc(window.doc(window.db, "lotto_data", "deleted_agencies"), {
+                        codes: Array.from(deletedAgencyCodes),
+                        names: Array.from(deletedAgencyNames),
+                        ids: Array.from(deletedAgencyIds)
+                    }).catch(err => console.warn('[Sync] Could not push deleted_agencies:', err));
                 }
 
                 let currentMaint = JSON.stringify(maintenanceLog);
@@ -20298,11 +20489,19 @@ service cloud.firestore {
                 showToast('Base de datos en la nube no inicializada (Modo Local).', 'warning');
                 return;
             }
+            if (typeof isAgencyDeleted === 'function') agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
             showToast('Sincronizando agencias con la nube...', 'info');
             window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
                 .then(() => {
                     lastSavedAgencies = JSON.stringify(agencies);
                     localStorage.removeItem('lotto_pending_agencies_sync');
+                    if (typeof deletedAgencyCodes !== 'undefined' && (deletedAgencyCodes.size > 0 || deletedAgencyNames.size > 0 || deletedAgencyIds.size > 0)) {
+                        window.setDoc(window.doc(window.db, "lotto_data", "deleted_agencies"), {
+                            codes: Array.from(deletedAgencyCodes),
+                            names: Array.from(deletedAgencyNames),
+                            ids: Array.from(deletedAgencyIds)
+                        }).catch(err => console.warn('[Sync] Could not push deleted_agencies:', err));
+                    }
                     showToast(`¡${agencies.length} agencias sincronizadas exitosamente con la nube!`, 'success');
                 })
                 .catch(err => {
@@ -20748,6 +20947,10 @@ service cloud.firestore {
             const countEl = document.getElementById('agencySearchCount');
             if (!tbody) return;
             tbody.innerHTML = '';
+
+            if (typeof isAgencyDeleted === 'function') {
+                agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+            }
 
             const query = (document.getElementById('agencySearchInput')?.value || '').toLowerCase().trim();
 
@@ -21661,6 +21864,10 @@ service cloud.firestore {
                         });
                     }
 
+                    if (typeof unmarkAgencyAsDeleted === 'function') {
+                        unmarkAgencyAsDeleted(agencies[agIndex].id, code, name);
+                    }
+
                     addMovement({
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: getFormattedNow(),
@@ -21689,6 +21896,11 @@ service cloud.firestore {
                     supervisor,
                     mapsUrl
                 };
+
+                if (typeof unmarkAgencyAsDeleted === 'function') {
+                    unmarkAgencyAsDeleted(newAgency.id, newAgency.code, newAgency.name);
+                }
+
                 agencies.push(newAgency);
 
                 addMovement({
@@ -21744,33 +21956,62 @@ service cloud.firestore {
 
                 function deleteAgency(id) {
             if (!checkPermission(['admin'])) return;
-            const ag = agencies.find(a => a.id === id);
-            if (!ag) return;
+            const targetKey = String(id || '').trim();
+            const ag = agencies.find(a => {
+                if (!a) return false;
+                if (a.id && String(a.id).trim() === targetKey) return true;
+                if (a.code && String(a.code).trim() === targetKey) return true;
+                if (a.name && String(a.name).trim().toLowerCase() === targetKey.toLowerCase()) return true;
+                return false;
+            });
+            if (!ag) {
+                showToast('No se encontró la agencia a eliminar.', 'warning');
+                return;
+            }
 
             showConfirm(
                 '¿Eliminar Agencia?',
                 `¿Desea eliminar la agencia "${ag.name}"? Los equipos mantendrán su asignación.`,
                 () => {
+                    const targetId = ag.id;
+                    const targetCode = ag.code;
+                    const targetName = ag.name;
+
+                    // 1. Marcar como eliminada de forma persistente
+                    if (typeof markAgencyAsDeleted === 'function') {
+                        markAgencyAsDeleted(targetId, targetCode, targetName);
+                    }
+
+                    // 2. Registrar en auditoría de movimientos
                     addMovement({
                         id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
                         date: getFormattedNow(),
                         type: 'Eliminación Agencia',
                         items: [],
-                        agency: ag.name,
+                        agency: targetName,
                         receptorType: 'Catálogo Agencias',
                         receptor: ag.owner || '-',
                         owner: ag.owner || '-',
                         user: getActiveUserName(),
-                        obs: `Eliminación de agencia del catálogo: ${ag.name} (Cód: ${ag.code || ag.id})`,
+                        obs: `Eliminación de agencia del catálogo: ${targetName} (Cód: ${targetCode || targetId})`,
                         signature: ''
                     });
 
-                    agencies = agencies.filter(a => a.id !== id);
+                    // 3. Remover de la lista en memoria
+                    agencies = agencies.filter(a => {
+                        if (!a) return false;
+                        if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return false;
+                        if (targetId && String(a.id).trim() === String(targetId).trim()) return false;
+                        if (targetCode && String(a.code).trim() === String(targetCode).trim()) return false;
+                        if (targetName && String(a.name).trim().toLowerCase() === String(targetName).trim().toLowerCase()) return false;
+                        return true;
+                    });
+
                     saveData();
                     populateAgencyDropdowns();
                     renderAgenciesTable();
                     updateDashboardStats();
-                    showToast('Agencia eliminada del catálogo.');
+                    showToast('Agencia eliminada del catálogo permanentemente.', 'success');
                 }
             );
         }
@@ -24949,6 +25190,15 @@ service cloud.firestore {
                         if (data.categories) equipmentCategories = data.categories;
                         if (data.stockThresholds) stockThresholds = data.stockThresholds;
 
+                        if (typeof updateDeletedEquipmentFromMovements === 'function') updateDeletedEquipmentFromMovements();
+                        if (typeof updateDeletedAgenciesFromMovements === 'function') updateDeletedAgenciesFromMovements();
+                        if (typeof isEquipmentDeleted === 'function') {
+                            inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                        }
+                        if (typeof isAgencyDeleted === 'function') {
+                            agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+                        }
+
                         saveData();
                         populateTypeDropdowns();
                         populateAgencyDropdowns();
@@ -25029,6 +25279,7 @@ service cloud.firestore {
                     if (Array.isArray(d.agencies)) {
                         d.agencies.forEach(a => {
                             if (a && a.name) {
+                                if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return;
                                 const k = a.name.trim().toLowerCase();
                                 if (!agMap.has(k)) {
                                     agMap.set(k, a);
@@ -25103,12 +25354,16 @@ service cloud.firestore {
 
                 // Limpiar eliminados si los hay
                 if (typeof updateDeletedEquipmentFromMovements === 'function') updateDeletedEquipmentFromMovements();
+                if (typeof updateDeletedAgenciesFromMovements === 'function') updateDeletedAgenciesFromMovements();
                 if (typeof isEquipmentDeleted === 'function') {
                     inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
                 }
                 if (typeof autoRecoverMissingEquipmentsFromMovements === 'function') autoRecoverMissingEquipmentsFromMovements();
                 if (typeof isEquipmentDeleted === 'function') {
                     inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+                }
+                if (typeof isAgencyDeleted === 'function') {
+                    agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
                 }
 
                 saveData();
