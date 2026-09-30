@@ -24850,6 +24850,13 @@ service cloud.firestore {
         let movements = [];
         let maintenanceLog = [];
 
+        // Tracking states to prevent overwriting untouched data (declared early to prevent TDZ)
+        let lastSavedInventory = "";
+        let lastSavedAgencies = "";
+        let lastSavedMovements = "";
+        let lastSavedMaintenance = "";
+        let lastSavedSettings = "";
+
         // Tracking de equipos eliminados permanentemente por el Administrador
         let deletedEquipmentSerials = new Set();
         let deletedEquipmentIds = new Set();
@@ -25293,12 +25300,12 @@ service cloud.firestore {
         }
         initializeLocalData();
 
-        // Tracking states to prevent overwriting untouched data
-        let lastSavedInventory = JSON.stringify(inventory);
-        let lastSavedAgencies = JSON.stringify(agencies);
-        let lastSavedMovements = JSON.stringify(movements);
-        let lastSavedMaintenance = JSON.stringify(maintenanceLog);
-        let lastSavedSettings = "";
+        // Initial synchronization snapshots
+        lastSavedInventory = JSON.stringify(inventory);
+        lastSavedAgencies = JSON.stringify(agencies);
+        lastSavedMovements = JSON.stringify(movements);
+        lastSavedMaintenance = JSON.stringify(maintenanceLog);
+        lastSavedSettings = "";
 
         function updateCloudStatusUI(status) {
             const badge = document.getElementById('cloudStatusBadge');
@@ -26162,22 +26169,29 @@ service cloud.firestore {
         }
 
                 function updateDashboardStats() {
-            document.getElementById('statTotal').innerText = inventory.length;
-            document.getElementById('statWarehouse').innerText = inventory.filter(i => isWarehouse(i.status)).length;
-            document.getElementById('statAssigned').innerText = inventory.filter(i => isAssigned(i.status)).length;
-            document.getElementById('statMaintenance').innerText = inventory.filter(i => isMaintenance(i.status)).length;
-            document.getElementById('statAgencies').innerText = agencies.length;
+            const elTotal = document.getElementById('statTotal');
+            if (elTotal) elTotal.innerText = inventory.length;
+            const elWarehouse = document.getElementById('statWarehouse');
+            if (elWarehouse) document.getElementById('statWarehouse').innerText = inventory.filter(i => isWarehouse(i.status)).length;
+            const elAssigned = document.getElementById('statAssigned');
+            if (elAssigned) document.getElementById('statAssigned').innerText = inventory.filter(i => isAssigned(i.status)).length;
+            const elMaintenance = document.getElementById('statMaintenance');
+            if (elMaintenance) document.getElementById('statMaintenance').innerText = inventory.filter(i => isMaintenance(i.status)).length;
+            const elAgencies = document.getElementById('statAgencies');
+            if (elAgencies) elAgencies.innerText = agencies.length;
         }
 
         /* --- CONTROL Y ALERTAS DE STOCK MÍNIMO --- */
         function checkStockAlerts() {
             const lowStockAlerts = [];
-            const usedCategories = new Set(inventory.map(i => i.type));
-            const allCategories = Array.from(new Set([...equipmentCategories, ...usedCategories]));
+            if (!Array.isArray(inventory)) return lowStockAlerts;
+            const usedCategories = new Set(inventory.map(i => (i && i.type) ? String(i.type).trim() : '').filter(Boolean));
+            const allCategories = Array.from(new Set([...(equipmentCategories || []), ...usedCategories]));
 
             allCategories.forEach(cat => {
-                const inWarehouseCount = inventory.filter(i => i.type.toLowerCase() === cat.toLowerCase() && isWarehouse(i.status)).length;
-                const minThreshold = stockThresholds[cat] !== undefined ? stockThresholds[cat] : 3;
+                if (!cat) return;
+                const inWarehouseCount = inventory.filter(i => i && i.type && String(i.type).toLowerCase() === String(cat).toLowerCase() && isWarehouse(i.status)).length;
+                const minThreshold = (stockThresholds && stockThresholds[cat] !== undefined) ? stockThresholds[cat] : 3;
 
                 if (inWarehouseCount <= minThreshold) {
                     lowStockAlerts.push({
