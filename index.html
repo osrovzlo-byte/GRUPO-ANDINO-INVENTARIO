@@ -19451,6 +19451,34 @@ service cloud.firestore {
         let deletedAgencyNames = new Set();
         let deletedAgencyIds = new Set();
 
+        function getAgencyLookupKeys(id, code, name) {
+            const keys = new Set();
+            const processVal = (val) => {
+                if (!val) return;
+                const s = String(val).trim().toUpperCase();
+                if (!s || s === '-' || s === 'CATÁLOGO AGENCIAS' || s === 'CATALOGO AGENCIAS') return;
+                keys.add(s);
+                const alnum = s.replace(/[^A-Z0-9]/g, '');
+                if (alnum) keys.add(alnum);
+
+                if (s.startsWith('AG-') || s.startsWith('AG ')) {
+                    const bare = s.replace(/^AG[-\s]+/, '').trim();
+                    if (bare) {
+                        keys.add(bare);
+                        const bareAlnum = bare.replace(/[^A-Z0-9]/g, '');
+                        if (bareAlnum) keys.add(bareAlnum);
+                    }
+                } else {
+                    keys.add('AG-' + s);
+                    keys.add('AG ' + s);
+                }
+            };
+            processVal(id);
+            processVal(code);
+            processVal(name);
+            return Array.from(keys);
+        }
+
         function initDeletedAgenciesTracking() {
             try {
                 const storedCodes = JSON.parse(localStorage.getItem('lotto_deleted_agency_codes') || '[]');
@@ -19481,26 +19509,34 @@ service cloud.firestore {
                 const type = (m.type || '').toLowerCase();
                 const isElim = type.includes('eliminación agencia') || type.includes('eliminacion agencia') || (m.receptorType && m.receptorType.toLowerCase().includes('eliminad'));
                 const isNew = type.includes('nueva agencia');
+                const isEdit = type.includes('edición agencia') || type.includes('edicion agencia');
 
-                let agName = (m.agency && m.agency !== '-' && m.agency !== 'Catálogo Agencias') ? m.agency.trim().toUpperCase() : '';
+                if (!isElim && !isNew && !isEdit) return;
+
+                let agName = (m.agency && m.agency !== '-' && m.agency !== 'Catálogo Agencias') ? m.agency.trim() : '';
                 let agCode = '';
                 let agId = '';
 
                 if (m.obs) {
-                    const codeMatch = m.obs.match(/Cód:\s*([A-Za-z0-9\-_]+)/i);
-                    if (codeMatch && codeMatch[1]) agCode = codeMatch[1].trim().toUpperCase();
-                    const idMatch = m.obs.match(/ID:\s*([A-Za-z0-9\-_]+)/i);
-                    if (idMatch && idMatch[1]) agId = idMatch[1].trim().toUpperCase();
+                    const codeMatch = m.obs.match(/(?:C[oóó\u00f3]d|C[oó]digo|Code)[\s:\.]*([A-Za-z0-9\-_]+)/i);
+                    if (codeMatch && codeMatch[1]) agCode = codeMatch[1].trim();
+                    const idMatch = m.obs.match(/ID[\s:\.]*([A-Za-z0-9\-_]+)/i);
+                    if (idMatch && idMatch[1]) agId = idMatch[1].trim();
                 }
 
+                const keys = getAgencyLookupKeys(agId, agCode, agName);
+
                 if (isElim) {
-                    if (agName) deletedAgencyNames.add(agName);
-                    if (agCode) deletedAgencyCodes.add(agCode);
-                    if (agId) deletedAgencyIds.add(agId);
-                } else if (isNew) {
-                    if (agName) deletedAgencyNames.delete(agName);
-                    if (agCode) deletedAgencyCodes.delete(agCode);
-                    if (agId) deletedAgencyIds.delete(agId);
+                    keys.forEach(k => {
+                        deletedAgencyCodes.add(k);
+                    });
+                } else if (isNew || isEdit) {
+                    // Si una agencia se crea o edita posterior a cualquier eliminación, se rehabilita
+                    keys.forEach(k => {
+                        deletedAgencyCodes.delete(k);
+                        deletedAgencyNames.delete(k);
+                        deletedAgencyIds.delete(k);
+                    });
                 }
             });
 
@@ -19508,32 +19544,31 @@ service cloud.firestore {
         }
 
         function isAgencyDeleted(id, code, name) {
-            if (id) {
-                const idNorm = String(id).trim().toUpperCase();
-                if (deletedAgencyIds.has(idNorm) || deletedAgencyCodes.has(idNorm)) return true;
-            }
-            if (code) {
-                const codeNorm = String(code).trim().toUpperCase();
-                if (deletedAgencyCodes.has(codeNorm) || deletedAgencyIds.has(codeNorm)) return true;
-            }
-            if (name) {
-                const nameNorm = String(name).trim().toUpperCase();
-                if (deletedAgencyNames.has(nameNorm)) return true;
+            const keys = getAgencyLookupKeys(id, code, name);
+            for (let i = 0; i < keys.length; i++) {
+                const k = keys[i];
+                if (deletedAgencyCodes.has(k) || deletedAgencyNames.has(k) || deletedAgencyIds.has(k)) {
+                    return true;
+                }
             }
             return false;
         }
 
         function markAgencyAsDeleted(id, code, name) {
-            if (id) deletedAgencyIds.add(String(id).trim().toUpperCase());
-            if (code) deletedAgencyCodes.add(String(code).trim().toUpperCase());
-            if (name) deletedAgencyNames.add(String(name).trim().toUpperCase());
+            const keys = getAgencyLookupKeys(id, code, name);
+            keys.forEach(k => {
+                deletedAgencyCodes.add(k);
+            });
             saveDeletedAgenciesTracking();
         }
 
         function unmarkAgencyAsDeleted(id, code, name) {
-            if (id) deletedAgencyIds.delete(String(id).trim().toUpperCase());
-            if (code) deletedAgencyCodes.delete(String(code).trim().toUpperCase());
-            if (name) deletedAgencyNames.delete(String(name).trim().toUpperCase());
+            const keys = getAgencyLookupKeys(id, code, name);
+            keys.forEach(k => {
+                deletedAgencyCodes.delete(k);
+                deletedAgencyNames.delete(k);
+                deletedAgencyIds.delete(k);
+            });
             saveDeletedAgenciesTracking();
         }
 
@@ -19957,43 +19992,31 @@ service cloud.firestore {
                 updateCloudStatusUI('connected');
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    let changed = false;
-                    if (Array.isArray(data.codes)) {
-                        data.codes.forEach(c => {
-                            const sc = String(c || '').trim();
-                            if (sc && !deletedAgencyCodes.has(sc)) {
-                                deletedAgencyCodes.add(sc);
-                                changed = true;
-                            }
-                        });
+                    const newCodes = new Set(Array.isArray(data.codes) ? data.codes.map(c => String(c).trim().toUpperCase()).filter(Boolean) : []);
+                    const newNames = new Set(Array.isArray(data.names) ? data.names.map(n => String(n).trim().toUpperCase()).filter(Boolean) : []);
+                    const newIds = new Set(Array.isArray(data.ids) ? data.ids.map(id => String(id).trim().toUpperCase()).filter(Boolean) : []);
+
+                    deletedAgencyCodes = newCodes;
+                    deletedAgencyNames = newNames;
+                    deletedAgencyIds = newIds;
+
+                    // Re-ejecutar auditoría de movimientos para que creaciones/ediciones recientes tengan prioridad
+                    if (typeof updateDeletedAgenciesFromMovements === 'function') {
+                        updateDeletedAgenciesFromMovements();
                     }
-                    if (Array.isArray(data.names)) {
-                        data.names.forEach(n => {
-                            const sn = String(n || '').trim().toUpperCase();
-                            if (sn && !deletedAgencyNames.has(sn)) {
-                                deletedAgencyNames.add(sn);
-                                changed = true;
-                            }
-                        });
-                    }
-                    if (Array.isArray(data.ids)) {
-                        data.ids.forEach(id => {
-                            const sid = String(id || '').trim();
-                            if (sid && !deletedAgencyIds.has(sid)) {
-                                deletedAgencyIds.add(sid);
-                                changed = true;
-                            }
-                        });
-                    }
-                    if (changed) {
-                        saveDeletedAgenciesTracking();
-                        const prevLen = agencies.length;
-                        agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
-                        if (agencies.length !== prevLen) {
-                            populateAgencyDropdowns();
-                            renderAgenciesTable();
-                            updateDashboardStats();
-                        }
+
+                    try {
+                        localStorage.setItem('lotto_deleted_agency_codes', JSON.stringify(Array.from(deletedAgencyCodes)));
+                        localStorage.setItem('lotto_deleted_agency_names', JSON.stringify(Array.from(deletedAgencyNames)));
+                        localStorage.setItem('lotto_deleted_agency_ids', JSON.stringify(Array.from(deletedAgencyIds)));
+                    } catch (e) {}
+
+                    const prevLen = agencies.length;
+                    agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+                    if (agencies.length !== prevLen) {
+                        populateAgencyDropdowns();
+                        renderAgenciesTable();
+                        updateDashboardStats();
                     }
                 }
             }, (err) => handleFirestoreError(err, 'deleted_agencies'));
@@ -21900,6 +21923,14 @@ service cloud.firestore {
                 if (typeof unmarkAgencyAsDeleted === 'function') {
                     unmarkAgencyAsDeleted(newAgency.id, newAgency.code, newAgency.name);
                 }
+
+                agencies = agencies.filter(a => {
+                    if (!a) return false;
+                    const aCode = (a.code || a.id || '').trim().toUpperCase();
+                    const aName = (a.name || '').trim().toUpperCase();
+                    if (aCode === code || aName === name.toUpperCase()) return false;
+                    return true;
+                });
 
                 agencies.push(newAgency);
 
