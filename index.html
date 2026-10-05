@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
@@ -2290,8 +2290,8 @@ service cloud.firestore {
     <!-- FIREBASE SDK -->
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, runTransaction, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, runTransaction, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdi-qT9an2vdIe92q-fbPCfvVZD5IAn90",
@@ -2306,7 +2306,7 @@ service cloud.firestore {
         let db;
         try {
             db = initializeFirestore(app, {
-                localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+                localCache: persistentLocalCache()
             });
         } catch (e) {
             console.warn('[Firestore] Cache persistente no disponible, usando modo estandar:', e);
