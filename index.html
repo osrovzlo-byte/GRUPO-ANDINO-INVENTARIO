@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
@@ -2291,7 +2291,7 @@ service cloud.firestore {
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, runTransaction, doc, setDoc, onSnapshot, getDoc, collection } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdi-qT9an2vdIe92q-fbPCfvVZD5IAn90",
@@ -2317,6 +2317,7 @@ service cloud.firestore {
         window.db = db;
         window.doc = doc;
         window.setDoc = setDoc;
+        window.runTransaction = runTransaction;
         window.getDoc = getDoc;
         window.onSnapshot = onSnapshot;
         window.collection = collection;
@@ -3864,7 +3865,7 @@ service cloud.firestore {
             }
 
             addMovement({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                id: newMovId(),
                 date: getFormattedNow(),
                 type: 'Seguridad / Claves',
                 items: [],
@@ -3957,6 +3958,46 @@ service cloud.firestore {
             }
         }
 
+        // --- Sincronizacion multiusuario: cada equipo sube SOLO sus cambios (no reemplaza la lista completa) ---
+        function newMovId() {
+            return 'MOV-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 4).toUpperCase();
+        }
+        function invKey(i) { return (i.serial && String(i.serial).trim()) ? String(i.serial).trim().toUpperCase() : ('ID_' + i.id); }
+        function agKey(a) { return (a.name && String(a.name).trim()) ? String(a.name).trim().toLowerCase() : ('ID_' + a.id); }
+        function maintKey(m) { return m.id ? String(m.id) : ('MNT_' + m.equipSerial); }
+
+        async function cloudSaveList(docName, localList, lastSavedJson, keyFn) {
+            if (typeof window.runTransaction !== 'function') {
+                return window.setDoc(window.doc(window.db, "lotto_data", docName), { list: localList });
+            }
+            let prev = [];
+            try { prev = JSON.parse(lastSavedJson || '[]') || []; } catch (e) { prev = []; }
+            const prevMap = new Map();
+            prev.forEach(it => { if (it) prevMap.set(keyFn(it), JSON.stringify(it)); });
+            const curMap = new Map();
+            localList.forEach(it => { if (it) curMap.set(keyFn(it), it); });
+            const upserts = [];
+            curMap.forEach((it, k) => { if (prevMap.get(k) !== JSON.stringify(it)) upserts.push([k, it]); });
+            const removed = [];
+            prevMap.forEach((_, k) => { if (!curMap.has(k)) removed.push(k); });
+            if (!upserts.length && !removed.length) return Promise.resolve(null);
+
+            const ref = window.doc(window.db, "lotto_data", docName);
+            try {
+                await window.runTransaction(window.db, async (tx) => {
+                    const snap = await tx.get(ref);
+                    const map = new Map();
+                    if (snap.exists()) (snap.data().list || []).forEach(it => { if (it) map.set(keyFn(it), it); });
+                    removed.forEach(k => map.delete(k));
+                    upserts.forEach(([k, it]) => map.set(k, it));
+                    tx.set(ref, { list: Array.from(map.values()) });
+                });
+            } catch (err) {
+                console.warn("[Sync] runTransaction failed (" + err.message + "), falling back to setDoc");
+                return window.setDoc(ref, { list: localList });
+            }
+        }
+
         function addMovement(movObj) {
             movements.push(movObj);
             if (window.db) {
@@ -3991,7 +4032,7 @@ service cloud.firestore {
                 let invChanged = currentInv !== lastSavedInventory;
                 console.log('[CloudSync] saveData() — inventario cambió:', invChanged, '| items:', inventory.length);
                 if (invChanged) {
-                    window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory })
+                    cloudSaveList('inventory', inventory, lastSavedInventory, invKey)
                         .then(() => { 
                             lastSavedInventory = currentInv; 
                             localStorage.removeItem('lotto_pending_inventory_sync');
@@ -4008,7 +4049,7 @@ service cloud.firestore {
                 let agChanged = currentAgencies !== lastSavedAgencies;
                 console.log('[CloudSync] saveData() — agencias cambió:', agChanged, '| total:', agencies.length);
                 if (agChanged) {
-                    window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+                    cloudSaveList('agencies', agencies, lastSavedAgencies, agKey)
                         .then(() => { 
                             lastSavedAgencies = currentAgencies; 
                             localStorage.removeItem('lotto_pending_agencies_sync');
@@ -4033,7 +4074,7 @@ service cloud.firestore {
                 let currentMaint = JSON.stringify(maintenanceLog);
                 let maintChanged = currentMaint !== lastSavedMaintenance;
                 if (maintChanged) {
-                    window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: maintenanceLog })
+                    cloudSaveList('maintenance', maintenanceLog, lastSavedMaintenance, maintKey)
                         .then(() => { 
                             lastSavedMaintenance = currentMaint; 
                             localStorage.removeItem('lotto_pending_maintenance_sync');
@@ -4222,7 +4263,7 @@ service cloud.firestore {
             });
 
             addMovement({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                id: newMovId(),
                 date: getFormattedNow(),
                 type: 'Configuración Stock',
                 items: [],
@@ -5101,7 +5142,7 @@ service cloud.firestore {
                     }
 
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: getFormattedNow(),
                         type: 'Edición de Equipo',
                         items: [{ type: type, brandModel: `${brand} ${model}`, serial: serial, color: color, ram: ram || '', disk: disk || '', processor: processor || '' }],
@@ -5198,7 +5239,7 @@ service cloud.firestore {
                 if (isMaint) {
                     const workshop = document.getElementById('addMaintWorkshop')?.value.trim() || 'Taller Central';
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: now,
                         type: 'Entrada Mantenimiento',
                         items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color, ram: it.ram || '', disk: it.disk || '', processor: it.processor || '' })),
@@ -5218,7 +5259,7 @@ service cloud.firestore {
                     triggerStockToastAlerts([type]);
                 } else {
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: now,
                         type: 'Entrada Depósito',
                         items: newItems.map(it => ({ type: it.type, brandModel: `${it.brand} ${it.model}`, serial: it.serial, color: it.color, ram: it.ram || '', disk: it.disk || '', processor: it.processor || '' })),
@@ -5289,7 +5330,7 @@ service cloud.firestore {
                 });
 
                 addMovement({
-                    id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                    id: newMovId(),
                     date: now,
                     type: 'Entrada Mantenimiento',
                     items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color, ram: newItem.ram || '', disk: newItem.disk || '', processor: newItem.processor || '' }],
@@ -5309,7 +5350,7 @@ service cloud.firestore {
                 triggerStockToastAlerts([newItem.type]);
             } else {
                 addMovement({
-                    id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                    id: newMovId(),
                     date: now,
                     type: 'Entrada Depósito',
                     items: [{ type: newItem.type, brandModel: `${newItem.brand} ${newItem.model}`, serial: newItem.serial, color: newItem.color, ram: newItem.ram || '', disk: newItem.disk || '', processor: newItem.processor || '' }],
@@ -5347,7 +5388,7 @@ service cloud.firestore {
                     }
 
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: now,
                         type: 'Eliminación de Equipo',
                         items: [{ type: equip.type, brandModel: `${equip.brand} ${equip.model}`, serial: equip.serial, color: equip.color, ram: equip.ram || '', disk: equip.disk || '', processor: equip.processor || '' }],
@@ -5460,7 +5501,7 @@ service cloud.firestore {
                     }
 
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: getFormattedNow(),
                         type: 'Edición Agencia',
                         items: [],
@@ -5503,7 +5544,7 @@ service cloud.firestore {
                 agencies.push(newAgency);
 
                 addMovement({
-                    id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                    id: newMovId(),
                     date: getFormattedNow(),
                     type: 'Nueva Agencia',
                     items: [],
@@ -5583,7 +5624,7 @@ service cloud.firestore {
 
                     // 2. Registrar en auditoría de movimientos
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: getFormattedNow(),
                         type: 'Eliminación Agencia',
                         items: [],
@@ -5686,7 +5727,7 @@ service cloud.firestore {
                 () => {
                     const now = getFormattedNow();
                     addMovement({
-                        id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                        id: newMovId(),
                         date: now,
                         type: 'Eliminación de Categoría',
                         items: [],
@@ -5829,7 +5870,7 @@ service cloud.firestore {
                 item.receptor = receptor;
                 item.dateOut = now;
 
-                const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
+                const movId = newMovId();
                 const movObj = {
                     id: movId,
                     date: now,
@@ -5951,7 +5992,7 @@ service cloud.firestore {
                 item.dateIn = now;
                 item.dateOut = '-';
 
-                const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
+                const movId = newMovId();
 
                 const movObj = {
                     id: movId,
@@ -6166,7 +6207,7 @@ service cloud.firestore {
             try {
                 const fullObs = `Teléfono: ${phone || 'N/A'} | Ubicación: ${address || 'N/A'}. ${obs}`.trim();
                 const signatureData = batchCanvas.toDataURL();
-                const movId = 'MOV-' + Math.floor(1000 + Math.random() * 9000);
+                const movId = newMovId();
                 const movObj = {
                     id: movId,
                     date: now,
@@ -6527,7 +6568,7 @@ service cloud.firestore {
             });
 
             addMovement({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                id: newMovId(),
                 date: now,
                 type: 'Importación Masiva Excel',
                 items: [{
@@ -6707,7 +6748,7 @@ service cloud.firestore {
             });
 
             addMovement({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                id: newMovId(),
                 date: getFormattedNow(),
                 type: 'Importación Masiva Agencias',
                 items: [],
@@ -6782,7 +6823,7 @@ service cloud.firestore {
             });
 
             addMovement({
-                id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                id: newMovId(),
                 date: now,
                 type: 'Envío a Mantenimiento',
                 items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
@@ -6825,7 +6866,7 @@ service cloud.firestore {
                         item.owner = '-';
 
                         addMovement({
-                            id: 'MOV-' + Math.floor(1000 + Math.random() * 9000),
+                            id: newMovId(),
                             date: now,
                             type: 'Reingreso de Mantenimiento',
                             items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color }],
