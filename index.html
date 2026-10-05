@@ -2302,9 +2302,11 @@ service cloud.firestore {
             appId: "1:435740032183:web:f1c39e83e3c8e4b3842132"
         };
 
-        const app = initializeApp(firebaseConfig);
+        // Cache local NUEVO (v2): el cache anterior tenia una cola de escrituras atascada
+        const app = initializeApp(firebaseConfig, "ga-sync-v2");
         let db;
         try {
+            if (window.indexedDB) { try { indexedDB.deleteDatabase("firestore/[DEFAULT]/" + firebaseConfig.projectId + "/main"); } catch(e){} }
             db = initializeFirestore(app, {
                 localCache: persistentLocalCache()
             });
@@ -3091,10 +3093,13 @@ service cloud.firestore {
             console.warn("Firestore sync error on " + source + ":", err);
             if (err && (err.code === 'permission-denied' || (err.message && err.message.toLowerCase().includes('permission')))) {
                 updateCloudStatusUI('permission_error');
+                if (typeof showToast === 'function') showToast('Error de permisos en la nube. Verifique las reglas.', 'error');
             } else if (err && (err.code === 'resource-exhausted' || (err.message && (err.message.toLowerCase().includes('quota') || err.message.toLowerCase().includes('exhausted') || err.message.includes('429'))))) {
                 updateCloudStatusUI('quota_exceeded');
+                if (typeof showToast === 'function') showToast('Cuota de nube excedida. Intente m�s tarde.', 'error');
             } else {
                 updateCloudStatusUI('offline');
+                if (typeof showToast === 'function') showToast('Error sincronizando a la nube (' + source + '): ' + (err.message || 'Desconocido'), 'error');
             }
         }
 
@@ -3149,7 +3154,7 @@ service cloud.firestore {
 
                     // Reintentar si había cambios pendientes guardados localmente mientras estuvo offline
                     if (localStorage.getItem('lotto_pending_inventory_sync') === 'true' && window.db) {
-                        window.setDoc(window.doc(window.db, "lotto_data", "inventory"), { list: inventory })
+                        cloudSaveList("inventory", inventory, JSON.stringify(cloudList), invKey)
                             .then(() => {
                                 localStorage.removeItem('lotto_pending_inventory_sync');
                                 console.log('[Sync] Inventario pendiente sincronizado exitosamente con la nube.');
@@ -3218,7 +3223,7 @@ service cloud.firestore {
 
                         // Reintentar sincronización pendiente si falló previamente por cuota o red
                         if (localStorage.getItem('lotto_pending_agencies_sync') === 'true' && window.db) {
-                            window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+                            cloudSaveList("agencies", agencies, JSON.stringify(cloudAg), agKey)
                                 .then(() => {
                                     localStorage.removeItem('lotto_pending_agencies_sync');
                                     console.log('[Sync] Agencias pendientes sincronizadas con la nube con éxito.');
@@ -3236,6 +3241,20 @@ service cloud.firestore {
                 querySnapshot.forEach((doc) => {
                     tempMovs.push(doc.data());
                 });
+
+                // Recuperar movimientos que quedaron solo en este equipo (cola atascada del cache viejo)
+                if (!window.__movRecoveryDone && querySnapshot.metadata && !querySnapshot.metadata.fromCache) {
+                    window.__movRecoveryDone = true;
+                    const cloudIds = new Set(tempMovs.map(m => m && m.id).filter(Boolean));
+                    const missing = movements.filter(m => m && m.id && !cloudIds.has(m.id) && (m.date || "") >= "2026-10-03");
+                    if (missing.length) {
+                        console.log("[Sync] Re-subiendo " + missing.length + " movimiento(s) que no estaban en la nube");
+                        missing.forEach(m => {
+                            window.setDoc(window.doc(window.db, "lotto_movements", m.id), JSON.parse(JSON.stringify(m)))
+                                .catch(err => console.warn("[Sync] No se pudo re-subir movimiento " + m.id, err));
+                        });
+                    }
+                }
 
                 const movMap = new Map();
                 movements.forEach(m => { if (m && m.id) movMap.set(m.id, m); });
@@ -3958,6 +3977,14 @@ service cloud.firestore {
             }
         }
 
+        function stableStringify(obj) {
+            if (obj === null || typeof obj !== 'object') return JSON.stringify(obj);
+            return JSON.stringify(Object.keys(obj).sort().reduce((res, key) => {
+                res[key] = obj[key];
+                return res;
+            }, {}));
+        }
+
         // --- Sincronizacion multiusuario: cada equipo sube SOLO sus cambios (no reemplaza la lista completa) ---
         function newMovId() {
             return 'MOV-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 4).toUpperCase();
@@ -3968,20 +3995,25 @@ service cloud.firestore {
 
         async function cloudSaveList(docName, localList, lastSavedJson, keyFn) {
             if (typeof window.runTransaction !== 'function') {
-                return window.setDoc(window.doc(window.db, "lotto_data", docName), { list: localList });
+                return window.setDoc(window.doc(window.db, "lotto_data", docName), { list: JSON.parse(JSON.stringify(localList)) });
             }
             let prev = [];
             try { prev = JSON.parse(lastSavedJson || '[]') || []; } catch (e) { prev = []; }
             const prevMap = new Map();
-            prev.forEach(it => { if (it) prevMap.set(keyFn(it), JSON.stringify(it)); });
+            prev.forEach(it => { if (it) prevMap.set(keyFn(it), stableStringify(it)); });
             const curMap = new Map();
             localList.forEach(it => { if (it) curMap.set(keyFn(it), it); });
             const upserts = [];
-            curMap.forEach((it, k) => { if (prevMap.get(k) !== JSON.stringify(it)) upserts.push([k, it]); });
+            curMap.forEach((it, k) => { if (prevMap.get(k) !== stableStringify(it)) upserts.push([k, it]); });
             const removed = [];
             prevMap.forEach((_, k) => { if (!curMap.has(k)) removed.push(k); });
-            if (!upserts.length && !removed.length) return Promise.resolve(null);
+            if (!upserts.length && !removed.length) {
+                console.log(`[CloudSync] No hay cambios reales en ${docName} para subir.`);
+                return Promise.resolve(null);
+            }
 
+            console.log(`[CloudSync] Subiendo ${docName}: upserts=${upserts.length}, removed=${removed.length}`);
+            
             const ref = window.doc(window.db, "lotto_data", docName);
             try {
                 await window.runTransaction(window.db, async (tx) => {
@@ -3989,12 +4021,12 @@ service cloud.firestore {
                     const map = new Map();
                     if (snap.exists()) (snap.data().list || []).forEach(it => { if (it) map.set(keyFn(it), it); });
                     removed.forEach(k => map.delete(k));
-                    upserts.forEach(([k, it]) => map.set(k, it));
+                    upserts.forEach(([k, it]) => map.set(k, JSON.parse(JSON.stringify(it))));
                     tx.set(ref, { list: Array.from(map.values()) });
                 });
             } catch (err) {
-                console.warn("[Sync] runTransaction failed (" + err.message + "), falling back to setDoc");
-                return window.setDoc(ref, { list: localList });
+                console.warn(`[Sync] runTransaction fallo para ${docName} (${err.message}). Se reintentara.`); throw err;
+                // fallback disabled to avoid list overwrite
             }
         }
 
@@ -4110,7 +4142,7 @@ service cloud.firestore {
             }
             if (typeof isAgencyDeleted === 'function') agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
             showToast('Sincronizando agencias con la nube...', 'info');
-            window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+            cloudSaveList("agencies", agencies, "[]", agKey)
                 .then(() => {
                     lastSavedAgencies = JSON.stringify(agencies);
                     localStorage.removeItem('lotto_pending_agencies_sync');
@@ -9087,3 +9119,5 @@ service cloud.firestore {
     </script>
 </body>
 </html>
+
+
