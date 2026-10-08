@@ -1,0 +1,18 @@
+function openEditAgencyModal(id) {
+            if (!checkPermission(['admin', 'tech_head'])) return;
+            populateTypeDropdowns();
+            populateAgencyDropdowns();
+            const ag = agencies.find(a => (a.id && a.id === id) || (a.code && a.code === id) || (a.name && a.name === id));
+            if (!ag) return;
+
+            document.getElementById('editingAgencyId').value = ag.id || ag.code || ag.name || '';
+            document.getElementById('agencyModalTitle').innerText = `Editar Agencia ${ag.code || ag.id || ag.name}`;
+            
+            const codeInput = document.getElementById('agencyCode');
+            codeInput.value = ag.code || ag.id;
+            codeInput.disabled = false;
+
+            document.getElementById('agencyName').value = ag.name || '';
+            document.getElementById('agencyZone').value = ag.zone || '';
+            document.getElementById('agencyAddress').value = ag.address || '';
+            document.getElementById('agencyOwner').value =

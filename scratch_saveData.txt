@@ -1,0 +1,60 @@
+function saveData() {
+            // Depurar eliminados antes de guardar
+            if (typeof isEquipmentDeleted === 'function') inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+            if (typeof isAgencyDeleted === 'function') agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+
+            // Guardado local obligatorio primero
+            try { localStorage.setItem('lotto_inventory_v2', JSON.stringify(inventory)); } catch (e) { safeSetLocalStorage('lotto_inventory_v2', JSON.stringify(inventory)); }
+            try { localStorage.setItem('lotto_agencies_v2', JSON.stringify(agencies)); } catch (e) { safeSetLocalStorage('lotto_agencies_v2', JSON.stringify(agencies)); }
+            persistMovementsSoon();
+            try { localStorage.setItem('lotto_maintenance_v2', JSON.stringify(maintenanceLog)); } catch (e) { safeSetLocalStorage('lotto_maintenance_v2', JSON.stringify(maintenanceLog)); }
+            try { localStorage.setItem('lotto_categories_v2', JSON.stringify(equipmentCategories)); } catch (e) { safeSetLocalStorage('lotto_categories_v2', JSON.stringify(equipmentCategories)); }
+            try { localStorage.setItem('lotto_stock_thresholds_v2', JSON.stringify(stockThresholds)); } catch (e) { safeSetLocalStorage('lotto_stock_thresholds_v2', JSON.stringify(stockThresholds)); }
+            try {
+                if (typeof deletedEquipmentSerials !== 'undefined') localStorage.setItem('lotto_deleted_serials', JSON.stringify(Array.from(deletedEquipmentSerials)));
+                if (typeof deletedEquipmentIds !== 'undefined') localStorage.setItem('lotto_deleted_ids', JSON.stringify(Array.from(deletedEquipmentIds)));
+                if (typeof saveDeletedAgenciesTracking === 'function') saveDeletedAgenciesTracking();
+            } catch (e) {}
+
+            if (window.db) {
+                let currentInv = JSON.stringify(inventory);
+                let invChanged = currentInv !== lastSavedInventory;
+                console.log('[CloudSync] saveData() — inventario cambió:', invChanged, '| items:', inventory.length);
+                if (invChanged) {
+                    cloudSaveList('inventory', inventory, lastSavedInventory, invKey)
+                        .then(() => { 
+                            lastSavedInventory = currentInv; 
+                            localStorage.removeItem('lotto_pending_inventory_sync');
+                            console.log('[CloudSync] ✅ Inventario subido a la nube exitosamente (' + inventory.length + ' equipos)');
+                        })
+                        .catch(err => {
+                            localStorage.setItem('lotto_pending_inventory_sync', 'true');
+                            console.error('[CloudSync] ❌ ERROR subiendo inventario a la nube:', err.code, err.message);
+                            handleFirestoreError(err, 'saveInventory');
+                        });
+                }
+
+                let currentAgencies = JSON.stringify(agencies);
+                let agChanged = currentAgencies !== lastSavedAgencies;
+                console.log('[CloudSync] saveData() — agencias cambió:', agChanged, '| total:', agencies.length);
+                if (agChanged) {
+                    cloudSaveList('agencies', agencies, lastSavedAgencies, agKey)
+                        .then(() => { 
+                            lastSavedAgencies = currentAgencies; 
+                            localStorage.removeItem('lotto_pending_agencies_sync');
+                            console.log('[CloudSync] ✅ Agencias subidas a la nube exitosamente (' + agencies.length + ' agencias)');
+                        })
+                        .catch(err => {
+                            localStorage.setItem('lotto_pending_agencies_sync', 'true');
+                            console.error('[CloudSync] ❌ ERROR subiendo agencias a la nube:', err.code, err.message);
+                            handleFirestoreError(err, 'saveAgencies');
+                        });
+                }
+
+                // (El tracking de agencias eliminadas se sincroniza solo si cambia, en saveDeletedAgenciesTracking)
+
+                let currentMaint = JSON.stringify(maintenanceLog);
+                let maintChanged = currentMaint !== lastSavedMaintenance;
+                if (maintChanged) {
+                    cloudSaveList('maintenance', maintenanceLog, lastSavedMaintenance, maintKey)
+       

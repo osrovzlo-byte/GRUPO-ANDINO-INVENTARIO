@@ -1,0 +1,71 @@
+onSnapshot(window.doc(window.db, "lotto_data", "agencies"), (docSnap) => {
+                updateCloudStatusUI('connected');
+                if (docSnap.exists()) {
+                    const cloudAg = docSnap.data().list || [];
+                    if (Array.isArray(cloudAg)) {
+                        const agMap = new Map();
+                        cloudAg.forEach(a => {
+                            if (!a || !a.name) return;
+                            // Si la agencia está en la nube, es legítima y válida.
+                            // Desmarcamos cualquier residuo de eliminación local para esa agencia:
+                            if (typeof unmarkAgencyAsDeleted === 'function') {
+                                unmarkAgencyAsDeleted(a.id, a.code, a.name, true);
+                            }
+                            agMap.set(agKey(a), a);
+                        });
+                        if (typeof saveDeletedAgenciesTracking === 'function') saveDeletedAgenciesTracking();
+                        
+                        // Preservar agencias que se hayan registrado localmente en este equipo mientras estuvo offline (excluyendo eliminadas)
+                        let localOnlyAgenciesFound = false;
+                        agencies.forEach(a => {
+                            if (!a || !a.name) return;
+                            if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return;
+                            const key = agKey(a);
+                            if (!agMap.has(key)) {
+                                agMap.set(key, a);
+                                localOnlyAgenciesFound = true;
+                            }
+                        });
+
+                        agencies = Array.from(agMap.values());
+
+                        // Auto-recuperación de agencias desde movimientos si falta alguna
+                        if (typeof autoRecoverMissingAgenciesFromMovements === 'function') {
+                            const recCount = autoRecoverMissingAgenciesFromMovements();
+                            if (recCount > 0) {
+                                agencies.forEach(a => {
+                                    if (!a || !a.name) return;
+                                    const key = agKey(a);
+                                    if (!agMap.has(key)) {
+                                        agMap.set(key, a);
+                                        localOnlyAgenciesFound = true;
+                                    }
+                                });
+                                agencies = Array.from(agMap.values());
+                            }
+                        }
+
+                        if (localOnlyAgenciesFound && !localStorage.getItem('lotto_pending_agencies_sync')) {
+                            localStorage.setItem('lotto_pending_agencies_sync', 'true');
+                        }
+
+                        lastSavedAgencies = JSON.stringify(agencies);
+                        localStorage.setItem('lotto_agencies_v2', lastSavedAgencies);
+                        populateAgencyDropdowns();
+                        renderAgenciesTable();
+                        updateDashboardStats();
+
+                        // Reintentar sincronización pendiente si falló previamente por cuota o red
+                        if (localStorage.getItem('lotto_pending_agencies_sync') === 'true' && window.db && !docSnap.metadata.hasPendingWrites && !_pendingPushing.ag) {
+                            _pendingPushing.ag = true;
+                            window.setDoc(window.doc(window.db, "lotto_data", "agencies"), { list: agencies })
+                                .then(() => {
+                                    localStorage.removeItem('lotto_pending_agencies_sync');
+                                    console.log('[Sync] Agencias pendientes sincronizadas con la nube con éxito.');
+                                })
+                                .catch(err => handleFirestoreError(err, 'agencies-pending-push'))
+                                .finally(() => { _pendingPushing.ag = false; });
+                        }
+                    }
+                }
+            }

@@ -1,0 +1,9 @@
+inventory.forEach(i => { if (i && i.status) i.status = normalizeItemStatus(i.status); });
+                inventory = inventory.filter(i => !isEquipmentDeleted(i.serial, i.id));
+
+                const localAg = JSON.parse(localStorage.getItem('lotto_agencies_v2'));
+                agencies = mergeItemLists(initialAgencies, localAg, a => agKey(a));
+                agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+
+                const localMaint = JSON.parse(localStorage.getItem('lotto_maintenance_v2'));
+                maintenanceLog = mergeItemLists(initialMaintenance,

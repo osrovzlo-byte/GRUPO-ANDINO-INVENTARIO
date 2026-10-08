@@ -1,0 +1,106 @@
+function renderAgenciesTable() {
+            const tbody = document.getElementById('agenciesTableBody');
+            const emptyMsg = document.getElementById('noAgenciesMsg');
+            const countEl = document.getElementById('agencySearchCount');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (typeof isAgencyDeleted === 'function') {
+                agencies = agencies.filter(a => !isAgencyDeleted(a.id, a.code, a.name));
+            }
+
+            const query = (document.getElementById('agencySearchInput')?.value || '').toLowerCase().trim();
+
+            const filteredAgencies = agencies.filter(ag => {
+                if (!query) return true;
+                const codeStr = (ag.code || ag.id || '').toLowerCase();
+                const nameStr = (ag.name || '').toLowerCase();
+                const zoneStr = (ag.zone || '').toLowerCase();
+                const addressStr = (ag.address || '').toLowerCase();
+                const ownerStr = (ag.owner || '').toLowerCase();
+                const phoneStr = (ag.phone || '').toLowerCase();
+                const supervisorStr = (ag.supervisor || '').toLowerCase();
+
+                // Search through assigned equipment receptors & owners for this agency
+                const assignedReceptors = inventory.filter(i => i.agency === ag.name && isAssigned(i.status))
+                    .map(i => `${i.receptor} ${i.owner}`).join(' ').toLowerCase();
+
+                return codeStr.includes(query) || 
+                       nameStr.includes(query) || 
+                       zoneStr.includes(query) || 
+                       addressStr.includes(query) || 
+                       ownerStr.includes(query) || 
+                       phoneStr.includes(query) || 
+                       supervisorStr.includes(query) || 
+                       assignedReceptors.includes(query);
+            });
+
+            if (countEl) {
+                countEl.innerText = `${filteredAgencies.length} de ${agencies.length} agencia(s)`;
+            }
+
+            if (filteredAgencies.length === 0) {
+                if (emptyMsg) emptyMsg.classList.remove('hidden');
+                return;
+            }
+
+            if (emptyMsg) emptyMsg.classList.add('hidden');
+
+            filteredAgencies.forEach(ag => {
+                const assignedEquip = inventory.filter(i => i.agency === ag.name && isAssigned(i.status));
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs sm:text-sm';
+
+                let mapsBtn = '';
+                if (ag.mapsUrl) {
+                    mapsBtn = `
+                        <a href="${ag.mapsUrl}" target="_blank" rel="noopener noreferrer" title="Ver en Google Maps" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition inline-flex items-center">
+                            <i class="fa-solid fa-map-location-dot text-sm sm:text-base"></i>
+                        </a>
+                    `;
+                }
+
+                let shareBtn = `
+                    <button onclick="shareAgencyWhatsApp('${ag.id}')" title="Compartir Ficha por WhatsApp" class="p-1.5 text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg transition inline-flex items-center">
+                        <i class="fa-brands fa-whatsapp text-sm sm:text-base"></i>
+                    </button>
+                `;
+
+                tr.innerHTML = `
+                    <td class="px-3.5 py-2.5 font-mono font-bold text-indigo-700">${ag.code || ag.id}</td>
+                    <td class="px-3.5 py-2.5 font-semibold text-slate-900">${ag.name}</td>
+                    <td class="px-3.5 py-2.5 text-slate-600 font-medium">
+                        <div>${ag.address || ag.zone || '-'}</div>
+                        ${ag.mapsUrl ? `<a href="${ag.mapsUrl}" target="_blank" rel="noopener noreferrer" class="text-[10px] text-indigo-600 hover:underline flex items-center gap-1 mt-0.5"><i class="fa-solid fa-location-dot text-rose-500"></i> Abrir Google Maps</a>` : ''}
+                    </td>
+                    <td class="px-3.5 py-2.5 font-medium text-slate-800">${ag.owner}</td>
+                    <td class="px-3.5 py-2.5 text-slate-500 font-mono">${ag.phone || '-'}</td>
+                    <td class="px-3.5 py-2.5">
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${assignedEquip.length > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'}">
+                            ${assignedEquip.length} equipo(s)
+                        </span>
+                    </td>
+                    <td class="px-3.5 py-2.5 text-right space-x-0.5 sm:space-x-1">
+                        ${shareBtn}
+                        ${mapsBtn}
+                        <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
+                            <i class="fa-solid fa-eye mr-0.5"></i> Equipos
+                        </button>
+                        ${['admin', 'tech_head'].includes(currentRole) ? `
+                            <button onclick="openEditAgencyModal('${ag.id}')" title="Editar Agencia" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition ml-0.5">
+                                <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
+                            </button>
+                        ` : ''}
+                        ${currentRole === 'admin' ? `
+                            <button onclick="deleteAgency('${ag.id}')" title="Eliminar agencia" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        ` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+        

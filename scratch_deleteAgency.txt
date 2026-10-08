@@ -1,0 +1,70 @@
+function deleteAgency(id) {
+            if (!checkPermission(['admin'])) return;
+            const targetKey = String(id || '').trim();
+            const ag = agencies.find(a => {
+                if (!a) return false;
+                if (a.id && targetKey && String(a.id).trim() === targetKey) return true;
+                if (a.code && targetKey && String(a.code).trim() === targetKey) return true;
+                if (a.name && targetKey && String(a.name).trim().toLowerCase() === targetKey.toLowerCase()) return true;
+                return false;
+            });
+            if (!ag) {
+                showToast('No se encontró la agencia a eliminar.', 'warning');
+                return;
+            }
+
+            showConfirm(
+                '¿Eliminar Agencia?',
+                `¿Desea eliminar la agencia "${ag.name}"? Los equipos mantendrán su asignación.`,
+                () => {
+                    const targetId = ag.id;
+                    const targetCode = ag.code;
+                    const targetName = ag.name;
+
+                    // 1. Marcar como eliminada de forma persistente
+                    if (typeof markAgencyAsDeleted === 'function') {
+                        markAgencyAsDeleted(targetId, targetCode, targetName);
+                    }
+
+                    // 2. Registrar en auditoría de movimientos
+                    addMovement({
+                        id: newMovId(),
+                        date: getFormattedNow(),
+                        type: 'Eliminación Agencia',
+                        items: [],
+                        agency: targetName,
+                        receptorType: 'Catálogo Agencias',
+                        receptor: ag.owner || '-',
+                        owner: ag.owner || '-',
+                        user: getActiveUserName(),
+                        obs: `Eliminación de agencia del catálogo: ${targetName} (Cód: ${targetCode || targetId})`,
+                        signature: ''
+                    });
+
+                    // 3. Remover de la lista en memoria
+                    agencies = agencies.filter(a => {
+                        if (!a) return false;
+                        if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return false;
+                        
+                        // Exact match by ID is safest
+                        if (targetId && a.id && String(a.id).trim() === String(targetId).trim()) return false;
+                        
+                        // Fallbacks if ID was missing
+                        if (!targetId && targetCode && a.code && String(a.code).trim() === String(targetCode).trim()) return false;
+                        if (!targetId && !targetCode && targetName && a.name && String(a.name).trim().toLowerCase() === String(targetName).trim().toLowerCase()) return false;
+                        
+                        return true;
+                    });
+
+                    saveData();
+                    populateAgencyDropdowns();
+                    renderAgenciesTable();
+                    updateDashboardStats();
+                    showToast('Agencia eliminada del catálogo permanentemente.', 'success');
+                }
+            );
+        }
+
+
+        function openTypesModal() {
+            if (!['admin', 'tech_he

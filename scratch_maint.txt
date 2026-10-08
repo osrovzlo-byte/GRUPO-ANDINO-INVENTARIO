@@ -1,0 +1,20 @@
+Snapshot(window.doc(window.db, "lotto_data", "maintenance"), (docSnap) => {
+                updateCloudStatusUI('connected');
+                if (docSnap.exists()) {
+                    const cloudMaint = docSnap.data().list || [];
+                    const maintMap = new Map();
+                    cloudMaint.forEach(m => { if (m && m.id) maintMap.set(m.id, m); });
+                    maintenanceLog.forEach(m => {
+                        if (!m || !m.id) return;
+                        if (!maintMap.has(m.id)) {
+                            maintMap.set(m.id, m);
+                        }
+                    });
+                    maintenanceLog = Array.from(maintMap.values());
+                    lastSavedMaintenance = JSON.stringify(maintenanceLog);
+                    localStorage.setItem('lotto_maintenance_v2', lastSavedMaintenance);
+                    renderMaintenanceTable();
+
+                    if (localStorage.getItem('lotto_pending_maintenance_sync') === 'true' && window.db && !docSnap.metadata.hasPendingWrites && !_pendingPushing.maint) {
+                        _pendingPushing.maint = true;
+                        window.setDoc(window.doc(window.db, "lotto_data", "maintenance"), { list: m

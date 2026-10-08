@@ -1,0 +1,36 @@
+async function cloudSaveList(docName, localList, lastSavedJson, keyFn) {
+            if (typeof window.runTransaction !== 'function') {
+                return window.setDoc(window.doc(window.db, "lotto_data", docName), { list: JSON.parse(JSON.stringify(localList)) });
+            }
+            let prev = [];
+            try { prev = JSON.parse(lastSavedJson || '[]') || []; } catch (e) { prev = []; }
+            const prevMap = new Map();
+            prev.forEach(it => { if (it) prevMap.set(keyFn(it), stableStringify(it)); });
+            const curMap = new Map();
+            localList.forEach(it => { if (it) curMap.set(keyFn(it), it); });
+            const upserts = [];
+            curMap.forEach((it, k) => { if (prevMap.get(k) !== stableStringify(it)) upserts.push([k, it]); });
+            
+            const removed = [];
+            prevMap.forEach((_, k) => { if (!curMap.has(k)) removed.push(k); });
+            if (!upserts.length && !removed.length) {
+                console.log(`[CloudSync] No hay cambios reales en ${docName} para subir.`); showToast(`No hay cambios reales detectados para ${docName}`, "info");
+                return Promise.resolve(null);
+            }
+
+            console.log(`[CloudSync] Subiendo ${docName}: upserts=${upserts.length}, removed=${removed.length}`); showToast(`Subiendo ${docName} a la nube...`, "info");
+            
+            const ref = window.doc(window.db, "lotto_data", docName);
+            try {
+                await window.runTransaction(window.db, async (tx) => {
+                    const snap = await tx.get(ref);
+                    const map = new Map();
+                    if (snap.exists()) (snap.data().list || []).forEach(it => { if (it) map.set(keyFn(it), it); });
+                    removed.forEach(k => map.delete(k));
+                    upserts.forEach(([k, it]) => map.set(k, JSON.parse(JSON.stringify(it))));
+                    tx.set(ref, { list: Array.from(map.values()) }); showToast(`Cambios de ${docName} guardados en la nube con Ã©xito!`, "success");
+                });
+            } catch (err) {
+                console.warn(`[Sync] runTransaction failed for ${docName} (${err.message}), falling back to setDoc`);
+                return window.setDoc(ref, { list: JSON.parse(JSON.stringify(localList)) });
+            

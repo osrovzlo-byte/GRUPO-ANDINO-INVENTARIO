@@ -1,0 +1,85 @@
+function saveAgency(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editingAgencyId').value;
+
+            const code = document.getElementById('agencyCode').value.trim().toUpperCase();
+            const name = document.getElementById('agencyName').value.trim();
+            const zone = document.getElementById('agencyZone').value.trim();
+            const address = document.getElementById('agencyAddress').value.trim();
+            const owner = document.getElementById('agencyOwner').value.trim();
+            const phone = document.getElementById('agencyPhone').value.trim();
+            const supervisor = document.getElementById('agencySupervisor').value.trim();
+            const mapsUrl = document.getElementById('agencyMapsUrl').value.trim();
+
+            if (editingId && editingId !== "undefined") {
+                const agIndex = agencies.findIndex(a => {
+                    if (!a) return false;
+                    return (a.id && a.id === editingId) || (a.code && a.code === editingId) || (a.name && a.name === editingId);
+                });
+                if (agIndex >= 0) {
+                    // ELIMINAR CUALQUIER DUPLICADO DE ESTA AGENCIA ANTES DE ACTUALIZAR
+                    agencies = agencies.filter((a, idx) => {
+                        if (!a) return false;
+                        if (a.id !== editingId) return true;
+                        return idx === agIndex;
+                    });
+
+                    const dupAgEdit = agencies.find(a => a && a !== agencies[agIndex] && ((a.code || a.id || '').trim().toUpperCase() === code || (a.name || '').trim().toUpperCase() === name.toUpperCase()));
+                    if (dupAgEdit) {
+                        showToast(`¡Error! Otra agencia ya usa ese código o nombre (${dupAgEdit.name} / ${dupAgEdit.code}).`, 'error');
+                        return;
+                    }
+                    const oldName = agencies[agIndex].name;
+                    agencies[agIndex] = {
+                        id: agencies[agIndex].id || agencies[agIndex].code || code, // ensure ID is preserved or created
+                        ...agencies[agIndex],
+                        code,
+                        name,
+                        zone,
+                        address,
+                        owner,
+                        phone,
+                        supervisor,
+                        mapsUrl
+                    };
+
+                    if (oldName !== name) {
+                        inventory.forEach(item => {
+                            if (item.agency === oldName) {
+                                item.agency = name;
+                            }
+                        });
+                    }
+                    if (typeof movements !== 'undefined') {
+                        let movChanged = false;
+                        movements.forEach(mov => {
+                            if (mov.agency === oldName) {
+                                mov.agency = name;
+                                movChanged = true;
+                            
+                                    if (window.db) {
+                                        window.setDoc(window.doc(window.db, "lotto_movements", mov.id), mov).catch(e => console.error(e));
+                                    }
+                                }
+                        });
+                        if (movChanged && typeof persistMovementsSoon === 'function') {
+                            persistMovementsSoon();
+                        }
+                    }
+
+                    if (typeof unmarkAgencyAsDeleted === 'function') {
+                        unmarkAgencyAsDeleted(agencies[agIndex].id, code, name);
+                    }
+
+                    addMovement({
+                        id: newMovId(),
+                        date: getFormattedNow(),
+                        type: 'Edición Agencia',
+                        items: [],
+                        agency: name,
+                        receptorType: 'Catálogo Agencias',
+                        receptor: owner || supervisor || '-',
+                        owner: owner || '-',
+                        user: getActiveUserName(),
+                        obs: `Actualización de datos de agencia: ${name} (Cód: ${code}). Supervisor: ${supervisor || '-'}. Tel: ${phone || '-'}`,
+                        s

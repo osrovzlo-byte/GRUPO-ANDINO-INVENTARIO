@@ -1,0 +1,197 @@
+function openEditAgencyModal(id) {
+            if (!checkPermission(['admin', 'tech_head'])) return;
+            populateTypeDropdowns();
+            populateAgencyDropdowns();
+            const ag = agencies.find(a => a.id === id);
+            if (!ag) return;
+
+            document.getElementById('editingAgencyId').value = ag.id;
+            document.getElementById('agencyModalTitle').innerText = `Editar Agencia ${ag.code || ag.id}`;
+            
+            const codeInput = document.getElementById('agencyCode');
+            codeInput.value = ag.code || ag.id;
+            codeInput.disabled = false;
+
+            document.getElementById('agencyName').value = ag.name || '';
+            document.getElementById('agencyZone').value = ag.zone || '';
+            document.getElementById('agencyAddress').value = ag.address || '';
+            document.getElementById('agencyOwner').value = ag.owner || '';
+            document.getElementById('agencyPhone').value = ag.phone || '';
+            document.getElementById('agencySupervisor').value = ag.supervisor || '';
+            document.getElementById('agencyMapsUrl').value = ag.mapsUrl || '';
+
+            document.getElementById('agencyModal').classList.remove('hidden');
+        }
+
+
+        
+
+        function saveAgency(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editingAgencyId').value;
+
+            const code = document.getElementById('agencyCode').value.trim().toUpperCase();
+            const name = document.getElementById('agencyName').value.trim();
+            const zone = document.getElementById('agencyZone').value.trim();
+            const address = document.getElementById('agencyAddress').value.trim();
+            const owner = document.getElementById('agencyOwner').value.trim();
+            const phone = document.getElementById('agencyPhone').value.trim();
+            const supervisor = document.getElementById('agencySupervisor').value.trim();
+            const mapsUrl = document.getElementById('agencyMapsUrl').value.trim();
+
+            if (editingId) {
+                const agIndex = agencies.findIndex(a => a && a.id === editingId);
+                if (agIndex >= 0) {
+                    // ELIMINAR CUALQUIER DUPLICADO DE ESTA AGENCIA ANTES DE ACTUALIZAR
+                    agencies = agencies.filter((a, idx) => {
+                        if (!a) return false;
+                        if (a.id !== editingId) return true;
+                        return idx === agIndex;
+                    });
+
+                    const dupAgEdit = agencies.find(a => a && a.id !== editingId && ((a.code || a.id || '').trim().toUpperCase() === code || (a.name || '').trim().toUpperCase() === name.toUpperCase()));
+                    if (dupAgEdit) {
+                        showToast(`¡Error! Otra agencia ya usa ese código o nombre (${dupAgEdit.name} / ${dupAgEdit.code}).`, 'error');
+                        return;
+                    }
+                    const oldName = agencies[agIndex].name;
+                    agencies[agIndex] = {
+                        ...agencies[agIndex],
+                        code,
+                        name,
+                        zone,
+                        address,
+                        owner,
+                        phone,
+                        supervisor,
+                        mapsUrl
+                    };
+
+                    if (oldName !== name) {
+                        inventory.forEach(item => {
+                            if (item.agency === oldName) {
+                                item.agency = name;
+                            }
+                        });
+                    }
+                    if (typeof movements !== 'undefined') {
+                        let movChanged = false;
+                        movements.forEach(mov => {
+                            if (mov.agency === oldName) {
+                                mov.agency = name;
+                                movChanged = true;
+                            
+                                    if (window.db) {
+                                        window.setDoc(window.doc(window.db, "lotto_movements", mov.id), mov).catch(e => console.error(e));
+                                    }
+                                }
+                        });
+                        if (movChanged && typeof persistMovementsSoon === 'function') {
+                            persistMovementsSoon();
+                        }
+                    }
+
+                    if (typeof unmarkAgencyAsDeleted === 'function') {
+                        unmarkAgencyAsDeleted(agencies[agIndex].id, code, name);
+                    }
+
+                    addMovement({
+                        id: newMovId(),
+                        date: getFormattedNow(),
+                        type: 'Edición Agencia',
+                        items: [],
+                        agency: name,
+                        receptorType: 'Catálogo Agencias',
+                        receptor: owner || supervisor || '-',
+                        owner: owner || '-',
+                        user: getActiveUserName(),
+                        obs: `Actualización de datos de agencia: ${name} (Cód: ${code}). Supervisor: ${supervisor || '-'}. Tel: ${phone || '-'}`,
+                        signature: ''
+                    });
+
+                    showToast('¡Información de la agencia actualizada con éxito!', 'success');
+                }
+            } else {
+                const dupAg = agencies.find(a => a && ((a.code || a.id || '').trim().toUpperCase() === code || (a.name || '').trim().toUpperCase() === name.toUpperCase()));
+                if (dupAg) {
+                    showToast(`¡Error! Ya existe una agencia con ese código o nombre (${dupAg.name} / ${dupAg.code}).`, 'error');
+                    return;
+                }
+                const newAgency = {
+                    id: code,
+                    code,
+                    name,
+                    zone,
+                    address,
+                    owner,
+                    phone,
+                    supervisor,
+                    mapsUrl
+                };
+
+                if (typeof unmarkAgencyAsDeleted === 'function') {
+                    unmarkAgencyAsDeleted(newAgency.id, newAgency.code, newAgency.name);
+                }
+
+                agencies = agencies.filter(a => {
+                    if (!a) return false;
+                    const aCode = (a.code || a.id || '').trim().toUpperCase();
+                    const aName = (a.name || '').trim().toUpperCase();
+                    if (aCode === code || aName === name.toUpperCase()) return false;
+                    return true;
+                });
+
+                agencies.push(newAgency);
+
+                addMovement({
+                    id: newMovId(),
+                    date: getFormattedNow(),
+                    type: 'Nueva Agencia',
+                    items: [],
+                    agency: name,
+                    receptorType: 'Catálogo Agencias',
+                    receptor: owner || supervisor || '-',
+                    owner: owner || '-',
+                    user: getActiveUserName(),
+                    obs: `Registro de nueva agencia: ${name} (Cód: ${code}). Zona: ${zone || '-'}. Dirección: ${address || '-'}`,
+                    signature: ''
+                });
+
+                showToast('¡Nueva Agencia POS registrada exitosamente!', 'success');
+            }
+
+            saveData();
+            populateAgencyDropdowns();
+            renderAgenciesTable();
+            renderInventoryTable();
+            updateDashboardStats();
+            closeModal('agencyModal');
+        }
+
+
+                function shareAgencyWhatsApp(id) {
+            const ag = agencies.find(a => a.id === id);
+            if (!ag) return;
+
+            const assignedEquip = inventory.filter(i => i.agency === ag.name && isAssigned(i.status));
+            let equipSummary = assignedEquip.length > 0 
+                ? assignedEquip.map(e => `• ${e.type} (${e.brand} ${e.model} - S/N: ${e.serial})`).join('\n')
+                : '• Ningún equipo asignado actualmente.';
+
+            let message = `*FICHA DE AGENCIA POS - GRUPO ANDINO*\n\n`;
+            message += `🏢 *Nombre:* ${ag.name}\n`;
+            message += `🏷️ *Código:* ${ag.code || ag.id}\n`;
+            message += `👤 *Dueño / Encargado:* ${ag.owner}\n`;
+            message += `📱 *Teléfono:* ${ag.phone || 'No registrado'}\n`;
+            message += `📍 *Ubicación / Zona:* ${ag.zone || 'No registrada'}\n`;
+            if (ag.address) message += `📝 *Dirección:* ${ag.address}\n`;
+            if (ag.obs) message += `ℹ️ *Observaciones:* ${ag.obs}\n`;
+            message += `\n📦 *Equipos Instalados (${assignedEquip.length}):*\n${equipSummary}\n`;
+            message += `\n_Reporte generado automáticamente por Sistema de Inventario Grupo Andino_`;
+
+            const encodedMsg = encodeURIComponent(message);
+            window.open(`https://api.whatsapp.com/send?text=${encodedMsg}`, '_blank');
+        }
+
+
+                

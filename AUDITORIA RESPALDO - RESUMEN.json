@@ -1,0 +1,25 @@
+{
+  "source": "RESPALDO JSON.json",
+  "sha256": "9186e8ca5478fad11a07540d68755556d1f487e361ec99b9ef746a80ade1d948",
+  "counts": {
+    "inventory": 979,
+    "agencies": 681,
+    "movements": 1327,
+    "maintenanceLog": 56,
+    "categories": 26
+  },
+  "duplicateAgencyIdGroups": 13,
+  "duplicateAgencyCodeGroups": 6,
+  "duplicateSerialGroups": 10,
+  "assignedWithoutCatalogueAgency": 8,
+  "activeMaintenanceMissingEquipmentId": 7,
+  "activeMaintenanceStatusConflicts": 2,
+  "maintenanceWithoutActiveLog": 11,
+  "statusDiscrepancies": 23,
+  "estimatedFirestoreDocumentBytes": {
+    "inventory": 249906,
+    "agencies": 133399,
+    "maintenanceLog": 12210,
+    "largestMovement": 54342
+  }
+}

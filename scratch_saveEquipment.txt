@@ -1,0 +1,56 @@
+function saveEquipment(e) {
+            e.preventDefault();
+            const editingId = document.getElementById('editingEquipmentId').value;
+            const type = document.getElementById('addType').value;
+            const serial = document.getElementById('addSerial').value.trim().toUpperCase();
+            const brand = document.getElementById('addBrand').value.trim();
+            const model = document.getElementById('addModel').value.trim();
+            const color = document.getElementById('addColor').value.trim();
+            const isComputing = isComputingDevice(type);
+            const processor = isComputing ? (document.getElementById('addProcessor')?.value.trim() || '') : '';
+            const ram = isComputing ? (document.getElementById('addRam')?.value.trim() || '') : '';
+            const disk = isComputing ? (document.getElementById('addDisk')?.value.trim() || '') : '';
+            const obs = document.getElementById('addObs').value.trim();
+
+            if (editingId) {
+                const itemIndex = inventory.findIndex(i => i.id === editingId);
+                if (itemIndex >= 0) {
+                    const item = inventory[itemIndex];
+                    const oldSerial = item.serial;
+
+                    if (normSerialKey(oldSerial) !== normSerialKey(serial) && inventory.some(i => i.id !== editingId && normSerialKey(i.serial) === normSerialKey(serial))) {
+                        showToast('¡Error! Ya existe otro equipo registrado con ese número de serial.', 'error');
+                        return;
+                    }
+
+                    inventory[itemIndex] = {
+                        ...item,
+                        type,
+                        serial,
+                        brand,
+                        model,
+                        color,
+                        processor,
+                        ram,
+                        disk,
+                        obs
+                    };
+
+                    if (oldSerial !== serial || item.type !== type) {
+                        maintenanceLog.forEach(m => {
+                            if (m.equipId === editingId) {
+                                m.equipType = type;
+                                m.equipSerial = serial;
+                            }
+                        });
+                    }
+
+                    if (typeof unmarkEquipmentAsDeleted === 'function') {
+                        unmarkEquipmentAsDeleted(serial, editingId);
+                    }
+
+                    addMovement({
+                        id: newMovId(),
+                        date: getFormattedNow(),
+                        type: 'Edición de Equipo',
+                        items: [{ type: type, brandModel: `${brand} ${model}`, serial: serial, color: color, ram: ram || '', disk: disk || '', processor: processor ||

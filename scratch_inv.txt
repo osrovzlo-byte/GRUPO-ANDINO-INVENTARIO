@@ -1,0 +1,14 @@
+let localOnlyItemsFound = false;
+                    inventory.forEach(localItem => {
+                        if (!localItem || isEquipmentDeleted(localItem.serial, localItem.id)) return;
+                        const key = (localItem.serial && localItem.serial.trim()) ? localItem.serial.trim().toUpperCase() : ('ID_' + localItem.id);
+                        if (!invMap.has(key)) {
+                            invMap.set(key, localItem);
+                            localOnlyItemsFound = true;
+                        }
+                    });
+                    if (localOnlyItemsFound && !localStorage.getItem('lotto_pending_inventory_sync')) {
+                        localStorage.setItem('lotto_pending_inventory_sync', 'true');
+                    }
+
+                    inventory = Array.fro

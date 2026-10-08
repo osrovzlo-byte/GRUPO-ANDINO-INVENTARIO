@@ -1,0 +1,256 @@
+{
+  "originalCounts": {
+    "inventory": 979,
+    "agencies": 681,
+    "movements": 1327
+  },
+  "discardedInventory": [],
+  "discardedAgencies": [],
+  "sanitization": {
+    "removedInv": 10,
+    "fixedAg": 37
+  },
+  "finalCounts": {
+    "inventory": 969,
+    "agencies": 681,
+    "movements": 1327
+  },
+  "automaticAgencyChanges": [
+    {
+      "name": "AG La Esperanza",
+      "oldId": "La",
+      "newId": "La-2",
+      "oldCode": "La",
+      "newCode": "La-2"
+    },
+    {
+      "name": "Departamento T cnico",
+      "oldId": "AG-103",
+      "newId": "AG-103-2",
+      "oldCode": "AG-103",
+      "newCode": "AG-103-2"
+    },
+    {
+      "name": "AG LA ESQUINA DARGGI",
+      "oldId": "LA",
+      "newId": "LA-3",
+      "oldCode": "LA",
+      "newCode": "LA-3"
+    },
+    {
+      "name": "Loter as El Terminal",
+      "oldId": "AG-114",
+      "newId": "AG-114-2",
+      "oldCode": "AG-114",
+      "newCode": "AG-114-2"
+    },
+    {
+      "name": "AG LA DIOSA DE LA FORTUNA",
+      "oldId": "LA",
+      "newId": "LA-4",
+      "oldCode": "LA",
+      "newCode": "LA-4"
+    },
+    {
+      "name": "AG LA MONTA ITA  COPA DE ORO",
+      "oldId": "LA",
+      "newId": "LA-5",
+      "oldCode": "LA",
+      "newCode": "LA-5"
+    },
+    {
+      "name": "Ag Jose Cordero",
+      "oldId": "AG-215",
+      "newId": "AG-215-2",
+      "oldCode": "2776",
+      "newCode": "2776"
+    },
+    {
+      "name": "AG LA LAJA",
+      "oldId": "AG-325",
+      "newId": "AG-325-2",
+      "oldCode": "4594",
+      "newCode": "4594"
+    },
+    {
+      "name": "PATI O",
+      "oldId": "AG-369",
+      "newId": "AG-369-2",
+      "oldCode": "AG-369",
+      "newCode": "AG-369-2"
+    },
+    {
+      "name": "6541",
+      "oldId": "AG-373",
+      "newId": "AG-373-2",
+      "oldCode": "AG-373",
+      "newCode": "AG-373"
+    },
+    {
+      "name": "4939",
+      "oldId": "AG-686",
+      "newId": "AG-686-2",
+      "oldCode": "AG-686",
+      "newCode": "AG-686"
+    },
+    {
+      "name": "4117",
+      "oldId": "AG-181",
+      "newId": "AG-181-2",
+      "oldCode": "AG-181",
+      "newCode": "AG-181"
+    },
+    {
+      "name": "AG NANY",
+      "oldId": "4994",
+      "newId": "4994-2",
+      "oldCode": "4994",
+      "newCode": "4994-2"
+    },
+    {
+      "name": "Ag Consuelo",
+      "oldId": "AG-557",
+      "newId": "AG-557-2",
+      "oldCode": "5936",
+      "newCode": "5936"
+    },
+    {
+      "name": "PRUEBA ORLANDO",
+      "oldId": "PRUEBA",
+      "newId": "PRUEBA-2",
+      "oldCode": "PRUEBA",
+      "newCode": "PRUEBA-2"
+    },
+    {
+      "name": "Ag Fruteria Santa Elena",
+      "oldId": "AG-681",
+      "newId": "AG-681-2",
+      "oldCode": "4934",
+      "newCode": "4934"
+    }
+  ],
+  "removedDuplicates": [
+    {
+      "id": "1787175241847",
+      "serial": "LR 03N5EC",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "1787175606517",
+      "serial": "LR 03AMJG",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "1788555004468",
+      "serial": "LR 03WCAJ",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "1789243119994",
+      "serial": "LR 03QRZU",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-1568_466",
+      "serial": "LR03PQ8C",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-6505_711",
+      "serial": "LR03PVN8",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-9524_494",
+      "serial": "LR03PPN3",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-9173_868",
+      "serial": "LR03PPZ6",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-9181_628",
+      "serial": "LR03PS0P",
+      "status": "En Depósito",
+      "agency": ""
+    },
+    {
+      "id": "REC-2418_515",
+      "serial": "LR03PVZJ",
+      "status": "En Depósito",
+      "agency": ""
+    }
+  ],
+  "automaticSerialWinners": [
+    {
+      "id": "1787174965411",
+      "serial": "LR 03PVZJ",
+      "status": "Asignado",
+      "agency": "AG 4964"
+    },
+    {
+      "id": "1787175047527",
+      "serial": "LR 03PQ8C",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1791215773641",
+      "serial": "LR03N5EC",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1787175311554",
+      "serial": "LR 03PPN3",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1787175455571",
+      "serial": "LR 03PVN8",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1787175527310",
+      "serial": "LR 03PS0P",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1791210714840",
+      "serial": "LR03AMJG",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1787175649681",
+      "serial": "LR 03PPZ6",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1790975704573",
+      "serial": "LR03WCAJ",
+      "status": "En Depósito",
+      "agency": "-"
+    },
+    {
+      "id": "1789243119994",
+      "serial": "LR03QRZU",
+      "status": "Asignado",
+      "agency": "AG YAVA"
+    }
+  ]
+}

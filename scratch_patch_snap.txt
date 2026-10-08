@@ -1,0 +1,16 @@
+let localOnlyAgenciesFound = false;
+                        agencies.forEach(a => {
+                            if (!a || !a.name) return;
+                            if (typeof isAgencyDeleted === 'function' && isAgencyDeleted(a.id, a.code, a.name)) return;
+                            const key = agKey(a);
+                            if (!agMap.has(key)) {
+                                agMap.set(key, a);
+                                localOnlyAgenciesFound = true;
+                            }
+                        });
+
+                        agencies = Array.from(agMap.values());
+
+                        // Auto-recuperación de agencias desde movimientos si falta alguna
+                        if (typeof autoRecoverMissingAgenciesFromMovements === 'function') {
+                   

@@ -1,0 +1,837 @@
+{
+  "sourceSha256": "9186e8ca5478fad11a07540d68755556d1f487e361ec99b9ef746a80ade1d948",
+  "correctedSha256": "939547e7b891f721260e66b7b00544207b5693c2c5ccf1df5293d5b42bed9733",
+  "originalCounts": {
+    "inventory": 979,
+    "agencies": 681,
+    "movements": 1327,
+    "maintenanceLog": 56
+  },
+  "correctedCounts": {
+    "inventory": 962,
+    "agencies": 670,
+    "movements": 1281,
+    "maintenanceLog": 67
+  },
+  "changes": [
+    {
+      "action": "omit_test_equipment",
+      "id": "REC-1319_96",
+      "serial": "PRUEBA"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "REC-6879_985",
+      "serial": "12345"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "1789762685496",
+      "serial": "32346"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "REC-6516_332",
+      "serial": "54454"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "1790890552924",
+      "serial": "PRUEBABABSDA"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "1789162863047",
+      "serial": "1234567890 ORLANDO"
+    },
+    {
+      "action": "omit_test_equipment",
+      "id": "REC-5837_309",
+      "serial": "1234567890"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-5837"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-1319"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6879"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-8082"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-5511"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6377"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-5140"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-8675"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6849"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9818"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-1117"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-2270"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6547"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-8416"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6006"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-3184"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-1465"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9203"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6153"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-2691"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-1769"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-2988"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9928"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-4811"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-2871"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-4699"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9048"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6222"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-7171"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6801"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-5001"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-1509"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-2413"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6234"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6892"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-7016"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-7659"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6745"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9513"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9647"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-3762"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9128"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-9560"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-7863"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-8594"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-4655"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-4094"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6516"
+    },
+    {
+      "action": "omit_test_movement",
+      "id": "MOV-6563"
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-103",
+      "retained": "Departamento Técnico",
+      "omitted": [
+        "Departamento T cnico"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "LA",
+      "retained": "AG LA MONTAÑITA  COPA DE ORO",
+      "omitted": [
+        "AG LA MONTA ITA  COPA DE ORO"
+      ]
+    },
+    {
+      "action": "separate_agency_identity",
+      "name": "AG La Esperanza",
+      "oldId": "La",
+      "newId": "AG-DEP-A21AE7DD1CAD",
+      "newCode": "AG-DEP-A21AE7DD1CAD"
+    },
+    {
+      "action": "separate_agency_identity",
+      "name": "AG LA ESQUINA DARGGI",
+      "oldId": "LA",
+      "newId": "AG-DEP-CAF37EA45038",
+      "newCode": "AG-DEP-CAF37EA45038"
+    },
+    {
+      "action": "separate_agency_identity",
+      "name": "AG LA DIOSA DE LA FORTUNA",
+      "oldId": "LA",
+      "newId": "AG-DEP-3EE964B5FC02",
+      "newCode": "AG-DEP-3EE964B5FC02"
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-114",
+      "retained": "Loterías El Terminal",
+      "omitted": [
+        "Loter as El Terminal"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-215",
+      "retained": "Ag Jose Cordero",
+      "omitted": [
+        "2776"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-325",
+      "retained": "AG LA LAJA",
+      "omitted": [
+        "4594"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-369",
+      "retained": "PATIÑO",
+      "omitted": [
+        "PATI O"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-373",
+      "retained": "Ag Wilson",
+      "omitted": [
+        "6541"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-686",
+      "retained": "4939",
+      "omitted": [
+        "AG 4939"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-181",
+      "retained": "AG. Yolanda",
+      "omitted": [
+        "4117"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "4994",
+      "retained": "AG NANY",
+      "omitted": [
+        "AG DANY"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-557",
+      "retained": "Ag Consuelo",
+      "omitted": [
+        "5936"
+      ]
+    },
+    {
+      "action": "merge_agency",
+      "id": "AG-681",
+      "retained": "Ag Fruteria Santa Elena",
+      "omitted": [
+        "4934"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PVZJ",
+      "retainedId": "1787174965411",
+      "omittedIds": [
+        "REC-2418_515"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PQ8C",
+      "retainedId": "1787175047527",
+      "omittedIds": [
+        "REC-1568_466"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR03N5EC",
+      "retainedId": "1791215773641",
+      "omittedIds": [
+        "1787175241847"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PPN3",
+      "retainedId": "1787175311554",
+      "omittedIds": [
+        "REC-9524_494"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PVN8",
+      "retainedId": "1787175455571",
+      "omittedIds": [
+        "REC-6505_711"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PS0P",
+      "retainedId": "1787175527310",
+      "omittedIds": [
+        "REC-9181_628"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR03AMJG",
+      "retainedId": "1791210714840",
+      "omittedIds": [
+        "1787175606517"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR 03PPZ6",
+      "retainedId": "1787175649681",
+      "omittedIds": [
+        "REC-9173_868"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR03WCAJ",
+      "retainedId": "1790975704573",
+      "omittedIds": [
+        "1788555004468"
+      ]
+    },
+    {
+      "action": "merge_equipment",
+      "serial": "LR03QRZU",
+      "retainedId": "1789243119994",
+      "omittedIds": [
+        "1789243119994"
+      ]
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "3HBL662",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVAJNA1B0"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9776",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-5425"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "CN0FPC2YCH20004JC4HSA04",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-MUWQFKHYVH"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "DELL 9497",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-MUVNAGQFPB"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "R9 0S9JZF",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-9219"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "022504230903613",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVECPLJWC"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "022504230903652",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUWUEKAU2W"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "WCNXA0C3U3SC2J",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-MUVEV8HYQ3"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "2081460",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-MUX3L0DSJ4"
+    },
+    {
+      "action": "recover_assigned_agency",
+      "name": "7992",
+      "id": "AG-DEP-F6D6279D84BE",
+      "sourceSerial": "9644"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9845",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUYA0CHCK0"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9847",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUYA0CHCK0"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "LR03TX3E",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-2076"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "LR03VSYM",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-4445"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9864",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-2192"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9876",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-7648"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "B00012",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-7266"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "11S45N0245Z1ZX1A6CL2TY",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-7345"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "CN0HN6624789079KA1VS",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVAJNA1B0"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "8SSA10J20138L1CZ73W0440",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-2848"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "11SA5N0245Z1ZX1A6CKTW",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-7339"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "CNU41694R3",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUY9RGNVMF"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9901",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-6546"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "0013512",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVGPOFB97"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "43242401300455",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-8991"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9904",
+      "old": "Asignado",
+      "new": "En Depósito",
+      "sourceMovement": "MOV-7651"
+    },
+    {
+      "action": "recover_assigned_agency",
+      "name": "AG 4991",
+      "id": "AG-DEP-CF1E1A3CC359",
+      "sourceSerial": "11245N0319Z1ZLZF48928A"
+    },
+    {
+      "action": "recover_assigned_agency",
+      "name": "AG 4992",
+      "id": "AG-DEP-C774DCD37174",
+      "sourceSerial": "0GJJYR"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9909",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVRJ4L9NH"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "16PR2G2",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUWW725E14"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9931",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVRJ4L9NH"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "8SSD50L21284KT204E1N",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVRJ4L9NH"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "CNC809RV7Y",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVRJ4L9NH"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "9946",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVC6W70FO"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "MY19H9LQ522404H",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVGPOFB97"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "2UA4180NX0",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUVGPOFB97"
+    },
+    {
+      "action": "reconcile_recorded_state",
+      "serial": "WJFXC0A1RIXK6N",
+      "old": "En Depósito",
+      "new": "Asignado",
+      "sourceMovement": "MOV-MUY9RGNVMF"
+    },
+    {
+      "action": "close_stale_maintenance",
+      "id": "MNT-1006",
+      "sourceMovement": "MOV-3476"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-9840",
+      "old": "1789756321593",
+      "new": "REC-5301_948"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-6767",
+      "old": "1789756628022",
+      "new": "REC-6959_139"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-5592",
+      "old": "1789759553015",
+      "new": "REC-1612_359"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-9635",
+      "old": "1789759947206",
+      "new": "REC-9401_534"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-7418",
+      "old": "1789762010329",
+      "new": "REC-6162_285"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-7412",
+      "old": "1790344364198",
+      "new": "REC-5405_356"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-4897",
+      "old": "1790351550348",
+      "new": "REC-1995_208"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-1171",
+      "old": "1790354389872",
+      "new": "REC-5357_8"
+    },
+    {
+      "action": "repair_maintenance_link",
+      "id": "MNT-6079",
+      "old": "REC-1568_466",
+      "new": "1787175047527"
+    },
+    {
+      "action": "close_stale_maintenance",
+      "id": "MNT-6079",
+      "sourceMovement": "MOV-9927"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-85FFFA9F17D9",
+      "serial": "CFMKVF2",
+      "sourceMovement": "MOV-1789"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-B4397D6ED8E8",
+      "serial": "8PQGQ72",
+      "sourceMovement": "MOV-4123"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-95CB566DAE09",
+      "serial": "4HCGQ72",
+      "sourceMovement": null
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-E4C54BC68BF7",
+      "serial": "JAL400212216400951",
+      "sourceMovement": "MOV-5792"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-45802023FC49",
+      "serial": "0972110002405F10000620180",
+      "sourceMovement": "MOV-3894"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-382C03434980",
+      "serial": "9834",
+      "sourceMovement": "MOV-6162"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-D2A46C11C6B6",
+      "serial": "BNTRT32",
+      "sourceMovement": "MOV-2108"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-E68467DCF176",
+      "serial": "64Z5Q32",
+      "sourceMovement": "MOV-6531"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-75CAD32B27F1",
+      "serial": "PC0HY70E",
+      "sourceMovement": "MOV-2902"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-1DACAB34D32F",
+      "serial": "BR1KG72",
+      "sourceMovement": "MOV-3144"
+    },
+    {
+      "action": "recover_maintenance_link",
+      "id": "MNT-DEP-2184B99E2550",
+      "serial": "FSDZ6H2",
+      "sourceMovement": "MOV-3263"
+    }
+  ],
+  "limitations": [
+    "Estados conciliados con historial registrado; sin inspección física.",
+    "Firmas históricas y tipos de movimiento no registrados se conservan.",
+    "La importación no borra otros movimientos existentes en la nube."
+  ]
+}
