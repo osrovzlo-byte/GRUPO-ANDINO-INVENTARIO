@@ -1,9 +1,6 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const LZString=require('./lz-string.min.js');
 const source=fs.readFileSync('index.html','utf8');
-const library=source.match(/<script id="localHistoryCompression">([\s\S]*?)<\/script>/);
-assert(library,'Compression must travel inside index.html');
-const libraryContext=vm.createContext({});vm.runInContext(library[1],libraryContext);
-const LZString=libraryContext.LZString;
 function fn(name){const m=source.match(new RegExp('function '+name+'\\([^]*?\\n        }'));assert(m,name);return m[0];}
 const data=JSON.parse(fs.readFileSync('RESPALDO JSON - CORREGIDO.json','utf8'));
 const storage=new Map();let errors=0;
