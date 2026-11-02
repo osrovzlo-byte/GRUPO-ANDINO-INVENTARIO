@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Herramienta Oficial: Fusión y Consolidación de Respaldos - Grupo Andino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 p-4 sm:p-8">
+
+    <div class="max-w-4xl mx-auto space-y-6">
+
+        <!-- Header -->
+        <div class="bg-slate-900 text-white p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl">
+                    <i class="fa-solid fa-code-merge"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Consolidador Oficial de Respaldos Multi-Equipo</h1>
+                    <p class="text-xs text-slate-400">Grupo Andino - Unificación de registros de 2 o 3 computadores sin pérdida de datos</p>
+                </div>
+            </div>
+            <span class="px-3 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-semibold rounded-full">
+                100% Offline y Seguro
+            </span>
+        </div>
+
+        <!-- Instrucciones Rápidas -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 text-xs text-blue-900 space-y-2">
+            <h3 class="font-bold flex items-center gap-1.5 text-sm text-blue-950">
+                <i class="fa-solid fa-circle-info text-blue-600"></i>
+                <span>¿Para qué sirve esta herramienta?</span>
+            </h3>
+            <p>
+                Si sus 3 computadores trabajaron durante el día pero perdieron la conexión con la nube, <strong>cada computador guardó su trabajo de hoy en su propio navegador</strong>. Con esta herramienta, usted une los archivos de los 3 equipos en un único archivo consolidado maestro que contiene <strong>todos los movimientos, todas las nuevas agencias y todos los equipos actualizados</strong>.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 font-semibold text-slate-700">
+                <div class="bg-white p-2.5 rounded-lg border border-blue-200 flex items-start gap-2">
+                    <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+                    <span>En cada computador, vaya a <strong>Respaldos</strong> y haga clic en <strong>Exportar Respaldo (.JSON)</strong>.</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-lg border border-blue-200 flex items-start gap-2">
+                    <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+                    <span>Cargue los 2 o 3 archivos JSON aquí abajo simultáneamente.</span>
+                </div>
+                <div class="bg-white p-2.5 rounded-lg border border-blue-200 flex items-start gap-2">
+                    <span class="w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
+                    <span>Descargue el <strong>Respaldo Maestro</strong> y restáurelo en el sistema. ¡Listo!</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-indigo-500 p-8 text-center transition cursor-pointer shadow-sm" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" accept=".json" multiple class="hidden" onchange="handleFiles(this.files)">
+            <i class="fa-solid fa-cloud-arrow-up text-4xl text-indigo-500 mb-3"></i>
+            <h3 class="font-bold text-sm text-slate-800">Haga clic aquí o arrastre los archivos JSON de los 3 computadores</h3>
+            <p class="text-xs text-slate-500 mt-1">Puede seleccionar los 3 archivos juntos a la vez (manteniendo presionada la tecla Ctrl)</p>
+        </div>
+
+        <!-- Archivos Cargados -->
+        <div id="loadedFilesContainer" class="hidden space-y-3">
+            <h3 class="font-bold text-xs uppercase tracking-wider text-slate-500">Archivos Cargados (<span id="fileCount">0</span>)</h3>
+            <div id="filesList" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+        </div>
+
+        <!-- Resultados de la Consolidación -->
+        <div id="resultsCard" class="hidden bg-white rounded-2xl p-6 border border-slate-200 shadow-md space-y-5">
+            <div class="border-b pb-3 flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-check-circle text-emerald-500"></i>
+                        <span>Resumen de la Fusión Inteligente</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Los datos de todos los computadores fueron combinados cronológicamente sin duplicados</p>
+                </div>
+                <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 font-bold text-xs rounded-full border border-emerald-200">
+                    Consolidación Exitosa
+                </span>
+            </div>
+
+            <!-- Métricas Consolidadas -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] text-slate-500 font-medium">Equipos Totales</p>
+                    <p id="totalEquip" class="text-2xl font-black text-slate-800 mt-0.5">0</p>
+                    <p id="subEquip" class="text-[10px] text-slate-400 mt-0.5">-</p>
+                </div>
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] text-slate-500 font-medium">Agencias Totales</p>
+                    <p id="totalAgencies" class="text-2xl font-black text-indigo-700 mt-0.5">0</p>
+                    <p id="subAgencies" class="text-[10px] text-slate-400 mt-0.5">-</p>
+                </div>
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] text-slate-500 font-medium">Movimientos Totales</p>
+                    <p id="totalMovs" class="text-2xl font-black text-emerald-700 mt-0.5">0</p>
+                    <p id="subMovs" class="text-[10px] text-slate-400 mt-0.5">-</p>
+                </div>
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-center">
+                    <p class="text-[11px] text-slate-500 font-medium">Mantenimientos</p>
+                    <p id="totalMaint" class="text-2xl font-black text-amber-700 mt-0.5">0</p>
+                    <p class="text-[10px] text-slate-400 mt-0.5">Historial técnico</p>
+                </div>
+            </div>
+
+            <!-- Botones de Descarga -->
+            <div class="pt-3 border-t flex flex-col sm:flex-row items-center gap-3">
+                <button onclick="downloadMasterJSON()" class="w-full sm:w-auto flex-1 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-download text-sm"></i>
+                    <span>Descargar Respaldo Maestro Consolidado (.JSON)</span>
+                </button>
+                <button onclick="downloadMasterExcel()" class="w-full sm:w-auto py-3 px-4 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl shadow transition flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                    <span>Exportar Vista Previa Excel (.xlsx)</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let consolidatedData = null;
+        let parsedFiles = [];
+
+        // Drag and drop events
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.add('border-indigo-600', 'bg-indigo-50/50'); });
+        });
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.remove('border-indigo-600', 'bg-indigo-50/50'); });
+        });
+        dropZone.addEventListener('drop', (e) => {
+            if (e.dataTransfer.files) handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            const arr = Array.from(files).filter(f => f.name.endsWith('.json'));
+            if (arr.length === 0) {
+                alert('Por favor seleccione archivos en formato .JSON');
+                return;
+            }
+
+            parsedFiles = [];
+            const promises = arr.map(file => {
+                return new Promise((resolve, reject) => {
+                    const r = new FileReader();
+                    r.onload = (e) => {
+                        try {
+                            const data = JSON.parse(e.target.result);
+                            resolve({ name: file.name, size: file.size, data });
+                        } catch (err) {
+                            reject(`Error al leer archivo ${file.name}`);
+                        }
+                    };
+                    r.onerror = () => reject(`Error de lectura en ${file.name}`);
+                    r.readAsText(file);
+                });
+            });
+
+            Promise.all(promises).then(resList => {
+                parsedFiles = resList;
+                renderFileList();
+                processConsolidation();
+            }).catch(err => {
+                alert(err);
+            });
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('loadedFilesContainer');
+            const list = document.getElementById('filesList');
+            const count = document.getElementById('fileCount');
+
+            container.classList.remove('hidden');
+            count.innerText = parsedFiles.length;
+            list.innerHTML = '';
+
+            parsedFiles.forEach((f, idx) => {
+                const invCount = Array.isArray(f.data.inventory) ? f.data.inventory.length : 0;
+                const agCount = Array.isArray(f.data.agencies) ? f.data.agencies.length : 0;
+                const movCount = Array.isArray(f.data.movements) ? f.data.movements.length : 0;
+
+                list.innerHTML += `
+                    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-1.5">
+                        <div class="flex items-center space-x-2 text-indigo-700 font-bold text-xs">
+                            <i class="fa-solid fa-desktop"></i>
+                            <span class="truncate">${f.name}</span>
+                        </div>
+                        <div class="text-[11px] text-slate-500 space-y-0.5">
+                            <p>• Equipos: <strong>${invCount}</strong></p>
+                            <p>• Agencias: <strong>${agCount}</strong></p>
+                            <p>• Movimientos: <strong>${movCount}</strong></p>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function processConsolidation() {
+            const movMap = new Map();
+            const agMap = new Map();
+            const maintMap = new Map();
+            const invMap = new Map();
+
+            parsedFiles.forEach(f => {
+                const d = f.data;
+                if (!d) return;
+
+                // 1. Movimientos
+                if (Array.isArray(d.movements)) {
+                    d.movements.forEach(m => {
+                        if (m && m.id) movMap.set(m.id, m);
+                    });
+                }
+
+                // 2. Agencias
+                if (Array.isArray(d.agencies)) {
+                    d.agencies.forEach(a => {
+                        if (!a || !a.name) return;
+                        const key = a.name.trim().toLowerCase();
+                        if (!agMap.has(key)) {
+                            agMap.set(key, a);
+                        } else {
+                            const cur = agMap.get(key);
+                            if (!cur.phone && a.phone) cur.phone = a.phone;
+                            if (!cur.address && a.address) cur.address = a.address;
+                            if (!cur.owner && a.owner) cur.owner = a.owner;
+                        }
+                    });
+                }
+
+                // 3. Mantenimiento
+                if (Array.isArray(d.maintenanceLog)) {
+                    d.maintenanceLog.forEach(m => {
+                        if (m && m.id) maintMap.set(m.id, m);
+                    });
+                }
+
+                // 4. Inventario
+                if (Array.isArray(d.inventory)) {
+                    d.inventory.forEach(eq => {
+                        if (!eq) return;
+                        const key = (eq.serial && eq.serial.trim()) ? eq.serial.trim().toUpperCase() : ('ID_' + eq.id);
+                        if (!invMap.has(key)) {
+                            invMap.set(key, eq);
+                        }
+                    });
+                }
+            });
+
+            // Ordenar movimientos cronológicamente
+            const allMovements = Array.from(movMap.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+            const allAgencies = Array.from(agMap.values());
+            const allMaintenance = Array.from(maintMap.values());
+            const allInventory = Array.from(invMap.values());
+
+            // Resolver el estado más reciente de cada equipo según su último movimiento
+            const lastMovBySerial = new Map();
+            allMovements.forEach(mov => {
+                if (!mov || !Array.isArray(mov.items)) return;
+                mov.items.forEach(it => {
+                    if (it && it.serial && it.serial !== '-') {
+                        lastMovBySerial.set(it.serial.trim().toUpperCase(), mov);
+                    }
+                });
+            });
+
+            allInventory.forEach(eq => {
+                if (!eq || !eq.serial) return;
+                const s = eq.serial.trim().toUpperCase();
+                if (lastMovBySerial.has(s)) {
+                    const lastM = lastMovBySerial.get(s);
+                    const t = (lastM.type || '').toLowerCase();
+                    if (t.includes('despacho') || t.includes('asignación') || t.includes('combo')) {
+                        eq.status = 'En Agencia';
+                        if (lastM.agency) eq.agency = lastM.agency;
+                        if (lastM.receptor) eq.receptor = lastM.receptor;
+                        if (lastM.owner) eq.owner = lastM.owner;
+                    } else if (t.includes('reingreso') || t.includes('retorno') || t.includes('depósito')) {
+                        eq.status = 'En Depósito';
+                        eq.agency = '';
+                        eq.receptor = '';
+                    } else if (t.includes('mantenimiento') || t.includes('taller')) {
+                        eq.status = 'En Mantenimiento';
+                    }
+                }
+            });
+
+            consolidatedData = {
+                inventory: allInventory,
+                agencies: allAgencies,
+                movements: allMovements,
+                maintenanceLog: allMaintenance,
+                categories: parsedFiles[0]?.data?.categories || [],
+                stockThresholds: parsedFiles[0]?.data?.stockThresholds || {},
+                exportDate: new Date().toISOString()
+            };
+
+            // Mostrar resultados
+            document.getElementById('resultsCard').classList.remove('hidden');
+            document.getElementById('totalEquip').innerText = allInventory.length;
+            document.getElementById('totalAgencies').innerText = allAgencies.length;
+            document.getElementById('totalMovs').innerText = allMovements.length;
+            document.getElementById('totalMaint').innerText = allMaintenance.length;
+
+            const depCount = allInventory.filter(i => (i.status || '').toLowerCase().includes('depósito') || (i.status || '').toLowerCase().includes('deposito')).length;
+            const agCount = allInventory.filter(i => (i.status || '').toLowerCase().includes('agencia')).length;
+            const mantCount = allInventory.filter(i => (i.status || '').toLowerCase().includes('mantenimiento') || (i.status || '').toLowerCase().includes('taller')).length;
+
+            document.getElementById('subEquip').innerText = `${depCount} Depósito • ${agCount} Asignados • ${mantCount} Taller`;
+            document.getElementById('subAgencies').innerText = `Directorios unificados`;
+            document.getElementById('subMovs').innerText = `Historial unificado`;
+        }
+
+        function downloadMasterJSON() {
+            if (!consolidatedData) return;
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            const blob = new Blob([JSON.stringify(consolidatedData, null, 2)], { type: 'application/json' });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Respaldo_MAESTRO_CONSOLIDADO_${dateStr}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function downloadMasterExcel() {
+            if (!consolidatedData || typeof XLSX === 'undefined') return;
+            const wb = XLSX.utils.book_new();
+
+            // Hoja Inventario
+            const invRows = consolidatedData.inventory.map(i => ({
+                "ID": i.id,
+                "Tipo": i.type,
+                "Marca": i.brand,
+                "Modelo": i.model,
+                "Serial": i.serial,
+                "Estado": i.status,
+                "Agencia": i.agency || '',
+                "Receptor": i.receptor || '',
+                "Procesador": i.processor || '',
+                "RAM": i.ram || '',
+                "Disco": i.disk || ''
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(invRows), "Inventario Consolidado");
+
+            // Hoja Agencias
+            const agRows = consolidatedData.agencies.map(a => ({
+                "Código": a.code || '',
+                "Nombre": a.name || '',
+                "Dirección": a.address || '',
+                "Teléfono": a.phone || '',
+                "Titular": a.owner || ''
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(agRows), "Agencias Consolidadas");
+
+            // Hoja Movimientos
+            const movRows = consolidatedData.movements.map(m => ({
+                "ID": m.id,
+                "Fecha": m.date,
+                "Tipo": m.type,
+                "Agencia": m.agency || '',
+                "Receptor": m.receptor || '',
+                "Usuario": m.user || '',
+                "Observaciones": m.obs || ''
+            }));
+            XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(movRows), "Movimientos Cronologicos");
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            XLSX.writeFile(wb, `Inventario_Maestro_Consolidado_${dateStr}.xlsx`);
+        }
+    </script>
+</body>
+</html>
