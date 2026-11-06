@@ -3779,6 +3779,18 @@ service cloud.firestore {
             } catch (e) {
                 console.warn('Signature canvases deferred:', e);
             }
+            // Sincronizar en memoria receptores de agencias con equipos
+            if (Array.isArray(inventory) && Array.isArray(agencies)) {
+                inventory.forEach(item => {
+                    if (item.agency && item.agency !== '-' && !isWarehouse(item.status)) {
+                        const agObj = findAgencyForEquipment(item.agency);
+                        if (agObj && agObj.supervisor && agObj.supervisor !== '-' && !agObj.supervisor.toLowerCase().includes('asignar')) {
+                            item.receptor = agObj.supervisor;
+                            if (agObj.owner && agObj.owner !== '-') item.owner = agObj.owner;
+                        }
+                    }
+                });
+            }
             populateTypeDropdowns();
             populateAgencyDropdowns();
             populateReceptorDropdowns();
@@ -4789,6 +4801,48 @@ service cloud.firestore {
             return normalizeTransactionType(value) || 'Sin registrar';
         }
 
+        // BÚSQUEDA ROBUSTA DE AGENCIA POR NOMBRE, CÓDIGO O ID
+        function findAgencyForEquipment(agencyRef) {
+            if (!agencyRef || agencyRef === '-') return null;
+            if (!Array.isArray(agencies) || agencies.length === 0) return null;
+            const s = String(agencyRef).trim().toLowerCase();
+            return agencies.find(a => 
+                (a.name && a.name.trim().toLowerCase() === s) ||
+                (a.code && String(a.code).trim().toLowerCase() === s) ||
+                (a.id && String(a.id).trim().toLowerCase() === s)
+            ) || agencies.find(a => {
+                const aName = (a.name || '').trim().toLowerCase();
+                const aCode = String(a.code || '').trim().toLowerCase();
+                return (aCode && s.includes(aCode)) || (aName && (s.includes(aName) || aName.includes(s)));
+            }) || null;
+        }
+
+        // RESOLUCIÓN DE RECEPTOR EN TIEMPO REAL VINCULADA CON LA AGENCIA POS
+        function resolveEquipmentReceptor(item) {
+            if (!item) return '-';
+            const agObj = findAgencyForEquipment(item.agency);
+            if (agObj && agObj.supervisor && agObj.supervisor.trim() !== '-' && !agObj.supervisor.toLowerCase().includes('asignar')) {
+                return agObj.supervisor.trim();
+            }
+            if (item.receptor && item.receptor.trim() !== '-') {
+                return item.receptor.trim();
+            }
+            return '-';
+        }
+
+        // RESOLUCIÓN DE DUEÑO / TITULAR EN TIEMPO REAL VINCULADA CON LA AGENCIA POS
+        function resolveEquipmentOwner(item) {
+            if (!item) return '-';
+            const agObj = findAgencyForEquipment(item.agency);
+            if (agObj && agObj.owner && agObj.owner.trim() !== '-' && !agObj.owner.toLowerCase().includes('especificar')) {
+                return agObj.owner.trim();
+            }
+            if (item.owner && item.owner.trim() !== '-') {
+                return item.owner.trim();
+            }
+            return '-';
+        }
+
                 function renderInventoryTable() {
             const tbody = document.getElementById('inventoryTableBody');
             const emptyMsg = document.getElementById('noInventoryMsg');
@@ -4802,8 +4856,9 @@ service cloud.firestore {
             const transactionFilter = document.getElementById('filterTransactionType').value;
 
                         const filtered = inventory.filter(item => {
-                const agObj = (item.agency && item.agency !== '-') ? agencies.find(a => a.name === item.agency) : null;
-                const recVal = (item.receptor && item.receptor !== '-') ? item.receptor : (agObj && agObj.supervisor && agObj.supervisor !== '-' ? agObj.supervisor : '');
+                const recVal = resolveEquipmentReceptor(item);
+                const ownVal = resolveEquipmentOwner(item);
+
                 const matchesQuery = !query || 
                     (item.serial && String(item.serial).toLowerCase().includes(query)) ||
                     (item.type && String(item.type).toLowerCase().includes(query)) ||
@@ -4811,6 +4866,8 @@ service cloud.firestore {
                     (item.model && String(item.model).toLowerCase().includes(query)) ||
                     (item.processor && String(item.processor).toLowerCase().includes(query)) ||
                     (item.agency && String(item.agency).toLowerCase().includes(query)) ||
+                    (recVal !== '-' && recVal.toLowerCase().includes(query)) ||
+                    (ownVal !== '-' && ownVal.toLowerCase().includes(query)) ||
                     (item.receptor && String(item.receptor).toLowerCase().includes(query)) ||
                     (item.owner && String(item.owner).toLowerCase().includes(query));
 
@@ -4824,7 +4881,7 @@ service cloud.firestore {
                 const transactionType = normalizeTransactionType(item.transactionType);
                 const matchesTransaction = !transactionFilter || (transactionFilter === 'unrecorded'
                     ? !transactionType : transactionType === transactionFilter);
-                const matchesReceptor = !receptorFilter || recVal.toLowerCase().includes(receptorFilter);
+                const matchesReceptor = !receptorFilter || (recVal !== '-' && recVal.toLowerCase().includes(receptorFilter));
 
                 return matchesQuery && matchesType && matchesStatus && matchesBrand && matchesTransaction && matchesReceptor;
             });
@@ -4941,8 +4998,7 @@ service cloud.firestore {
                         </td>
                         <td class="px-3.5 py-2.5">
                             ${(() => {
-                                const agObj = (item.agency && item.agency !== '-') ? agencies.find(a => a.name === item.agency) : null;
-                                const recVal = (item.receptor && item.receptor !== '-') ? item.receptor : (agObj && agObj.supervisor && agObj.supervisor !== '-' ? agObj.supervisor : '-');
+                                const recVal = resolveEquipmentReceptor(item);
                                 return recVal !== '-'
                                     ? `<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-50 text-teal-800 border border-teal-200 shadow-xs"><i class="fa-solid fa-user-check text-[10px] text-teal-600"></i> ${recVal}</span>`
                                     : '<span class="text-slate-400 font-mono text-xs">-</span>';
@@ -4950,9 +5006,8 @@ service cloud.firestore {
                         </td>
                         <td class="px-3.5 py-2.5 font-medium text-slate-800">
                             ${(() => {
-                                const agObj = (item.agency && item.agency !== '-') ? agencies.find(a => a.name === item.agency) : null;
-                                const ownVal = (item.owner && item.owner !== '-') ? item.owner : (agObj && agObj.owner && agObj.owner !== '-' ? agObj.owner : '-');
-                                return ownVal !== '-' ? `<span class="text-slate-700 text-xs sm:text-sm">${ownVal}</span>` : '<span class="text-slate-400 font-mono text-xs">-</span>';
+                                const ownVal = resolveEquipmentOwner(item);
+                                return ownVal !== '-' ? `<span class="text-slate-700 text-xs sm:text-sm font-semibold">${ownVal}</span>` : '<span class="text-slate-400 font-mono text-xs">-</span>';
                             })()}
                         </td>
                         <td class="px-3.5 py-2.5 font-mono text-[11px]">
@@ -5965,13 +6020,17 @@ service cloud.firestore {
                         return true;
                     });
 
-                    if (oldName !== name) {
-                        inventory.forEach(item => {
-                            if (item.agency === oldName) {
-                                item.agency = name;
-                            }
-                        });
-                    }
+                    // Sincronizar automáticamente todos los equipos asignados a esta agencia (nombre, receptor y dueño)
+                    inventory.forEach(item => {
+                        if (!item.agency || item.agency === '-') return;
+                        const itemAg = String(item.agency).trim().toLowerCase();
+                        const isThisAgency = itemAg === name.toLowerCase() || itemAg === oldName.toLowerCase() || itemAg === code.toLowerCase();
+                        if (isThisAgency) {
+                            if (oldName !== name) item.agency = name;
+                            if (supervisor && supervisor !== '-') item.receptor = supervisor;
+                            if (owner && owner !== '-') item.owner = owner;
+                        }
+                    });
                     if (typeof movements !== 'undefined') {
                         let movChanged = false;
                         movements.forEach(mov => {
@@ -6001,7 +6060,7 @@ service cloud.firestore {
                         items: [],
                         agency: name,
                         receptorType: 'Catálogo Agencias',
-                        receptor: owner || supervisor || '-',
+                        receptor: supervisor || owner || '-',
                         owner: owner || '-',
                         user: getActiveUserName(),
                         obs: `Actualización de datos de agencia: ${name} (Cód: ${code}). Supervisor: ${supervisor || '-'}. Tel: ${phone || '-'}`,
