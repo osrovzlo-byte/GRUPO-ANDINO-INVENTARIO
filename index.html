@@ -584,9 +584,14 @@
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
-                    <div class="w-full sm:w-56">
+                    <div class="w-full sm:w-48">
                         <select id="movementReceptorFilter" onchange="renderMovementsTable()" class="w-full py-1.5 px-3 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-medium text-slate-700">
                             <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="w-full sm:w-48">
+                        <select id="movementUserFilter" onchange="renderMovementsTable()" class="w-full py-1.5 px-3 text-xs sm:text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-white font-medium text-slate-700">
+                            <option value="">Todos los Usuarios</option>
                         </select>
                     </div>
                     <span id="movementSearchCount" class="text-xs font-semibold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-full border border-brand-200 shrink-0">
@@ -604,7 +609,7 @@
                             <th class="px-3.5 py-3">Agencia</th>
                             <th class="px-3.5 py-3 text-teal-800">Receptor</th>
                             <th class="px-3.5 py-3">Entregado a / Titular</th>
-                            <th class="px-3.5 py-3">Responsable (Técnico)</th>
+                            <th class="px-3.5 py-3">Usuario Activo</th>
                             <th class="px-3.5 py-3">Firma</th>
                             <th class="px-3.5 py-3 text-right">Comprobante</th>
                         </tr>
@@ -1089,13 +1094,26 @@
                 </div>
 
                 <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Destino del Equipo Reingresado *</label>
+                    <select id="returnDestinationSelect" onchange="toggleReturnDestinationFields()" class="w-full py-2 px-3 text-sm border-2 border-emerald-400 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none bg-emerald-50/40 font-semibold text-slate-800">
+                        <option value="warehouse">🏢 Depósito Central (Equipo Operativo / Disponible)</option>
+                        <option value="maintenance">🛠️ Mantenimiento / Taller Técnico (Equipo con Falla / Revisión)</option>
+                    </select>
+                </div>
+
+                <div id="returnMaintFields" class="hidden p-3 bg-rose-50/70 rounded-xl border border-rose-200 space-y-2">
+                    <label class="block text-xs font-bold text-rose-900 uppercase">Taller / Responsable de Mantenimiento *</label>
+                    <input type="text" id="returnMaintWorkshop" value="Taller Central" placeholder="Ej: Taller Central / Servicio Técnico" class="w-full py-1.5 px-3 text-xs sm:text-sm border border-rose-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:outline-none bg-white">
+                </div>
+
+                <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nombre de quien devuelve el equipo *</label>
                     <input type="text" id="returnPersonName" oninput="checkReturnValidation()" placeholder="Ej: Roberto Gómez / Carlos Mendoza" class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones de Devolución *</label>
-                    <textarea id="returnObs" rows="2" oninput="checkReturnValidation()" placeholder="Ej: Devolución por cierre de agencia, probado y en buen estado..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observaciones de Devolución / Estado o Falla *</label>
+                    <textarea id="returnObs" rows="2" oninput="checkReturnValidation()" placeholder="Ej: Devolución por cierre de agencia, o detalle la falla si ingresa a mantenimiento..." class="w-full py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none"></textarea>
                 </div>
 
                 <!-- DIGITAL SIGNATURE CANVAS FOR RETURN -->
@@ -2011,7 +2029,7 @@
                 <button onclick="closeModal('receptorsModal')" class="text-teal-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <div class="p-4 sm:p-6 space-y-4">
-                <form onsubmit="addReceptor(event)" class="space-y-3">
+                <form id="addReceptorForm" onsubmit="addReceptor(event)" class="space-y-3">
                     <label class="block text-xs font-bold text-slate-700 uppercase">Nuevo Receptor</label>
                     <div class="flex gap-2">
                         <input type="text" id="newReceptorName" required placeholder="Ej: Marcos Ruiz" class="flex-1 py-2 px-3 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">
@@ -2211,32 +2229,20 @@
                 <button id="loginCloseBtn" onclick="closeModal('loginModal')" class="text-slate-400 hover:text-white transition hidden"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             <form onsubmit="handleLoginSubmit(event)" class="p-5 space-y-4">
-                <p class="text-xs text-slate-600 font-medium border-b pb-2">Seleccione su rol e ingrese su contraseña para continuar:</p>
+                <p class="text-xs text-slate-600 font-medium border-b pb-2">Seleccione su usuario de la lista e ingrese su contraseña para continuar:</p>
                 
-                <!-- Custom Role Selector (reemplaza el <select> nativo que Chrome no renderiza bien en páginas pesadas) -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-2">Seleccionar Rol *</label>
-                    <input type="hidden" id="loginRoleSelect" value="president">
-                    <div id="loginRoleOptions" class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
-                        <button type="button" onclick="selectLoginRole('president', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-brand-500 bg-brand-50 text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">👑</span><span>Presidente (Solo Ver / Consulta)</span>
-                        </button>
-                        <button type="button" onclick="selectLoginRole('admin', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">🛡️</span><span>Administrador (Acceso Total)</span>
-                        </button>
-                        <button type="button" onclick="selectLoginRole('tech_head', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">👨‍💼</span><span>Departamento Técnico (Registrar, Editar y Asignar)</span>
-                        </button>
-                        <button type="button" onclick="selectLoginRole('tech_maintenance', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">🔧</span><span>Técnico Mantenimiento (Depósito y Taller)</span>
-                        </button>
-                        <button type="button" onclick="selectLoginRole('office_entry', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">📦</span><span>Oficina Entrada (Reingresos de Agencias a Depósito)</span>
-                        </button>
-                        <button type="button" onclick="selectLoginRole('office_exit', this)" class="login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2">
-                            <span class="text-base">🚚</span><span>Oficina Salida (Solo Asignar)</span>
-                        </button>
-                    </div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1.5">Seleccionar Usuario *</label>
+                    <select id="loginRoleSelect" onchange="updateLoginPrompt()" class="w-full py-2.5 px-3 text-sm font-bold text-slate-800 bg-slate-50 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 focus:outline-none">
+                        <option value="president">PRESIDENTE</option>
+                        <option value="admin">ADMINISTRADOR</option>
+                        <option value="tech_head">JEFE DE DEPARTAMENTO TÉCNICO</option>
+                        <option value="tech_it">TECNICO INFORMATICO</option>
+                        <option value="tech_maintenance">TECNICO MANTENIMIENTO</option>
+                        <option value="tech_inventory">TECNICO INVENTARIO</option>
+                        <option value="office_entry">OFICINA DE ENTRADA</option>
+                        <option value="office_exit">OFICINA DE SALIDA</option>
+                    </select>
                 </div>
 
                 <div>
@@ -2250,7 +2256,6 @@
                     <p id="loginErrorMsg" class="text-xs text-rose-600 font-bold mt-1 hidden"></p>
                 </div>
 
-
                 <div class="pt-2 flex items-center justify-end space-x-2">
                     <button type="button" id="loginCancelBtn" onclick="closeModal('loginModal')" class="px-3 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition hidden">Cancelar</button>
                     <button type="submit" class="w-full px-5 py-2.5 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow transition flex items-center justify-center space-x-1.5">
@@ -2262,50 +2267,89 @@
         </div>
     </div>
 
-    <!-- MODAL 12: GESTIÓN DE CLAVES (ADMIN) -->
-    <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/70 z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[92vh] flex flex-col border border-slate-200">
-            <div class="bg-amber-800 px-5 py-3.5 flex items-center justify-between text-white shrink-0">
+    <!-- MODAL 12: GESTIÓN DE USUARIOS, CLAVES Y PERMISOS (EXCLUSIVO JEFE DE DEPARTAMENTO TÉCNICO) -->
+    <div id="manageUsersModal" class="fixed inset-0 bg-slate-900/75 z-50 flex items-center justify-center p-3 sm:p-4 hidden no-print">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col border border-slate-200">
+            <div class="bg-amber-800 px-5 py-3.5 flex items-center justify-between text-white shrink-0 rounded-t-2xl">
                 <h3 class="font-bold text-sm sm:text-base flex items-center space-x-2">
-                    <i class="fa-solid fa-user-lock text-amber-300"></i>
-                    <span>Gestión de Claves de los 6 Niveles</span>
+                    <i class="fa-solid fa-users-gear text-amber-300"></i>
+                    <span>Gestión de Usuarios, Claves y Permisos</span>
                 </h3>
-                <button onclick="closeModal('manageUsersModal')" class="text-amber-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <button type="button" onclick="closeModal('manageUsersModal')" class="text-amber-200 hover:text-white transition"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form onsubmit="saveNewPasswords(event)" class="p-4 sm:p-5 space-y-3 overflow-y-auto flex-1 text-xs">
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">👑 Clave de Presidente (Solo Ver)</label>
-                    <input type="password" id="pwdPresident" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🛡️ Clave de Administrador (Acceso Total)</label>
-                    <input type="password" id="pwdAdmin" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">👨‍💼 Clave de Departamento Técnico (Registrar, Editar, Asignar)</label>
-                    <input type="password" id="pwdTechHead" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🔧 Clave de Técnico Mantenimiento (Envío a Depósito)</label>
-                    <input type="password" id="pwdTechMaintenance" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">📦 Clave de Oficina Entrada (Envío a Depósito)</label>
-                    <input type="password" id="pwdOfficeEntry" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
-                <div>
-                    <label class="block font-bold text-slate-800 uppercase mb-0.5">🚚 Clave de Oficina Salida (Solo Asignar)</label>
-                    <input type="password" id="pwdOfficeExit" required class="w-full py-1.5 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono">
-                </div>
 
-                <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100 shrink-0">
-                    <button type="button" onclick="closeModal('manageUsersModal')" class="px-4 py-2 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition">Cancelar</button>
-                    <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-amber-700 hover:bg-amber-800 rounded-lg shadow transition flex items-center space-x-1">
-                        <i class="fa-solid fa-floppy-disk"></i>
-                        <span>Actualizar Claves</span>
+            <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <div>
+                        <p class="font-bold text-amber-900"><i class="fa-solid fa-shield-halved mr-1"></i> Panel Exclusivo: JEFE DE DEPARTAMENTO TÉCNICO</p>
+                        <p class="text-[11px] text-amber-800">Agregue, edite o elimine usuarios, cambie contraseñas y configure permisos individuales.</p>
+                    </div>
+                    <button type="button" onclick="openUserEditorForm('')" class="px-3.5 py-2 bg-amber-700 hover:bg-amber-800 text-white font-bold rounded-lg shadow transition flex items-center space-x-1.5 shrink-0 cursor-pointer">
+                        <i class="fa-solid fa-user-plus"></i>
+                        <span>+ Nuevo Usuario</span>
                     </button>
                 </div>
-            </form>
+
+                <!-- FORMULARIO CREAR / EDITAR USUARIO -->
+                <form id="userEditorForm" onsubmit="saveUserFromEditor(event)" class="hidden p-4 bg-slate-50 rounded-xl border-2 border-amber-400 space-y-3 shadow-inner">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <h4 id="userEditorTitle" class="font-bold text-slate-900 text-xs sm:text-sm uppercase">Crear / Editar Usuario</h4>
+                        <button type="button" onclick="cancelUserEditorForm()" class="text-slate-400 hover:text-slate-700 text-xs font-semibold">Cancelar</button>
+                    </div>
+                    <input type="hidden" id="editingUserKey" value="">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Nombre del Usuario *</label>
+                            <input type="text" id="editUserNameInput" required placeholder="Ej: SUPERVISOR ZONA" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-bold uppercase bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-slate-700 uppercase mb-1">Contraseña *</label>
+                            <div class="relative">
+                                <input type="text" id="editUserPasswordInput" required placeholder="Clave de acceso" class="w-full py-2 px-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono bg-white">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-1.5">
+                            <label class="block font-bold text-slate-700 uppercase">Permisos Habilitados para este Usuario</label>
+                            <div class="flex flex-wrap gap-1">
+                                <button type="button" onclick="applyPermissionPreset('readonly')" class="px-2 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-[10px] font-semibold">Solo Ver</button>
+                                <button type="button" onclick="applyPermissionPreset('tech_it')" class="px-2 py-0.5 bg-blue-100 hover:bg-blue-200 text-blue-800 rounded text-[10px] font-semibold">Téc. Informático</button>
+                                <button type="button" onclick="applyPermissionPreset('tech_maint')" class="px-2 py-0.5 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded text-[10px] font-semibold">Téc. Mantenimiento</button>
+                                <button type="button" onclick="applyPermissionPreset('tech_inv')" class="px-2 py-0.5 bg-teal-100 hover:bg-teal-200 text-teal-800 rounded text-[10px] font-semibold">Téc. Inventario</button>
+                                <button type="button" onclick="applyPermissionPreset('office_entry')" class="px-2 py-0.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded text-[10px] font-semibold">Of. Entrada</button>
+                                <button type="button" onclick="applyPermissionPreset('office_exit')" class="px-2 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded text-[10px] font-semibold">Of. Salida</button>
+                                <button type="button" onclick="applyPermissionPreset('full')" class="px-2 py-0.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded text-[10px] font-bold">Acceso Total</button>
+                            </div>
+                        </div>
+                        <div id="userPermissionsCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2.5 bg-white rounded-lg border border-slate-200 max-h-52 overflow-y-auto">
+                            <!-- Checkboxes rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-2 pt-2 border-t border-slate-200">
+                        <button type="button" onclick="cancelUserEditorForm()" class="px-3.5 py-1.5 text-xs font-medium text-slate-600 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg">Cancelar</button>
+                        <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow flex items-center space-x-1">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Guardar Usuario</span>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- LISTA DE USUARIOS REGISTRADOS -->
+                <div>
+                    <h4 class="font-bold text-slate-700 uppercase mb-2">Usuarios del Sistema (<span id="usersTotalCount">8</span>)</h4>
+                    <div id="usersManagementList" class="space-y-2">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 px-5 py-3 border-t border-slate-200 flex justify-end shrink-0 rounded-b-2xl">
+                <button type="button" onclick="closeModal('manageUsersModal')" class="px-4 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-100 rounded-lg transition">Cerrar</button>
+            </div>
         </div>
     </div>
 
@@ -2506,24 +2550,158 @@ service cloud.firestore {
         // Current Receipt Movement ID Holder
         let currentReceiptMovId = null;
 
-        // Security / User Credentials (6 Roles)
+        // ============================================================================
+        // SISTEMA DE AUTENTICACIÓN Y MATRIZ ESTRICTA DE PERMISOS (8 USUARIOS BASE)
+        // ============================================================================
+        const ALL_PERMISSIONS_CATALOG = [
+            { id: 'register_equip', label: 'Registrar equipos nuevos (+ Nuevo Equipo / Importar Excel)' },
+            { id: 'edit_equip', label: 'Editar equipos existentes' },
+            { id: 'register_agency', label: 'Registrar nuevas agencias (+ Importar Excel Agencias)' },
+            { id: 'edit_agency', label: 'Editar agencias existentes' },
+            { id: 'register_receptor', label: 'Registrar nuevos receptores' },
+            { id: 'edit_receptor', label: 'Editar receptores existentes' },
+            { id: 'manage_categories', label: 'Gestionar categorías de equipos' },
+            { id: 'assign_single', label: 'Asignar equipos individuales a agencias' },
+            { id: 'assign_combo', label: 'Asignar Combo Kit a agencias' },
+            { id: 'send_to_maint', label: 'Enviar equipos de Depósito a Mantenimiento' },
+            { id: 'return_from_maint', label: 'Retornar equipos de Mantenimiento a Depósito Central' },
+            { id: 'reingresar_equip', label: 'Reingresar equipos desde agencias (a Depósito o Mantenimiento)' },
+            { id: 'delete_records', label: 'Eliminar registros (equipos, agencias, receptores, categorías)' },
+            { id: 'manage_system', label: 'Configurar mínimos de stock / Sincronizar nube / Restaurar respaldos' },
+            { id: 'manage_users', label: 'Administrar usuarios, contraseñas y permisos' }
+        ];
+
+        const ALL_PERMISSION_IDS = ALL_PERMISSIONS_CATALOG.map(p => p.id);
+
         const defaultUserCredentials = {
-            president: { name: 'Presidente', password: 'presi123', roleName: 'PRESIDENTE (SOLO VER)' },
-            admin: { name: 'Administrador', password: 'admin123', roleName: 'ADMINISTRADOR (ACCESO TOTAL)' },
-            tech_head: { name: 'Departamento Técnico', password: 'Tec12345', roleName: 'DEPARTAMENTO TÉCNICO' },
-            tech_maintenance: { name: 'Técnico Mantenimiento', password: 'tec123', roleName: 'TÉCNICO MANTENIMIENTO' },
-            office_entry: { name: 'Oficina Entrada', password: 'entrada123', roleName: 'OFICINA ENTRADA' },
-            office_exit: { name: 'Oficina Salida', password: 'salida123', roleName: 'OFICINA SALIDA' }
+            president: {
+                name: 'PRESIDENTE',
+                password: 'oscar123',
+                roleName: 'PRESIDENTE (SOLO VER)',
+                permissions: []
+            },
+            admin: {
+                name: 'ADMINISTRADOR',
+                password: 'aymara',
+                roleName: 'ADMINISTRADOR (SOLO VER)',
+                permissions: []
+            },
+            tech_head: {
+                name: 'JEFE DE DEPARTAMENTO TÉCNICO',
+                password: 'osrovzlo',
+                roleName: 'JEFE DE DEPARTAMENTO TÉCNICO (ACCESO TOTAL)',
+                isProtected: true,
+                isFullAdmin: true,
+                permissions: [...ALL_PERMISSION_IDS]
+            },
+            tech_it: {
+                name: 'TECNICO INFORMATICO',
+                password: 'tec12345',
+                roleName: 'TECNICO INFORMATICO (ACCESO LIMITADO)',
+                permissions: ['register_agency', 'register_equip', 'assign_single', 'assign_combo', 'send_to_maint']
+            },
+            tech_maintenance: {
+                name: 'TECNICO MANTENIMIENTO',
+                password: 'man12345',
+                roleName: 'TECNICO MANTENIMIENTO (ACCESO LIMITADO)',
+                permissions: ['send_to_maint', 'return_from_maint']
+            },
+            tech_inventory: {
+                name: 'TECNICO INVENTARIO',
+                password: 'inv12345',
+                roleName: 'TECNICO INVENTARIO (ACCESO LIMITADO)',
+                permissions: ['register_agency', 'edit_agency', 'register_receptor', 'edit_receptor', 'register_equip', 'edit_equip', 'assign_single', 'assign_combo']
+            },
+            office_entry: {
+                name: 'OFICINA DE ENTRADA',
+                password: 'ent12345',
+                roleName: 'OFICINA DE ENTRADA (ACCESO LIMITADO)',
+                permissions: ['reingresar_equip']
+            },
+            office_exit: {
+                name: 'OFICINA DE SALIDA',
+                password: 'sal12345',
+                roleName: 'OFICINA DE SALIDA (ACCESO LIMITADO)',
+                permissions: ['assign_single', 'assign_combo']
+            }
         };
 
-        let storedUsers = JSON.parse(localStorage.getItem('lotto_users')) || {};
-        let userCredentials = { ...defaultUserCredentials, ...storedUsers };
-        if (userCredentials.tech_head) {
-            userCredentials.tech_head.name = 'Departamento Técnico';
-            userCredentials.tech_head.roleName = 'DEPARTAMENTO TÉCNICO';
-            if (!userCredentials.tech_head.password || userCredentials.tech_head.password === 'jefe123' || userCredentials.tech_head.password.toLowerCase() === 'tec12345') {
-                userCredentials.tech_head.password = 'Tec12345';
+        function normalizeUsersMap(rawMap) {
+            const merged = {};
+            // Start with defaults
+            Object.keys(defaultUserCredentials).forEach(k => {
+                merged[k] = JSON.parse(JSON.stringify(defaultUserCredentials[k]));
+            });
+            // Apply stored custom users or customized fields
+            if (rawMap && typeof rawMap === 'object') {
+                Object.keys(rawMap).forEach(k => {
+                    const incoming = rawMap[k];
+                    if (!incoming || typeof incoming !== 'object') return;
+                    if (incoming.deleted && k !== 'tech_head') {
+                        delete merged[k];
+                        return;
+                    }
+                    if (merged[k]) {
+                        merged[k] = {
+                            ...merged[k],
+                            ...incoming,
+                            permissions: Array.isArray(incoming.permissions) ? incoming.permissions : merged[k].permissions
+                        };
+                    } else {
+                        merged[k] = {
+                            name: String(incoming.name || k).toUpperCase().trim(),
+                            password: String(incoming.password || '12345'),
+                            roleName: incoming.roleName || String(incoming.name || k).toUpperCase().trim(),
+                            permissions: Array.isArray(incoming.permissions) ? incoming.permissions : []
+                        };
+                    }
+                });
             }
+            // Enforce protection on tech_head (JEFE DE DEPARTAMENTO TÉCNICO)
+            if (!merged.tech_head) {
+                merged.tech_head = JSON.parse(JSON.stringify(defaultUserCredentials.tech_head));
+            }
+            merged.tech_head.isProtected = true;
+            merged.tech_head.isFullAdmin = true;
+            merged.tech_head.permissions = [...ALL_PERMISSION_IDS];
+            return merged;
+        }
+
+        let storedUsersV3 = null;
+        try {
+            storedUsersV3 = JSON.parse(localStorage.getItem('lotto_system_users_v3'));
+        } catch (e) {}
+        let userCredentials = normalizeUsersMap(storedUsersV3);
+
+        function persistSystemUsers(syncCloud = true) {
+            try {
+                localStorage.setItem('lotto_system_users_v3', JSON.stringify(userCredentials));
+            } catch (e) {}
+            if (syncCloud && window.db) {
+                window.setDoc(window.doc(window.db, "lotto_data", "system_users"), {
+                    data: userCredentials,
+                    updatedAt: getFormattedNow()
+                }).catch(e => console.warn('[UsersSync] Error guardando system_users:', e));
+            }
+        }
+
+        function getCurrentUserObj() {
+            if (!isAuthenticated || !currentRole) return null;
+            return userCredentials[currentRole] || null;
+        }
+
+        function can(perm) {
+            const u = getCurrentUserObj();
+            if (!u) return false;
+            if (currentRole === 'tech_head' || u.isFullAdmin) return true;
+            return Array.isArray(u.permissions) && u.permissions.includes(perm);
+        }
+
+        function isReadOnlyUser() {
+            const u = getCurrentUserObj();
+            if (!u) return true;
+            if (currentRole === 'tech_head' || u.isFullAdmin) return false;
+            return !Array.isArray(u.permissions) || u.permissions.length === 0;
         }
 
         // HELPER FUNCTIONS (SAFE USERNAME & LOCAL TIME)
@@ -2534,7 +2712,7 @@ service cloud.firestore {
             if (typeof currentRole !== 'undefined' && currentRole && typeof defaultUserCredentials !== 'undefined' && defaultUserCredentials[currentRole]) {
                 return defaultUserCredentials[currentRole].name;
             }
-            return 'Administrador';
+            return 'USUARIO NO IDENTIFICADO';
         }
 
         function isWarehouse(status) {
@@ -2600,15 +2778,26 @@ service cloud.firestore {
         }
 
 
-        function checkPermission(allowedRoles) {
-            if (!isAuthenticated || !currentRole) {
+        function checkPermission(permOrRoles, customErrorMsg) {
+            if (!isAuthenticated || !currentRole || !userCredentials[currentRole]) {
                 showToast('Debe iniciar sesión para realizar esta acción.', 'error');
                 openLoginModal(true);
                 return false;
             }
-            if (Array.isArray(allowedRoles) && !allowedRoles.includes(currentRole)) {
-                showToast('No tiene permisos suficientes para esta operación.', 'error');
-                return false;
+            if (typeof permOrRoles === 'string') {
+                if (!can(permOrRoles)) {
+                    showToast(customErrorMsg || 'No tiene permisos habilitados para realizar esta operación.', 'error');
+                    return false;
+                }
+                return true;
+            }
+            if (Array.isArray(permOrRoles)) {
+                // Support array of permission strings or role keys
+                const allowed = permOrRoles.some(p => can(p) || currentRole === p);
+                if (!allowed) {
+                    showToast(customErrorMsg || 'No tiene permisos suficientes para esta operación.', 'error');
+                    return false;
+                }
             }
             return true;
         }
@@ -3086,7 +3275,9 @@ service cloud.firestore {
 
                 const mType = String(mov.type || '').toLowerCase();
                 let targetState = null;
-                if (mType.includes('reingreso') || mType.includes('devolucion') || mType.includes('entrada deposito')) {
+                if (mType.includes('reingreso a mantenimiento') || mType.includes('devolución a mantenimiento') || mType.includes('devolucion a mantenimiento')) {
+                    targetState = 'En Mantenimiento';
+                } else if (mType.includes('reingreso') || mType.includes('devolucion') || mType.includes('devolución') || mType.includes('entrada deposito') || mType.includes('entrada depósito')) {
                     targetState = 'En Depósito';
                 } else if (mType.includes('mantenimiento') || mType.includes('taller')) {
                     targetState = 'En Mantenimiento';
@@ -3577,29 +3768,25 @@ service cloud.firestore {
                 }
             }, (err) => handleFirestoreError(err, 'settings'));
 
-            // 6. Escuchar Credenciales y Roles de Usuarios
-            window.onSnapshot(window.doc(window.db, "lotto_data", "users"), (docSnap) => {
+            // 6. Escuchar Credenciales y Permisos de Usuarios (lotto_data/system_users)
+            window.onSnapshot(window.doc(window.db, "lotto_data", "system_users"), (docSnap) => {
                 updateCloudStatusUI('connected');
-                if (docSnap.exists()) {
-                    userCredentials = { ...defaultUserCredentials, ...docSnap.data().data };
-                    if (userCredentials.tech_head) {
-                        userCredentials.tech_head.name = 'Departamento Técnico';
-                        userCredentials.tech_head.roleName = 'DEPARTAMENTO TÉCNICO';
-                        if (!userCredentials.tech_head.password || userCredentials.tech_head.password === 'jefe123' || userCredentials.tech_head.password.toLowerCase() === 'tec12345') {
-                            userCredentials.tech_head.password = 'Tec12345';
+                if (docSnap.exists() && docSnap.data() && docSnap.data().data) {
+                    userCredentials = normalizeUsersMap(docSnap.data().data);
+                    try { localStorage.setItem('lotto_system_users_v3', JSON.stringify(userCredentials)); } catch (e) {}
+                    populateLoginUsersDropdown();
+                    if (isAuthenticated && currentRole) {
+                        if (!userCredentials[currentRole]) {
+                            handleLogout();
+                        } else {
+                            updateRoleUI();
                         }
                     }
-                    localStorage.setItem('lotto_users', JSON.stringify(userCredentials));
-                    if (isAuthenticated && currentRole === 'tech_head') {
-                        const activeUserName = document.getElementById('activeUserName');
-                        const roleBadge = document.getElementById('roleBadge');
-                        const roleBadgeMobile = document.getElementById('roleBadgeMobile');
-                        if (activeUserName) activeUserName.innerText = userCredentials.tech_head.name;
-                        if (roleBadge) roleBadge.innerText = userCredentials.tech_head.roleName;
-                        if (roleBadgeMobile) roleBadgeMobile.innerText = userCredentials.tech_head.name.toUpperCase();
-                    }
+                } else {
+                    // Inicializar el documento system_users en la nube con los 8 usuarios oficiales sin tocar nada más
+                    persistSystemUsers(true);
                 }
-            }, (err) => handleFirestoreError(err, 'users'));
+            }, (err) => handleFirestoreError(err, 'system_users'));
 
             // 7. Escuchar Registro de Equipos Eliminados
             window.onSnapshot(window.doc(window.db, "lotto_data", "deleted_items"), (docSnap) => {
@@ -3976,8 +4163,26 @@ service cloud.firestore {
             if (selectId === 'batchAgencySelect') autoFillBatchAgencyDetails();
         }
 
+        function populateLoginUsersDropdown() {
+            const sel = document.getElementById('loginRoleSelect');
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = '';
+            Object.keys(userCredentials).forEach(key => {
+                const u = userCredentials[key];
+                if (!u || u.deleted) return;
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = u.name;
+                sel.appendChild(opt);
+            });
+            if (currentVal && userCredentials[currentVal]) {
+                sel.value = currentVal;
+            }
+        }
+
         function updateRoleUI() {
-            if (!isAuthenticated || !currentRole) {
+            if (!isAuthenticated || !currentRole || !userCredentials[currentRole]) {
                 openLoginModal(true);
                 return;
             }
@@ -3992,16 +4197,19 @@ service cloud.firestore {
             const btnAddAgency = document.getElementById('btnAddAgency');
             const btnManageTypes = document.getElementById('btnManageTypes');
             const btnManagePasswords = document.getElementById('btnManagePasswords');
+            const btnManageReceptors = document.getElementById('btnManageReceptors');
+            const btnSyncAgenciesCloud = document.getElementById('btnSyncAgenciesCloud');
+            const btnExportAgencies = document.getElementById('btnExportAgencies');
 
-            const creds = userCredentials[currentRole] || defaultUserCredentials[currentRole];
+            const creds = userCredentials[currentRole];
             if (activeUserName) activeUserName.innerText = creds.name;
 
             let badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-slate-500/20 text-slate-300 border border-slate-500/30';
-            if (currentRole === 'president') {
+            if (currentRole === 'president' || currentRole === 'admin' || isReadOnlyUser()) {
                 badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
-            } else if (currentRole === 'admin') {
+            } else if (currentRole === 'tech_head' || creds.isFullAdmin) {
                 badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-            } else if (currentRole === 'tech_head') {
+            } else if (currentRole === 'tech_it' || currentRole === 'tech_inventory') {
                 badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30';
             } else if (currentRole === 'tech_maintenance') {
                 badgeClass = 'hidden sm:inline-flex px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30';
@@ -4012,25 +4220,22 @@ service cloud.firestore {
             }
 
             if (roleBadge) {
-                roleBadge.innerText = creds.roleName;
+                roleBadge.innerText = creds.roleName || creds.name;
                 roleBadge.className = badgeClass;
             }
             if (roleBadgeMobile) roleBadgeMobile.innerText = creds.name.toUpperCase();
 
-            // Permissions scoping:
-            if (btnAdd) btnAdd.style.display = (['admin', 'tech_head', 'office_entry', 'tech_maintenance'].includes(currentRole)) ? 'flex' : 'none';
-            if (btnBatch) btnBatch.style.display = (['admin', 'tech_head', 'office_exit'].includes(currentRole)) ? 'flex' : 'none';
-            if (btnImportExcel) btnImportExcel.style.display = (['admin', 'tech_head', 'office_entry'].includes(currentRole)) ? 'flex' : 'none';
-            const btnSyncAgenciesCloud = document.getElementById('btnSyncAgenciesCloud');
-            const btnExportAgencies = document.getElementById('btnExportAgencies');
-            if (btnSyncAgenciesCloud) btnSyncAgenciesCloud.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
+            // Strict Permissions Scoping for Top & Section Buttons:
+            if (btnAdd) btnAdd.style.display = can('register_equip') ? 'flex' : 'none';
+            if (btnBatch) btnBatch.style.display = can('assign_combo') ? 'flex' : 'none';
+            if (btnImportExcel) btnImportExcel.style.display = can('register_equip') ? 'flex' : 'none';
+            if (btnSyncAgenciesCloud) btnSyncAgenciesCloud.style.display = can('manage_system') ? 'flex' : 'none';
             if (btnExportAgencies) btnExportAgencies.style.display = 'flex';
-            if (btnImportAgenciesExcel) btnImportAgenciesExcel.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
-            if (btnAddAgency) btnAddAgency.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
-            if (btnManageTypes) btnManageTypes.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
-            const btnManageReceptors = document.getElementById('btnManageReceptors');
-            if (btnManageReceptors) btnManageReceptors.style.display = (['admin', 'tech_head'].includes(currentRole)) ? 'flex' : 'none';
-            if (btnManagePasswords) btnManagePasswords.style.display = (currentRole === 'admin') ? 'flex' : 'none';
+            if (btnImportAgenciesExcel) btnImportAgenciesExcel.style.display = can('register_agency') ? 'flex' : 'none';
+            if (btnAddAgency) btnAddAgency.style.display = can('register_agency') ? 'flex' : 'none';
+            if (btnManageTypes) btnManageTypes.style.display = can('manage_categories') ? 'flex' : 'none';
+            if (btnManageReceptors) btnManageReceptors.style.display = (can('register_receptor') || can('edit_receptor') || can('delete_records')) ? 'flex' : 'none';
+            if (btnManagePasswords) btnManagePasswords.style.display = can('manage_users') ? 'flex' : 'none';
 
             renderInventoryTable();
             renderAgenciesTable();
@@ -4039,6 +4244,7 @@ service cloud.firestore {
         }
 
         function openLoginModal(forceMandatory = false) {
+            populateLoginUsersDropdown();
             document.getElementById('loginPasswordInput').value = '';
             document.getElementById('loginErrorMsg').classList.add('hidden');
             
@@ -4056,19 +4262,6 @@ service cloud.firestore {
             document.getElementById('loginModal').classList.remove('hidden');
         }
 
-        function selectLoginRole(roleValue, btnElement) {
-            // Update hidden input value
-            document.getElementById('loginRoleSelect').value = roleValue;
-            // Reset all buttons to unselected style
-            document.querySelectorAll('#loginRoleOptions .login-role-btn').forEach(btn => {
-                btn.className = 'login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-slate-200 bg-white text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2';
-            });
-            // Highlight selected button
-            btnElement.className = 'login-role-btn w-full text-left px-3 py-2.5 rounded-lg border-2 border-brand-500 bg-brand-50 text-slate-800 text-sm font-medium transition hover:bg-slate-50 flex items-center space-x-2';
-            // Clear any error and password
-            updateLoginPrompt();
-        }
-
         function updateLoginPrompt() {
             document.getElementById('loginPasswordInput').value = '';
             document.getElementById('loginErrorMsg').classList.add('hidden');
@@ -4080,9 +4273,14 @@ service cloud.firestore {
             const pwd = document.getElementById('loginPasswordInput').value.trim();
             const errorMsg = document.getElementById('loginErrorMsg');
 
-            const targetCreds = userCredentials[selectedRole] || defaultUserCredentials[selectedRole];
+            const targetCreds = userCredentials[selectedRole];
+            if (!targetCreds) {
+                errorMsg.innerText = '⚠️ Usuario no encontrado.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
 
-            if (pwd === targetCreds.password || (selectedRole === 'tech_head' && pwd.toLowerCase() === targetCreds.password.toLowerCase())) {
+            if (pwd === targetCreds.password) {
                 isAuthenticated = true;
                 currentRole = selectedRole;
 
@@ -4119,58 +4317,249 @@ service cloud.firestore {
             }
         }
 
+        // =========================================================================
+        // GESTIÓN DE USUARIOS, CONTRASEÑAS Y PERMISOS (JEFE DE DEPARTAMENTO TÉCNICO)
+        // =========================================================================
+        function describeUserPermissions(u, key) {
+            if (key === 'tech_head' || u.isFullAdmin) return 'ACCESO TOTAL (Todos los permisos + Gestión de Usuarios)';
+            if (!Array.isArray(u.permissions) || u.permissions.length === 0) return 'SOLO VER (Modo Lectura / Auditoría)';
+            const labels = u.permissions.map(pId => {
+                const found = ALL_PERMISSIONS_CATALOG.find(c => c.id === pId);
+                return found ? found.label.split('(')[0].trim() : pId;
+            });
+            return labels.join(' · ');
+        }
+
         function openManageUsersModal() {
-            if (currentRole !== 'admin') {
-                showToast('Solo el Administrador puede gestionar claves.', 'error');
-                return;
-            }
-            document.getElementById('pwdPresident').value = userCredentials.president?.password || defaultUserCredentials.president.password;
-            document.getElementById('pwdAdmin').value = userCredentials.admin?.password || defaultUserCredentials.admin.password;
-            document.getElementById('pwdTechHead').value = userCredentials.tech_head?.password || defaultUserCredentials.tech_head.password;
-            document.getElementById('pwdTechMaintenance').value = userCredentials.tech_maintenance?.password || defaultUserCredentials.tech_maintenance.password;
-            document.getElementById('pwdOfficeEntry').value = userCredentials.office_entry?.password || defaultUserCredentials.office_entry.password;
-            document.getElementById('pwdOfficeExit').value = userCredentials.office_exit?.password || defaultUserCredentials.office_exit.password;
-            
+            if (!checkPermission('manage_users', 'Solo el JEFE DE DEPARTAMENTO TÉCNICO puede gestionar usuarios y permisos.')) return;
+            cancelUserEditorForm();
+            renderUsersManagementList();
             document.getElementById('manageUsersModal').classList.remove('hidden');
         }
 
-                function saveNewPasswords(e) {
-            e.preventDefault();
-            if (!userCredentials.president) userCredentials.president = { ...defaultUserCredentials.president };
-            if (!userCredentials.admin) userCredentials.admin = { ...defaultUserCredentials.admin };
-            if (!userCredentials.tech_head) userCredentials.tech_head = { ...defaultUserCredentials.tech_head };
-            if (!userCredentials.tech_maintenance) userCredentials.tech_maintenance = { ...defaultUserCredentials.tech_maintenance };
-            if (!userCredentials.office_entry) userCredentials.office_entry = { ...defaultUserCredentials.office_entry };
-            if (!userCredentials.office_exit) userCredentials.office_exit = { ...defaultUserCredentials.office_exit };
+        function renderUsersManagementList() {
+            const container = document.getElementById('usersManagementList');
+            const countEl = document.getElementById('usersTotalCount');
+            if (!container) return;
+            container.innerHTML = '';
 
-            userCredentials.president.password = document.getElementById('pwdPresident').value.trim();
-            userCredentials.admin.password = document.getElementById('pwdAdmin').value.trim();
-            userCredentials.tech_head.password = document.getElementById('pwdTechHead').value.trim();
-            userCredentials.tech_maintenance.password = document.getElementById('pwdTechMaintenance').value.trim();
-            userCredentials.office_entry.password = document.getElementById('pwdOfficeEntry').value.trim();
-            userCredentials.office_exit.password = document.getElementById('pwdOfficeExit').value.trim();
+            const keys = Object.keys(userCredentials).filter(k => userCredentials[k] && !userCredentials[k].deleted);
+            if (countEl) countEl.innerText = keys.length;
 
-            localStorage.setItem('lotto_users', JSON.stringify(userCredentials));
-            if (window.db) {
-                window.setDoc(window.doc(window.db, "lotto_data", "users"), { data: userCredentials }).catch(e => {});
+            keys.forEach(key => {
+                const u = userCredentials[key];
+                const isProtected = key === 'tech_head' || u.isProtected;
+                const permSummary = describeUserPermissions(u, key);
+
+                const row = document.createElement('div');
+                row.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 hover:border-amber-300 transition';
+                row.innerHTML = `
+                    <div class="space-y-1 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-extrabold text-slate-900 text-xs sm:text-sm uppercase">${escapeBatchHtml(u.name)}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${isProtected ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : (u.permissions && u.permissions.length ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-800')}">
+                                ${isProtected ? 'ACCESO TOTAL' : (u.permissions && u.permissions.length ? u.permissions.length + ' permiso(s)' : 'SOLO VER')}
+                            </span>
+                            <span class="text-[11px] font-mono bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                                Clave: <strong>${escapeBatchHtml(u.password)}</strong>
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 leading-snug">${escapeBatchHtml(permSummary)}</p>
+                    </div>
+                    <div class="flex items-center space-x-1.5 shrink-0">
+                        <button type="button" onclick="openUserEditorForm('${key}')" class="px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-lg font-bold text-xs transition flex items-center space-x-1 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span>Editar</span>
+                        </button>
+                        ${!isProtected ? `
+                        <button type="button" onclick="deleteSystemUser('${key}')" class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-bold text-xs transition flex items-center space-x-1 cursor-pointer">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>Eliminar</span>
+                        </button>
+                        ` : `<span class="text-[10px] text-slate-400 italic px-1">Protegido</span>`}
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderPermissionCheckboxes(selectedPerms = [], isLockedFull = false) {
+            const container = document.getElementById('userPermissionsCheckboxes');
+            if (!container) return;
+            container.innerHTML = '';
+            const set = new Set(selectedPerms);
+
+            ALL_PERMISSIONS_CATALOG.forEach(p => {
+                const checked = isLockedFull || set.has(p.id);
+                const disabled = isLockedFull && (p.id === 'manage_users');
+                const label = document.createElement('label');
+                label.className = 'flex items-start space-x-2 p-1.5 rounded hover:bg-amber-50/60 cursor-pointer text-[11px] text-slate-700';
+                label.innerHTML = `
+                    <input type="checkbox" name="userPermCheck" value="${p.id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} class="mt-0.5 rounded text-amber-600 focus:ring-amber-500">
+                    <span class="font-medium leading-tight">${escapeBatchHtml(p.label)}</span>
+                `;
+                container.appendChild(label);
+            });
+        }
+
+        function applyPermissionPreset(preset) {
+            let perms = [];
+            if (preset === 'readonly') perms = [];
+            else if (preset === 'tech_it') perms = ['register_agency', 'register_equip', 'assign_single', 'assign_combo', 'send_to_maint'];
+            else if (preset === 'tech_maint') perms = ['send_to_maint', 'return_from_maint'];
+            else if (preset === 'tech_inv') perms = ['register_agency', 'edit_agency', 'register_receptor', 'edit_receptor', 'register_equip', 'edit_equip', 'assign_single', 'assign_combo'];
+            else if (preset === 'office_entry') perms = ['reingresar_equip'];
+            else if (preset === 'office_exit') perms = ['assign_single', 'assign_combo'];
+            else if (preset === 'full') perms = [...ALL_PERMISSION_IDS];
+
+            const editingKey = document.getElementById('editingUserKey')?.value || '';
+            renderPermissionCheckboxes(perms, editingKey === 'tech_head');
+        }
+
+        function openUserEditorForm(userKey = '') {
+            if (!checkPermission('manage_users')) return;
+            const form = document.getElementById('userEditorForm');
+            const title = document.getElementById('userEditorTitle');
+            const keyInput = document.getElementById('editingUserKey');
+            const nameInput = document.getElementById('editUserNameInput');
+            const pwdInput = document.getElementById('editUserPasswordInput');
+
+            if (userKey && userCredentials[userKey]) {
+                const u = userCredentials[userKey];
+                keyInput.value = userKey;
+                title.innerText = `Editar Usuario: ${u.name}`;
+                nameInput.value = u.name;
+                pwdInput.value = u.password;
+                renderPermissionCheckboxes(u.permissions || [], userKey === 'tech_head');
+            } else {
+                keyInput.value = '';
+                title.innerText = 'Registrar Nuevo Usuario';
+                nameInput.value = '';
+                pwdInput.value = '';
+                renderPermissionCheckboxes([], false);
             }
+
+            form.classList.remove('hidden');
+            nameInput.focus();
+        }
+
+        function cancelUserEditorForm() {
+            const form = document.getElementById('userEditorForm');
+            if (form) form.classList.add('hidden');
+        }
+
+        function saveUserFromEditor(e) {
+            e.preventDefault();
+            if (!checkPermission('manage_users')) return;
+
+            const existingKey = document.getElementById('editingUserKey').value.trim();
+            const rawName = document.getElementById('editUserNameInput').value.trim().toUpperCase();
+            const rawPwd = document.getElementById('editUserPasswordInput').value.trim();
+
+            if (!rawName || !rawPwd) {
+                showToast('Complete el nombre de usuario y la contraseña.', 'warning');
+                return;
+            }
+
+            // Verificar duplicado de nombre en otro usuario
+            const duplicateKey = Object.keys(userCredentials).find(k => k !== existingKey && userCredentials[k] && !userCredentials[k].deleted && userCredentials[k].name.toUpperCase() === rawName);
+            if (duplicateKey) {
+                showToast(`Ya existe un usuario con el nombre "${rawName}".`, 'error');
+                return;
+            }
+
+            let selectedPerms = Array.from(document.querySelectorAll('input[name="userPermCheck"]:checked')).map(cb => cb.value);
+            if (existingKey === 'tech_head') {
+                selectedPerms = [...ALL_PERMISSION_IDS];
+            }
+
+            const roleLabel = (existingKey === 'tech_head' || selectedPerms.length === ALL_PERMISSION_IDS.length)
+                ? `${rawName} (ACCESO TOTAL)`
+                : (selectedPerms.length === 0 ? `${rawName} (SOLO VER)` : `${rawName} (ACCESO LIMITADO)`);
+
+            const isNew = !existingKey;
+            const targetKey = existingKey || ('user_' + Date.now());
+
+            userCredentials[targetKey] = {
+                ...(userCredentials[targetKey] || {}),
+                name: rawName,
+                password: rawPwd,
+                roleName: roleLabel,
+                isProtected: targetKey === 'tech_head',
+                isFullAdmin: targetKey === 'tech_head' || selectedPerms.length === ALL_PERMISSION_IDS.length,
+                permissions: selectedPerms
+            };
+
+            persistSystemUsers(true);
+            populateLoginUsersDropdown();
+            renderUsersManagementList();
+            cancelUserEditorForm();
+            updateRoleUI();
 
             addMovement({
                 id: newMovId(),
                 date: getFormattedNow(),
-                type: 'Seguridad / Claves',
+                type: isNew ? 'Nuevo Usuario' : 'Edición de Usuario',
                 items: [],
+                equipType: 'Usuario del Sistema',
+                equipSerial: rawName,
                 agency: 'Sistema Central',
-                receptorType: 'Seguridad',
-                receptor: 'Roles de Sistema',
+                receptorType: 'Seguridad y Roles',
+                receptor: rawName,
                 owner: 'Grupo Andino',
                 user: getActiveUserName(),
-                obs: 'Actualización de contraseñas de acceso para usuarios del sistema.',
+                obs: `${isNew ? 'Creación de nuevo usuario' : 'Actualización de usuario/permisos'}: ${rawName} (${selectedPerms.length} permisos habilitados).`,
                 signature: ''
             });
+            renderMovementsTable();
 
-            showToast('¡Claves de acceso de los 6 usuarios actualizadas con éxito!');
-            closeModal('manageUsersModal');
+            showToast(`¡Usuario "${rawName}" guardado y sincronizado exitosamente!`, 'success');
+        }
+
+        function deleteSystemUser(userKey) {
+            if (!checkPermission('manage_users')) return;
+            if (userKey === 'tech_head' || userCredentials[userKey]?.isProtected) {
+                showToast('El usuario JEFE DE DEPARTAMENTO TÉCNICO está protegido y no puede eliminarse.', 'error');
+                return;
+            }
+            const target = userCredentials[userKey];
+            if (!target) return;
+
+            showConfirm(
+                '¿Eliminar Usuario?',
+                `¿Está seguro de eliminar al usuario "${target.name}" del sistema?`,
+                () => {
+                    const delName = target.name;
+                    if (defaultUserCredentials[userKey]) {
+                        userCredentials[userKey] = { ...target, deleted: true };
+                    } else {
+                        delete userCredentials[userKey];
+                    }
+
+                    persistSystemUsers(true);
+                    populateLoginUsersDropdown();
+                    renderUsersManagementList();
+
+                    addMovement({
+                        id: newMovId(),
+                        date: getFormattedNow(),
+                        type: 'Eliminación de Usuario',
+                        items: [],
+                        equipType: 'Usuario del Sistema',
+                        equipSerial: delName,
+                        agency: 'Sistema Central',
+                        receptorType: 'Seguridad y Roles',
+                        receptor: delName,
+                        owner: 'Grupo Andino',
+                        user: getActiveUserName(),
+                        obs: `Usuario "${delName}" eliminado del sistema por ${getActiveUserName()}.`,
+                        signature: ''
+                    });
+                    renderMovementsTable();
+
+                    showToast(`Usuario "${delName}" eliminado del sistema.`, 'info');
+                }
+            );
         }
 
 
@@ -4504,6 +4893,7 @@ service cloud.firestore {
 
         // Sincronización manual forzada de agencias con la nube
         function forceSyncAgenciesToCloud() {
+            if (!checkPermission('manage_system', 'Solo el JEFE DE DEPARTAMENTO TÉCNICO puede forzar la sincronización manual.')) return;
             if (!window.db) {
                 showToast('Base de datos en la nube no inicializada (Modo Local).', 'warning');
                 return;
@@ -4647,6 +5037,7 @@ service cloud.firestore {
 
                 function saveStockThresholds(e) {
             e.preventDefault();
+            if (!checkPermission('manage_system', 'No tiene permisos para modificar los mínimos de stock.')) return;
             const inputs = document.querySelectorAll('#stockThresholdsContainer input[data-cat]');
             inputs.forEach(input => {
                 const cat = input.getAttribute('data-cat');
@@ -4676,6 +5067,7 @@ service cloud.firestore {
 
 
         function resetStockThresholdsToDefault() {
+            if (!checkPermission('manage_system', 'No tiene permisos para restablecer los mínimos de stock.')) return;
             stockThresholds = { ...defaultStockThresholds };
             renderStockThresholdsInputs();
             showToast('Valores predeterminados cargados.');
@@ -4919,12 +5311,12 @@ service cloud.firestore {
                         </button>
                     `;
 
-                    const canAssign = ['admin', 'tech_head', 'office_exit'].includes(currentRole);
-                    const canMaint = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
-                    const canReturn = ['admin', 'tech_head', 'office_entry'].includes(currentRole);
-                    const canSendToWarehouse = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
-                    const canEditEquipment = ['admin', 'tech_head'].includes(currentRole);
-                    const canDelete = (currentRole === 'admin');
+                    const canAssign = can('assign_single');
+                    const canMaint = can('send_to_maint');
+                    const canReturn = can('reingresar_equip');
+                    const canSendToWarehouse = can('return_from_maint');
+                    const canEditEquipment = can('edit_equip');
+                    const canDelete = can('delete_records');
 
                     if (canEditEquipment) {
                         actionsHtml += `
@@ -4979,7 +5371,7 @@ service cloud.firestore {
                         `;
                     }
 
-                    if (currentRole === 'president') {
+                    if (isReadOnlyUser()) {
                         actionsHtml += `<span class="text-[11px] text-slate-400 italic font-medium ml-1">Sólo Consulta</span>`;
                     }
                     actionsHtml += `</div>`;
@@ -5143,12 +5535,12 @@ service cloud.firestore {
                         <button onclick="filterInventoryByAgency('${ag.name}')" title="Ver equipos" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition">
                             <i class="fa-solid fa-eye mr-0.5"></i> Equipos
                         </button>
-                        ${['admin', 'tech_head'].includes(currentRole) ? `
+                        ${can('edit_agency') ? `
                             <button onclick="openEditAgencyModal('${ag.id}')" title="Editar Agencia" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition ml-0.5">
                                 <i class="fa-solid fa-pen-to-square text-xs sm:text-sm"></i>
                             </button>
                         ` : ''}
-                        ${currentRole === 'admin' ? `
+                        ${can('delete_records') ? `
                             <button onclick="deleteAgency('${ag.id}')" title="Eliminar agencia" class="p-1.5 text-rose-600 hover:text-rose-800 hover:bg-rose-50 rounded-lg transition ml-0.5">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
                             </button>
@@ -5166,21 +5558,49 @@ service cloud.firestore {
             applyFilters();
         }
 
-                function renderMovementsTable() {
+                function populateMovementUserFilter() {
+            const sel = document.getElementById('movementUserFilter');
+            if (!sel) return;
+            const currentVal = sel.value || '';
+            const userSet = new Set();
+            Object.keys(userCredentials).forEach(k => {
+                if (userCredentials[k] && userCredentials[k].name) userSet.add(userCredentials[k].name);
+            });
+            movements.forEach(m => {
+                if (m && m.user) userSet.add(m.user);
+            });
+            const sortedUsers = Array.from(userSet).sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+            sel.innerHTML = '<option value="">Todos los Usuarios</option>';
+            sortedUsers.forEach(uName => {
+                const opt = document.createElement('option');
+                opt.value = uName;
+                opt.textContent = uName;
+                sel.appendChild(opt);
+            });
+            if (currentVal) sel.value = currentVal;
+        }
+
+        function renderMovementsTable() {
             const tbody = document.getElementById('movementsTableBody');
             const emptyMsg = document.getElementById('noMovementsMsg');
             const countEl = document.getElementById('movementSearchCount');
             if (!tbody) return;
             tbody.innerHTML = '';
 
+            populateMovementUserFilter();
+
             const query = (document.getElementById('movementSearchInput')?.value || '').toLowerCase().trim();
             const receptorFilter = (document.getElementById('movementReceptorFilter')?.value || '').toLowerCase().trim();
+            const userFilter = (document.getElementById('movementUserFilter')?.value || '').toLowerCase().trim();
 
             const filteredMovs = movements.filter(mov => {
                 const agObj = mov.agency ? agencies.find(a => a.name === mov.agency) : null;
                 const movRec = (mov.receptor && mov.receptor !== '-') ? mov.receptor : (agObj && agObj.supervisor && agObj.supervisor !== '-' ? agObj.supervisor : '');
 
                 if (receptorFilter && !movRec.toLowerCase().includes(receptorFilter)) {
+                    return false;
+                }
+                if (userFilter && String(mov.user || '').toLowerCase().trim() !== userFilter) {
                     return false;
                 }
                 if (!query) return true;
@@ -5222,11 +5642,16 @@ service cloud.firestore {
 
                 let equipText = '';
                 if (mov.items && mov.items.length > 0) {
-                    equipText = mov.items.map(it => `${it.type} (${it.serial})`).join(', ');
+                    equipText = mov.items.map(it => {
+                        const bm = it.brandModel && it.brandModel !== 'undefined undefined' ? ` - ${it.brandModel}` : '';
+                        return `<span class="font-semibold text-slate-900">${it.type}</span>${bm} <span class="font-mono text-blue-700 font-bold">(${it.serial})</span>`;
+                    }).join('<br>');
                 } else if (mov.equipType || mov.equipSerial) {
-                    equipText = `${mov.equipType || 'Equipo'} (${mov.equipSerial || 'S/N'})`;
+                    equipText = `<span class="font-semibold text-slate-900">${mov.equipType || 'Registro'}</span> <span class="font-mono text-slate-700">(${mov.equipSerial || '-'})</span>`;
+                } else if (mov.agency && mov.agency !== '-' && mov.agency !== 'Sistema Central') {
+                    equipText = `<span class="font-semibold text-slate-700">${mov.type}: ${mov.agency}</span>`;
                 } else {
-                    equipText = '<span class="text-slate-400 italic">Acción Administrativa</span>';
+                    equipText = `<span class="text-slate-500 italic">${mov.obs ? mov.obs.slice(0, 60) : 'Acción Administrativa'}</span>`;
                 }
 
                 let typeBadge = '';
@@ -5235,6 +5660,8 @@ service cloud.firestore {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800"><i class="fa-solid fa-boxes-packing mr-1"></i>${mov.type}</span>`;
                 } else if (mType.includes('salida') || mType.includes('despacho') || mType.includes('asignación') || mType.includes('asignaci')) {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800"><i class="fa-solid fa-arrow-up-right-from-square mr-1"></i>${mov.type}</span>`;
+                } else if (mType.includes('reingreso a mantenimiento')) {
+                    typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-purple-100 text-purple-800"><i class="fa-solid fa-screwdriver-wrench mr-1"></i>${mov.type}</span>`;
                 } else if (mType.includes('entrada') || mType.includes('ingreso') || mType.includes('reingreso') || mType.includes('devolución') || mType.includes('devoluci')) {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-blue-100 text-blue-800"><i class="fa-solid fa-arrow-down-left-and-up-right-to-center mr-1"></i>${mov.type}</span>`;
                 } else if (mType.includes('mantenimiento') || mType.includes('taller')) {
@@ -5243,17 +5670,23 @@ service cloud.firestore {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800"><i class="fa-solid fa-trash-can mr-1"></i>${mov.type}</span>`;
                 } else if (mType.includes('edición') || mType.includes('edici') || mType.includes('modificaci')) {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-indigo-100 text-indigo-800"><i class="fa-solid fa-pen-to-square mr-1"></i>${mov.type}</span>`;
-                } else if (mType.includes('agencia')) {
-                    typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-teal-100 text-teal-800"><i class="fa-solid fa-store mr-1"></i>${mov.type}</span>`;
+                } else if (mType.includes('agencia') || mType.includes('receptor') || mType.includes('categoría') || mType.includes('usuario')) {
+                    typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-teal-100 text-teal-800"><i class="fa-solid fa-clipboard-check mr-1"></i>${mov.type}</span>`;
                 } else {
                     typeBadge = `<span class="px-2 py-0.5 rounded font-bold bg-slate-100 text-slate-800">${mov.type}</span>`;
                 }
 
-                const isActaType = (mov.items && mov.items.length > 0) || mType.includes('salida') || mType.includes('despacho') || mType.includes('devoluci') || mType.includes('reingreso') || mType.includes('mantenimiento');
+                const isActaType = (mov.items && mov.items.length > 0) || mType.includes('salida') || mType.includes('despacho') || mType.includes('devoluci') || mType.includes('reingreso') || mType.includes('mantenimiento') || mType.includes('entrada');
                 
                 const actionBtn = isActaType 
-                    ? `<button onclick="viewReceipt('${mov.id}')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 font-medium text-xs transition inline-flex items-center"><i class="fa-solid fa-receipt mr-1 text-slate-500"></i> Acta</button>`
-                    : `<button onclick="openMovementDetails('${mov.id}')" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-medium text-xs transition inline-flex items-center"><i class="fa-solid fa-circle-info mr-1 text-indigo-500"></i> Detalle</button>`;
+                    ? `<div class="inline-flex items-center gap-1">
+                        <button onclick="viewReceipt('${mov.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 font-medium text-xs transition inline-flex items-center" title="Ver Comprobante / Acta Oficial"><i class="fa-solid fa-receipt mr-1 text-slate-500"></i> Acta</button>
+                        <button onclick="openMovementDetails('${mov.id}')" class="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition" title="Ver Detalle"><i class="fa-solid fa-circle-info"></i></button>
+                       </div>`
+                    : `<div class="inline-flex items-center gap-1">
+                        <button onclick="openMovementDetails('${mov.id}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded border border-indigo-200 font-medium text-xs transition inline-flex items-center"><i class="fa-solid fa-circle-info mr-1 text-indigo-500"></i> Detalle</button>
+                        <button onclick="viewReceipt('${mov.id}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded border border-slate-300 font-medium text-xs transition inline-flex items-center" title="Ver Acta"><i class="fa-solid fa-receipt"></i></button>
+                       </div>`;
 
                 tr.innerHTML = `
                     <td class="px-3.5 py-2.5 font-mono font-bold text-slate-800"><i class="fa-regular fa-clock text-slate-400 mr-1"></i>${mov.date}</td>
@@ -5276,7 +5709,7 @@ service cloud.firestore {
                             return own !== '-' ? `<span>${own}</span>` : (mov.receptor && mov.receptor !== '-' ? mov.receptor : '<span class="text-slate-400 font-mono text-xs">-</span>');
                         })()}
                     </td>
-                    <td class="px-3.5 py-2.5 text-slate-600 font-medium"><i class="fa-solid fa-user-check text-[10px] text-indigo-500 mr-1"></i> ${mov.user || 'Administrador'}</td>
+                    <td class="px-3.5 py-2.5 text-slate-800 font-bold"><span class="inline-flex items-center px-2 py-0.5 rounded bg-indigo-50 text-indigo-900 border border-indigo-200 text-[11px]"><i class="fa-solid fa-user-shield text-[10px] text-indigo-600 mr-1.5"></i>${mov.user || 'SISTEMA'}</span></td>
                     <td class="px-3.5 py-2.5">${hasSig}</td>
                     <td class="px-3.5 py-2.5 text-right">
                         ${actionBtn}
@@ -5321,7 +5754,7 @@ service cloud.firestore {
             }
 
             if (emptyMsg) emptyMsg.classList.add('hidden');
-            const canResolveMaint = ['admin', 'tech_head', 'tech_maintenance'].includes(currentRole);
+            const canResolveMaint = can('return_from_maint');
             activeMaint.forEach(m => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
@@ -5523,7 +5956,7 @@ service cloud.firestore {
         }
 
         function openAddModal() {
-            if (!checkPermission(['admin', 'tech_head', 'office_entry', 'tech_maintenance'])) return;
+            if (!checkPermission('register_equip', 'No tiene permisos para registrar equipos nuevos.')) return;
             targetAddDestination = 'warehouse';
             document.getElementById('editingEquipmentId').value = '';
             document.getElementById('addModalTitle').innerText = 'Registrar Entrada al Depósito';
@@ -5547,7 +5980,10 @@ service cloud.firestore {
             const btnSaveNewDepo = document.getElementById('btnSaveNewDepo');
             const btnSaveEquipmentEdit = document.getElementById('btnSaveEquipmentEdit');
 
-            if (btnSaveNewMaint) btnSaveNewMaint.classList.remove('hidden');
+            if (btnSaveNewMaint) {
+                if (can('send_to_maint')) btnSaveNewMaint.classList.remove('hidden');
+                else btnSaveNewMaint.classList.add('hidden');
+            }
             if (btnSaveNewDepo) btnSaveNewDepo.classList.remove('hidden');
             if (btnSaveEquipmentEdit) btnSaveEquipmentEdit.classList.add('hidden');
 
@@ -5560,7 +5996,7 @@ service cloud.firestore {
         }
 
         function openEditEquipmentModal(id) {
-            if (!checkPermission(['admin', 'tech_head'])) return;
+            if (!checkPermission('edit_equip', 'No tiene permisos para editar equipos.')) return;
 
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -5604,6 +6040,12 @@ service cloud.firestore {
         function saveEquipment(e) {
             e.preventDefault();
             const editingId = document.getElementById('editingEquipmentId').value;
+            if (editingId) {
+                if (!checkPermission('edit_equip', 'No tiene permisos para editar equipos.')) return;
+            } else {
+                if (!checkPermission('register_equip', 'No tiene permisos para registrar equipos.')) return;
+                if (targetAddDestination === 'maintenance' && !checkPermission('send_to_maint', 'No tiene permisos para enviar equipos a mantenimiento.')) return;
+            }
             const type = document.getElementById('addType').value;
             const serial = document.getElementById('addSerial').value.trim().toUpperCase();
             const brand = document.getElementById('addBrand').value.trim();
@@ -5882,7 +6324,7 @@ service cloud.firestore {
         }
 
         function deleteEquipment(id) {
-            if (!checkPermission(['admin'])) return;
+            if (!checkPermission('delete_records', 'No tiene permisos para eliminar equipos.')) return;
             const equip = inventory.find(i => String(i.id) === String(id));
             if (!equip) return;
 
@@ -5925,7 +6367,7 @@ service cloud.firestore {
         }
 
         function openAddAgencyModal() {
-            if (!checkPermission(['admin', 'tech_head'])) return;
+            if (!checkPermission('register_agency', 'No tiene permisos para registrar agencias.')) return;
             populateTypeDropdowns();
             populateAgencyDropdowns();
             document.getElementById('editingAgencyId').value = '';
@@ -5945,7 +6387,7 @@ service cloud.firestore {
         }
 
         function openEditAgencyModal(id) {
-            if (!checkPermission(['admin', 'tech_head'])) return;
+            if (!checkPermission('edit_agency', 'No tiene permisos para editar agencias.')) return;
             populateTypeDropdowns();
             populateAgencyDropdowns();
             const ag = findAgencyByReference(id);
@@ -5977,6 +6419,11 @@ service cloud.firestore {
         function saveAgency(e) {
             e.preventDefault();
             const editingId = document.getElementById('editingAgencyId').value;
+            if (editingId && editingId !== "undefined") {
+                if (!checkPermission('edit_agency', 'No tiene permisos para editar agencias.')) return;
+            } else {
+                if (!checkPermission('register_agency', 'No tiene permisos para registrar nuevas agencias.')) return;
+            }
 
             const code = document.getElementById('agencyCode').value.trim().toUpperCase();
             const name = document.getElementById('agencyName').value.trim();
@@ -6064,6 +6511,8 @@ service cloud.firestore {
                         type: 'Edición Agencia',
                         agencyId: agencyToEdit.id,
                         items: [],
+                        equipType: 'Agencia POS',
+                        equipSerial: `Cód: ${code} - ${name}`,
                         agency: name,
                         receptorType: 'Catálogo Agencias',
                         receptor: supervisor || owner || '-',
@@ -6113,6 +6562,8 @@ service cloud.firestore {
                     type: 'Nueva Agencia',
                     agencyId: newAgency.id,
                     items: [],
+                    equipType: 'Agencia POS',
+                    equipSerial: `Cód: ${code} - ${name}`,
                     agency: name,
                     receptorType: 'Catálogo Agencias',
                     receptor: owner || supervisor || '-',
@@ -6165,7 +6616,7 @@ service cloud.firestore {
 
 
                 function deleteAgency(id) {
-            if (!checkPermission(['admin'])) return;
+            if (!checkPermission('delete_records', 'No tiene permisos para eliminar agencias.')) return;
             const ag = findAgencyByReference(id);
             if (!ag) {
                 showToast('No se encontró la agencia a eliminar.', 'warning');
@@ -6192,6 +6643,8 @@ service cloud.firestore {
                         type: 'Eliminación Agencia',
                         agencyId: targetId,
                         items: [],
+                        equipType: 'Agencia POS',
+                        equipSerial: `Cód: ${targetCode || targetId} - ${targetName}`,
                         agency: targetName,
                         receptorType: 'Catálogo Agencias',
                         receptor: ag.owner || '-',
@@ -6275,11 +6728,13 @@ service cloud.firestore {
         }
 
         function openReceptorsModal() {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
+            if (!can('register_receptor') && !can('edit_receptor') && !can('delete_records')) {
                 showToast('No tiene permisos para gestionar la lista de receptores.', 'error');
                 return;
             }
             populateReceptorDropdowns();
+            const addForm = document.getElementById('addReceptorForm');
+            if (addForm) addForm.style.display = can('register_receptor') ? 'block' : 'none';
             const input = document.getElementById('newReceptorName');
             if (input) input.value = '';
             renderReceptorsList();
@@ -6291,17 +6746,30 @@ service cloud.firestore {
             if (!container) return;
             container.innerHTML = '';
 
+            const canEditRec = can('edit_receptor');
+            const canDelRec = can('delete_records');
+
             systemReceptors.forEach(rec => {
+                const safeRec = rec.replace(/'/g, "\\'");
                 const item = document.createElement('div');
                 item.className = 'flex items-center justify-between p-2 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-medium text-slate-700 border border-slate-200';
                 item.innerHTML = `
                     <div class="flex items-center space-x-2">
                         <i class="fa-solid fa-user-check text-teal-600"></i>
-                        <span class="font-semibold text-slate-800">${rec}</span>
+                        <span class="font-semibold text-slate-800">${escapeBatchHtml(rec)}</span>
                     </div>
-                    <button type="button" onclick="removeReceptor('${rec.replace(/'/g, "\\'")}')" title="Eliminar receptor" class="text-slate-400 hover:text-rose-600 transition p-1 cursor-pointer">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+                    <div class="flex items-center space-x-1">
+                        ${canEditRec ? `
+                        <button type="button" onclick="editReceptor('${safeRec}')" title="Editar nombre del receptor" class="text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded transition p-1 cursor-pointer">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        ` : ''}
+                        ${canDelRec ? `
+                        <button type="button" onclick="removeReceptor('${safeRec}')" title="Eliminar receptor" class="text-slate-400 hover:text-rose-600 transition p-1 cursor-pointer">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                        ` : ''}
+                    </div>
                 `;
                 container.appendChild(item);
             });
@@ -6309,6 +6777,7 @@ service cloud.firestore {
 
         function addReceptor(e) {
             if (e && e.preventDefault) e.preventDefault();
+            if (!checkPermission('register_receptor', 'No tiene permisos para agregar receptores.')) return;
             const input = document.getElementById('newReceptorName');
             const newName = (input ? input.value : '').trim();
 
@@ -6322,15 +6791,84 @@ service cloud.firestore {
             systemReceptors.push(newName);
             systemReceptors.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
+            addMovement({
+                id: newMovId(),
+                date: getFormattedNow(),
+                type: 'Nuevo Receptor',
+                items: [],
+                equipType: 'Receptor',
+                equipSerial: newName,
+                agency: 'Catálogo Receptores',
+                receptorType: 'Registro',
+                receptor: newName,
+                owner: '-',
+                user: getActiveUserName(),
+                obs: `Nuevo receptor "${newName}" registrado en el catálogo del sistema por ${getActiveUserName()}.`,
+                signature: ''
+            });
+
             try { localStorage.setItem('lotto_receptors_v1', JSON.stringify(systemReceptors)); } catch(e){}
             saveData();
             populateReceptorDropdowns();
             renderReceptorsList();
+            renderMovementsTable();
             if (input) input.value = '';
             showToast(`Receptor "${newName}" agregado exitosamente.`);
         }
 
+        function editReceptor(oldName) {
+            if (!checkPermission('edit_receptor', 'No tiene permisos para editar receptores.')) return;
+            const nuevoNombreRaw = prompt(`Editar nombre del Receptor "${oldName}":`, oldName);
+            if (nuevoNombreRaw === null) return;
+            const newName = nuevoNombreRaw.trim();
+            if (!newName || newName === oldName) return;
+
+            if (systemReceptors.some(r => r.toLowerCase() !== oldName.toLowerCase() && r.toLowerCase() === newName.toLowerCase())) {
+                showToast('Ya existe otro receptor con ese nombre.', 'error');
+                return;
+            }
+
+            systemReceptors = systemReceptors.map(r => r === oldName ? newName : r);
+            systemReceptors.sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
+
+            // Actualizar referencias en agencias e inventario
+            agencies.forEach(ag => {
+                if (ag && ag.supervisor && ag.supervisor.toLowerCase() === oldName.toLowerCase()) {
+                    ag.supervisor = newName;
+                }
+            });
+            inventory.forEach(it => {
+                if (it && it.receptor && it.receptor.toLowerCase() === oldName.toLowerCase()) {
+                    it.receptor = newName;
+                }
+            });
+
+            addMovement({
+                id: newMovId(),
+                date: getFormattedNow(),
+                type: 'Edición de Receptor',
+                items: [],
+                equipType: 'Receptor',
+                equipSerial: `${oldName} -> ${newName}`,
+                agency: 'Catálogo Receptores',
+                receptorType: 'Modificación',
+                receptor: newName,
+                owner: '-',
+                user: getActiveUserName(),
+                obs: `Receptor actualizado de "${oldName}" a "${newName}" por ${getActiveUserName()}.`,
+                signature: ''
+            });
+
+            try { localStorage.setItem('lotto_receptors_v1', JSON.stringify(systemReceptors)); } catch(e){}
+            saveData();
+            populateReceptorDropdowns();
+            renderReceptorsList();
+            renderAll();
+            showToast(`Receptor actualizado a "${newName}".`, 'success');
+        }
+
         function removeReceptor(name) {
+            if (!checkPermission('delete_records', 'No tiene permisos para eliminar receptores.')) return;
             if (systemReceptors.length <= 1) {
                 showToast('Debe conservar al menos un receptor en la lista.', 'warning');
                 return;
@@ -6347,13 +6885,13 @@ service cloud.firestore {
                         type: 'Eliminación de Receptor',
                         items: [],
                         equipType: 'Receptor',
-                        equipSerial: '-',
-                        agency: '-',
+                        equipSerial: name,
+                        agency: 'Catálogo Receptores',
                         receptorType: 'Eliminado',
                         receptor: name,
                         owner: '-',
                         user: getActiveUserName(),
-                        obs: `Receptor "${name}" eliminado del catálogo del sistema.`,
+                        obs: `Receptor "${name}" eliminado del catálogo del sistema por ${getActiveUserName()}.`,
                         signature: ''
                     });
 
@@ -6369,10 +6907,7 @@ service cloud.firestore {
         }
 
         function openTypesModal() {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
-                showToast('No tiene permisos para gestionar categorías.', 'error');
-                return;
-            }
+            if (!checkPermission('manage_categories', 'No tiene permisos para gestionar categorías.')) return;
             populateTypeDropdowns();
             populateAgencyDropdowns();
             document.getElementById('newTypeName').value = '';
@@ -6380,11 +6915,10 @@ service cloud.firestore {
             document.getElementById('typesModal').classList.remove('hidden');
         }
 
-        
-
         function renderCategoriesList() {
             const container = document.getElementById('categoriesList');
             container.innerHTML = '';
+            const canDelCat = can('delete_records');
 
             equipmentCategories.forEach(cat => {
                 const item = document.createElement('div');
@@ -6394,9 +6928,11 @@ service cloud.firestore {
                         <i class="${getEquipmentIcon(cat)} text-purple-600"></i>
                         <span>${cat}</span>
                     </div>
+                    ${canDelCat ? `
                     <button onclick="removeEquipmentCategory('${cat}')" title="Eliminar categoría" class="text-slate-400 hover:text-rose-600 transition p-1">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
+                    ` : ''}
                 `;
                 container.appendChild(item);
             });
@@ -6404,6 +6940,7 @@ service cloud.firestore {
 
         function addEquipmentCategory(e) {
             e.preventDefault();
+            if (!checkPermission('manage_categories', 'No tiene permisos para agregar categorías.')) return;
             const input = document.getElementById('newTypeName');
             const newCat = input.value.trim();
 
@@ -6419,14 +6956,32 @@ service cloud.firestore {
                 stockThresholds[newCat] = 3;
             }
 
+            addMovement({
+                id: newMovId(),
+                date: getFormattedNow(),
+                type: 'Nueva Categoría',
+                items: [],
+                equipType: 'Categoría',
+                equipSerial: newCat,
+                agency: 'Catálogo Categorías',
+                receptorType: 'Registro',
+                receptor: '-',
+                owner: '-',
+                user: getActiveUserName(),
+                obs: `Nueva categoría de equipo "${newCat}" registrada por ${getActiveUserName()}.`,
+                signature: ''
+            });
+
             saveData();
             populateTypeDropdowns();
             renderCategoriesList();
+            renderMovementsTable();
             input.value = '';
             showToast('Categoría agregada.');
         }
 
         function removeEquipmentCategory(catName) {
+            if (!checkPermission('delete_records', 'No tiene permisos para eliminar categorías.')) return;
             if (equipmentCategories.length <= 1) {
                 showToast('Debe conservar al menos una categoría.', 'warning');
                 return;
@@ -6465,7 +7020,7 @@ service cloud.firestore {
 
                 /* --- ASIGNAR SALIDA A AGENCIA / RECEPTOR --- */
         function openDispatchModal(id) {
-            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
+            if (!checkPermission('assign_single', 'No tiene permisos para asignar equipos.')) return;
             const item = inventory.find(i => String(i.id) === String(id) || String(i.serial) === String(id));
             if (!item) {
                 showToast('Error: No se encontró el equipo seleccionado.', 'error');
@@ -6533,7 +7088,7 @@ service cloud.firestore {
 
         function processDispatch(e) {
             if (e && e.preventDefault) e.preventDefault();
-            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) return;
+            if (!checkPermission('assign_single', 'No tiene permisos para asignar equipos.')) return;
 
             const equipId = document.getElementById('dispatchEquipmentId').value;
             const item = inventory.find(i => String(i.id) === String(equipId) || String(i.serial) === String(equipId));
@@ -6621,11 +7176,17 @@ service cloud.firestore {
         }
 
         /* --- REINGRESO / DEVOLUCIÓN DE EQUIPO CON VERIFICACIÓN Y FIRMA --- */
-        function openReturnModal(id) {
-            if (!['admin', 'tech_head', 'office_entry'].includes(currentRole)) {
-                showToast('No tiene permisos para registrar reingresos al depósito. Acción exclusiva de Oficina Entrada.', 'error');
-                return;
+        function toggleReturnDestinationFields() {
+            const dest = document.getElementById('returnDestinationSelect')?.value || 'warehouse';
+            const maintBox = document.getElementById('returnMaintFields');
+            if (maintBox) {
+                if (dest === 'maintenance') maintBox.classList.remove('hidden');
+                else maintBox.classList.add('hidden');
             }
+        }
+
+        function openReturnModal(id) {
+            if (!checkPermission('reingresar_equip', 'No tiene permisos para reingresar equipos.')) return;
             const item = inventory.find(i => String(i.id) === String(id) || String(i.serial) === String(id));
             if (!item) {
                 showToast('Error: No se encontró el equipo para reingresar.', 'error');
@@ -6638,6 +7199,12 @@ service cloud.firestore {
             document.getElementById('returnEquipBrandModel').innerText = `${item.brand} ${item.model}`;
             document.getElementById('returnEquipAgency').innerText = item.agency;
             document.getElementById('returnEquipHolder').innerText = item.receptor !== '-' ? `${item.receptor} (Dueño: ${item.owner})` : item.owner;
+
+            const destSel = document.getElementById('returnDestinationSelect');
+            if (destSel) destSel.value = 'warehouse';
+            const workshopInput = document.getElementById('returnMaintWorkshop');
+            if (workshopInput) workshopInput.value = 'Taller Central';
+            toggleReturnDestinationFields();
 
             document.getElementById('returnPersonName').value = item.owner !== '-' ? item.owner : (item.receptor !== '-' ? item.receptor : '');
             document.getElementById('returnObs').value = '';
@@ -6665,10 +7232,7 @@ service cloud.firestore {
         function processReturnToWarehouse(e) {
             if (e && e.preventDefault) e.preventDefault();
 
-            if (!['admin', 'tech_head', 'office_entry'].includes(currentRole)) {
-                showToast('No tiene permisos para registrar reingresos al depósito. Acción exclusiva de Oficina Entrada.', 'error');
-                return;
-            }
+            if (!checkPermission('reingresar_equip', 'No tiene permisos para registrar reingresos de equipos.')) return;
 
             const id = document.getElementById('returnEquipmentId').value;
             const item = inventory.find(i => String(i.id) === String(id) || String(i.serial) === String(id));
@@ -6676,6 +7240,9 @@ service cloud.firestore {
                 showToast('Error: No se encontró el equipo en el inventario.', 'error');
                 return;
             }
+
+            const destination = document.getElementById('returnDestinationSelect')?.value || 'warehouse';
+            const workshop = (document.getElementById('returnMaintWorkshop')?.value || 'Taller Central').trim() || 'Taller Central';
 
             const personName = document.getElementById('returnPersonName').value.trim();
             if (personName.length < 2) {
@@ -6686,7 +7253,7 @@ service cloud.firestore {
 
             const obs = document.getElementById('returnObs').value.trim();
             if (obs.length < 2) {
-                showToast('Por favor indique las observaciones de la devolución.', 'warning');
+                showToast('Por favor indique las observaciones o falla de la devolución.', 'warning');
                 document.getElementById('returnObs').focus();
                 return;
             }
@@ -6696,29 +7263,47 @@ service cloud.firestore {
                 const prevAgency = item.agency;
                 const prevOwner = item.owner;
                 const now = getFormattedNow();
+                const isToMaint = destination === 'maintenance';
 
-                item.status = 'En Depósito';
+                item.status = isToMaint ? 'En Mantenimiento' : 'En Depósito';
                 item.agency = '-';
                 item.receptor = '-';
                 item.owner = '-';
                 item.dateIn = now;
-                item.dateOut = '-';
+                item.dateOut = isToMaint ? now : '-';
                 item.transactionType = 'Reingreso';
+
+                if (isToMaint) {
+                    maintenanceLog.push({
+                        id: 'MNT-' + Math.floor(1000 + Math.random() * 9000),
+                        equipId: item.id,
+                        equipType: item.type,
+                        equipSerial: item.serial,
+                        fault: `Reingreso desde ${prevAgency}: ${obs}`,
+                        workshop: workshop,
+                        cost: '0.00',
+                        dateIn: now,
+                        dateOut: '-',
+                        status: 'En Taller'
+                    });
+                }
 
                 const movId = newMovId();
 
                 const movObj = {
                     id: movId,
                     date: now,
-                    type: 'Reingreso / Devolución',
+                    type: isToMaint ? 'Reingreso a Mantenimiento' : 'Reingreso / Devolución',
                     transactionType: 'Reingreso',
                     items: [{ type: item.type, brandModel: `${item.brand} ${item.model}`, serial: item.serial, color: item.color, ram: item.ram || '', disk: item.disk || '', processor: item.processor || '' }],
                     agency: prevAgency,
-                    receptorType: 'Devolución de Agencia',
+                    receptorType: isToMaint ? `Devolución a Mantenimiento (${workshop})` : 'Devolución a Depósito Central',
                     receptor: personName,
                     owner: prevOwner,
                     user: getActiveUserName(),
-                    obs: `Devolución de ${prevAgency}. Obs: ${obs}`,
+                    obs: isToMaint
+                        ? `Devolución de ${prevAgency} enviada a Mantenimiento (${workshop}). Falla/Obs: ${obs}`
+                        : `Devolución de ${prevAgency} a Depósito Central. Obs: ${obs}`,
                     signature: signatureData
                 };
 
@@ -6727,7 +7312,12 @@ service cloud.firestore {
                 closeModal('returnModal');
                 renderAll();
 
-                showToast(`¡Equipo ${item.serial} reingresado exitosamente al Depósito Central!`);
+                showToast(
+                    isToMaint
+                        ? `¡Equipo ${item.serial} reingresado y enviado a Mantenimiento Técnico!`
+                        : `¡Equipo ${item.serial} reingresado exitosamente al Depósito Central!`,
+                    isToMaint ? 'warning' : 'success'
+                );
                 viewReceipt(movId);
             } catch (err) {
                 console.error('Error al procesar reingreso:', err);
@@ -6800,10 +7390,7 @@ service cloud.firestore {
         }
 
         function openBatchDispatchModal() {
-            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) {
-                showToast('No tiene permisos para despachar equipos.', 'error');
-                return;
-            }
+            if (!checkPermission('assign_combo', 'No tiene permisos para despachar Combo Kit.')) return;
             
             const form = document.getElementById('batchDispatchForm');
             if (form) form.reset();
@@ -7035,10 +7622,7 @@ service cloud.firestore {
 
         function processBatchDispatch(e) {
             if (e && e.preventDefault) e.preventDefault();
-            if (!checkPermission(['admin', 'tech_head', 'office_exit'])) {
-                showToast('No tiene permisos para procesar asignaciones.', 'error');
-                return;
-            }
+            if (!checkPermission('assign_combo', 'No tiene permisos para procesar Combo Kit.')) return;
 
             // Sincronizar cualquier checkbox visible actualmente en pantalla con el Set
             document.querySelectorAll('input[name="batchEquipCheck"]:checked').forEach(cb => {
@@ -7166,10 +7750,7 @@ service cloud.firestore {
         parsedExcelRows = [];
 
         function openExcelImportModal() {
-            if (!['admin', 'tech_head', 'office_entry'].includes(currentRole)) {
-                showToast('No tiene permisos para importar inventario desde Excel.', 'error');
-                return;
-            }
+            if (!checkPermission('register_equip', 'No tiene permisos para importar inventario desde Excel.')) return;
 
             document.getElementById('excelFileInput').value = '';
             document.getElementById('excelFileName').innerText = 'Ningún archivo seleccionado';
@@ -7402,6 +7983,7 @@ service cloud.firestore {
         }
 
         function executeExcelImport() {
+            if (!checkPermission('register_equip', 'No tiene permisos para importar inventario desde Excel.')) return;
             if (parsedExcelRows.length === 0) return;
 
             let addedCount = 0;
@@ -7511,10 +8093,7 @@ service cloud.firestore {
                 let parsedAgenciesExcelRows = [];
 
         function openAgenciesExcelImportModal() {
-            if (!['admin', 'tech_head'].includes(currentRole)) {
-                showToast('No tiene permisos para importar agencias desde Excel.', 'error');
-                return;
-            }
+            if (!checkPermission('register_agency', 'No tiene permisos para importar agencias desde Excel.')) return;
             populateTypeDropdowns();
             populateAgencyDropdowns();
 
@@ -7643,6 +8222,7 @@ service cloud.firestore {
         }
 
                 function executeAgenciesExcelImport() {
+            if (!checkPermission('register_agency', 'No tiene permisos para importar agencias desde Excel.')) return;
             if (parsedAgenciesExcelRows.length === 0) return;
 
             let addedCount = 0;
@@ -7684,10 +8264,7 @@ service cloud.firestore {
 
 
         function openMaintenanceModal(id) {
-            if (!['admin', 'tech_head', 'tech_maintenance'].includes(currentRole)) {
-                showToast('No tiene permisos para enviar equipos a mantenimiento.', 'error');
-                return;
-            }
+            if (!checkPermission('send_to_maint', 'No tiene permisos para enviar equipos a mantenimiento.')) return;
             populateTypeDropdowns();
             populateAgencyDropdowns();
             const item = inventory.find(i => i.id === id);
@@ -7705,6 +8282,7 @@ service cloud.firestore {
 
         function processSendToMaintenance(e) {
             e.preventDefault();
+            if (!checkPermission('send_to_maint', 'No tiene permisos para enviar equipos a mantenimiento.')) return;
             const id = document.getElementById('maintEquipmentId').value;
             const item = inventory.find(i => i.id === id);
             if (!item) return;
@@ -7756,7 +8334,7 @@ service cloud.firestore {
         }
 
         function resolveMaintenance(maintId) {
-            if (!checkPermission(['admin', 'tech_head', 'tech_maintenance'])) return;
+            if (!checkPermission('return_from_maint', 'No tiene permisos para retornar equipos de mantenimiento a depósito.')) return;
             const maint = maintenanceLog.find(m => m.id === maintId);
             if (!maint) return;
 
@@ -7802,7 +8380,7 @@ service cloud.firestore {
         }
 
         function sendMaintenanceToWarehouse(equipId) {
-            if (!checkPermission(['admin', 'tech_head', 'tech_maintenance'])) return;
+            if (!checkPermission('return_from_maint', 'No tiene permisos para enviar equipos de mantenimiento a depósito.')) return;
             const item = inventory.find(i => i.id === equipId || (i.serial && normSerialKey(i.serial) === normSerialKey(equipId)));
             if (!item) {
                 showToast('Equipo no encontrado en el inventario.', 'error');
@@ -9464,7 +10042,7 @@ service cloud.firestore {
                     applyFilters();
 
                     const exactMatch = inventory.find(i => i.serial.toUpperCase() === scannedCode);
-                    if (exactMatch && isWarehouse(exactMatch.status) && currentRole !== 'operator') {
+                    if (exactMatch && isWarehouse(exactMatch.status) && can('assign_single')) {
                         showConfirm(
                             '¡Equipo Encontrado!',
                             `Serial: ${exactMatch.serial}\nTipo: ${exactMatch.type}\n\n¿Desea realizar el despacho / asignación inmediatamente?`,
@@ -9563,6 +10141,7 @@ service cloud.firestore {
         }
 
         function restoreEmbeddedBackup() {
+            if (!checkPermission('manage_system', 'Solo el JEFE DE DEPARTAMENTO TÉCNICO puede restaurar respaldos.')) return;
             if (!initialInventory.length && !initialAgencies.length) {
                 showToast('Esta versión no incluye una base de datos embebida. Use "Importar respaldo JSON" con su archivo.', 'warning');
                 return;
@@ -9895,6 +10474,7 @@ service cloud.firestore {
         }
 
         function importJSONBackup(e) {
+            if (!checkPermission('manage_system', 'Solo el JEFE DE DEPARTAMENTO TÉCNICO puede restaurar respaldos JSON.')) { e.target.value = ''; return; }
             const file = e.target.files[0];
             if (!file) return;
 
@@ -9940,6 +10520,7 @@ service cloud.firestore {
 
         // FUSIÓN MULTI-EQUIPO INTELIGENTE DE RESPALDOS JSON
         function mergeMultipleJSONBackups(e) {
+            if (!checkPermission('manage_system', 'Solo el JEFE DE DEPARTAMENTO TÉCNICO puede fusionar respaldos JSON.')) { e.target.value = ''; return; }
             const files = Array.from(e.target.files);
             if (!files || files.length === 0) return;
 
@@ -10150,6 +10731,1008 @@ service cloud.firestore {
             }
         });
     </script>
+<script>
+/*!
+ * ESTATUS VENTAS ATENAS - capa visual e informativa (solo lectura)
+ * ----------------------------------------------------------------
+ * Agrega la columna "Estatus Ventas Atenas" (semáforo) a la tabla de Inventario
+ * y a la de Agencias POS, cruzando con los reportes de Atenas Pesos, Bolívares y Dólares.
+ *
+ * REGLAS DE SEGURIDAD DE ESTE ARCHIVO
+ *  - NO llama a saveData, cloudSaveList, Firebase/Firestore ni a ninguna función que guarde.
+ *  - NO modifica los arreglos inventory / agencies / movements ni sus registros.
+ *  - Solo lee. Todo lo que guarda va al LocalStorage de este navegador con claves
+ *    propias que empiezan por "lotto_atenas_" (no se sincronizan con la nube).
+ *  - Solo añade una columna visual a las tablas ya dibujadas y un botón/ventana propios.
+ */
+(function (root) {
+  'use strict';
+
+  var MONEDAS = ['PESOS', 'BOLIVARES', 'DOLARES'];
+  var ETIQ = { PESOS: 'Pesos', BOLIVARES: 'Bolívares', DOLARES: 'Dólares' };
+  var LS = {
+    reportes: 'lotto_atenas_reportes_v1',
+    vinculos: 'lotto_atenas_vinculos_v1',
+    puente: 'lotto_atenas_puente_url',
+    puenteActivo: 'lotto_atenas_puente_activo',
+    semana: 'lotto_atenas_semana_v1'
+  };
+  var PUENTE_DEFECTO = 'http://127.0.0.1:8765';
+  var STOP = {};
+  ['AG', 'AGENCIA', 'LOTO', 'LOT', 'BS', 'DOL', 'DOLARES', 'BOLIVARES', 'PESOS', 'DE', 'LA', 'EL', 'LOS', 'LAS', 'Y', 'DEL']
+    .forEach(function (w) { STOP[w] = 1; });
+
+  /* =====================================================================
+   *  NÚCLEO (funciones puras, sin acceso a la página)
+   * ===================================================================== */
+  function normName(s) {
+    var t = String(s == null ? '' : s);
+    if (t.normalize) t = t.normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return t.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  function tokensNombre(s) {
+    return normName(s).split(' ').filter(function (t) { return t && !STOP[t] && !/^\d+$/.test(t); });
+  }
+
+  function claveNombre(s) {
+    var t = tokensNombre(s).sort().join(' ');
+    return t.length >= 3 ? t : '';
+  }
+
+  function normCodigo(c) {
+    var t = String(c == null ? '' : c).trim().toUpperCase();
+    if (/^\d{1,3}$/.test(t)) t = ('0000' + t).slice(-4);
+    return t;
+  }
+
+  function parseMonto(v) {
+    if (typeof v === 'number') return isFinite(v) ? v : NaN;
+    var t = String(v == null ? '' : v).replace(/[^\d.,\-]/g, '');
+    if (!t || t === '-') return NaN;
+    var tienePunto = t.indexOf('.') >= 0, tieneComa = t.indexOf(',') >= 0;
+    if (tienePunto && tieneComa) {
+      if (t.lastIndexOf(',') > t.lastIndexOf('.')) t = t.replace(/\./g, '').replace(',', '.');
+      else t = t.replace(/,/g, '');
+    } else if (tieneComa) {
+      t = /,\d{1,2}$/.test(t) && t.split(',').length === 2 ? t.replace(',', '.') : t.replace(/,/g, '');
+    } else if (tienePunto && t.split('.').length > 2) {
+      t = t.replace(/\./g, '');
+    }
+    var n = parseFloat(t);
+    return isFinite(n) ? n : NaN;
+  }
+
+  /** Convierte las filas del Excel/CSV de Atenas en { codigo: [nombre, ventasBrutas] } */
+  function procesarFilas(filas) {
+    var h = -1, iC = -1, iN = -1, iB = -1;
+    for (var r = 0; r < Math.min(filas.length, 15) && h < 0; r++) {
+      var ns = (filas[r] || []).map(normName);
+      var c = ns.indexOf('CODIGO'), b = -1;
+      for (var k = 0; k < ns.length; k++) {
+        if (ns[k].indexOf('VTAS BRUTAS') === 0 || ns[k].indexOf('VENTAS BRUTAS') === 0) { b = k; break; }
+      }
+      if (c >= 0 && b >= 0) { h = r; iC = c; iB = b; iN = ns.indexOf('NOMBRE'); }
+    }
+    if (h < 0) {
+      throw new Error('No parece el reporte "Reporte de Vtas. (Solo Agencia)" de Atenas: no encontré las columnas Codigo y Vtas. Brutas.');
+    }
+    var datos = {}, n = 0, total = 0;
+    for (var i = h + 1; i < filas.length; i++) {
+      var f = filas[i] || [];
+      var cod = normCodigo(f[iC]);
+      if (!cod) continue;
+      var bruta = parseMonto(f[iB]);
+      if (isNaN(bruta)) continue;
+      var nombre = iN >= 0 ? String(f[iN] == null ? '' : f[iN]).trim() : '';
+      if (datos[cod]) datos[cod][1] += bruta; else { datos[cod] = [nombre, bruta]; n++; }
+      total += bruta;
+    }
+    return { datos: datos, filas: n, total: total };
+  }
+
+  /**
+   * Semana evaluada (lunes a domingo).
+   *  modo 'anterior' (por defecto): la última semana cerrada.
+   *  modo 'actual': la semana en curso (parcial hasta que termine).
+   *  modo 'custom': la semana que contiene la fecha elegida (desdeISO = 'AAAA-MM-DD').
+   */
+  function semanaEvaluada(hoy, modo, desdeISO) {
+    var d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    var dow = (d.getDay() + 6) % 7; // lunes = 0
+    var lunesActual = new Date(d.getFullYear(), d.getMonth(), d.getDate() - dow);
+    var desde;
+    if (modo === 'actual') desde = lunesActual;
+    else if (modo === 'custom' && /^\d{4}-\d{2}-\d{2}$/.test(String(desdeISO || ''))) {
+      var p = desdeISO.split('-'), f = new Date(+p[0], +p[1] - 1, +p[2]);
+      if (isNaN(f.getTime())) f = null;
+      if (f) desde = new Date(f.getFullYear(), f.getMonth(), f.getDate() - ((f.getDay() + 6) % 7));
+    }
+    if (!desde) desde = new Date(lunesActual.getFullYear(), lunesActual.getMonth(), lunesActual.getDate() - 7);
+    var hasta = new Date(desde.getFullYear(), desde.getMonth(), desde.getDate() + 6);
+    var finMs = new Date(hasta.getFullYear(), hasta.getMonth(), hasta.getDate() + 1).getTime();
+    return { desde: desde, hasta: hasta, enCurso: d.getTime() < finMs && hoy.getTime() < finMs };
+  }
+
+  function fmtFecha(d) {
+    var p = function (n) { return ('0' + n).slice(-2); };
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear();
+  }
+
+  function fmtFechaHora(ms) {
+    var d = new Date(ms), p = function (n) { return ('0' + n).slice(-2); };
+    return fmtFecha(d) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function fmtMonto(n) {
+    try { return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n); }
+    catch (e) { return (Math.round(n * 100) / 100).toFixed(2); }
+  }
+
+  /** Aviso si el archivo no parece corresponder a la semana que se evalúa */
+  function avisoVigencia(modificadoMs, semana, hoyMs) {
+    if (!modificadoMs) return '';
+    var inicio = new Date(semana.desde.getFullYear(), semana.desde.getMonth(), semana.desde.getDate()).getTime();
+    var fin = new Date(semana.hasta.getFullYear(), semana.hasta.getMonth(), semana.hasta.getDate() + 1).getTime();
+    var ahora = hoyMs || Date.now();
+    if (modificadoMs < inicio) {
+      return 'El archivo se generó el ' + fmtFechaHora(modificadoMs) + ', antes de que empezara la semana evaluada (' + fmtFecha(semana.desde) + '). Parece de una semana anterior: vuelve a exportarlo.';
+    }
+    if (ahora >= fin) {
+      if (modificadoMs < fin) {
+        return 'El archivo se generó el ' + fmtFechaHora(modificadoMs) + ', antes de que terminara la semana evaluada (' + fmtFecha(semana.hasta) + '). Puede faltarle ventas del final de la semana.';
+      }
+      if (modificadoMs >= fin + 7 * 86400000) {
+        return 'El archivo se generó el ' + fmtFechaHora(modificadoMs) + ', más de una semana después del cierre de la semana evaluada. Confirma que lo exportaste con las fechas ' + fmtFecha(semana.desde) + ' – ' + fmtFecha(semana.hasta) + '.';
+      }
+    }
+    return '';
+  }
+
+  function codigosDeAgencia(nombre, rec) {
+    var set = {}, out = [];
+    function add(c) { c = normCodigo(c); if (c && !set[c]) { set[c] = 1; out.push(c); } }
+    var base = (rec && rec.name) || nombre || '';
+    var m, re = /(?<!\d)\d{4,5}(?!\d)/g;
+    while ((m = re.exec(base))) add(m[0]);
+    re = /(?<![A-Za-z0-9])[A-Za-z]\d{3}(?![A-Za-z0-9])/g;
+    while ((m = re.exec(base))) add(m[0]);
+    var cod = rec && rec.code != null ? String(rec.code).trim() : '';
+    if (/^\d{4,5}$/.test(cod) || /^[A-Za-z]\d{3}$/.test(cod)) add(cod);
+    return out;
+  }
+
+  var RE_INTERNO = /(^| )(TALLER|DEPARTAMENTO TECNICO|ADMINISTRATIVO|OFICINA)( |$)/;
+
+  function crearContexto(opc) {
+    var reportes = opc.reportes || {}, vinculos = opc.vinculos || {};
+    var agPorNombre = {};
+    (opc.agencias || []).forEach(function (a) { if (a && a.name != null && !agPorNombre[a.name]) agPorNombre[a.name] = a; });
+    var cargadas = [], faltan = [], idxNombre = {};
+    MONEDAS.forEach(function (m) {
+      var rep = reportes[m];
+      if (rep && rep.datos) {
+        cargadas.push(m);
+        var idx = {};
+        Object.keys(rep.datos).forEach(function (cod) {
+          var k = claveNombre(rep.datos[cod][0]);
+          if (!k) return;
+          (idx[k] = idx[k] || []);
+          if (idx[k].indexOf(cod) < 0) idx[k].push(cod);
+        });
+        idxNombre[m] = idx;
+      } else faltan.push(m);
+    });
+    var cache = {};
+
+    function evaluar(nombre) {
+      if (cache[nombre]) return cache[nombre];
+      return (cache[nombre] = calcular(nombre));
+    }
+
+    function calcular(nombre) {
+      var res = { estado: 'gris', motivo: '', montos: {}, codigos: [], metodo: '', dudosos: [] };
+      if (nombre == null || String(nombre).trim() === '' || String(nombre).trim() === '-') {
+        res.motivo = 'El equipo no tiene agencia asignada.'; return res;
+      }
+      var vin = vinculos[nombre];
+      if (vin === 'NA') { res.motivo = 'Marcada manualmente como "No aplica".'; res.metodo = 'manual'; return res; }
+      if (!vin && RE_INTERNO.test(normName(nombre))) { res.motivo = 'Uso interno (taller / administración): no aplica.'; return res; }
+      if (!cargadas.length) { res.motivo = 'Aún no se ha cargado ningún reporte de Atenas.'; return res; }
+
+      var rec = agPorNombre[nombre] || null;
+      var confiable = false, codigos;
+      if (vin) {
+        codigos = String(vin).split(/[\s,;]+/).map(normCodigo).filter(Boolean);
+        confiable = codigos.length > 0; res.metodo = 'manual';
+      } else {
+        codigos = codigosDeAgencia(nombre, rec);
+        if (codigos.length) res.metodo = 'codigo';
+      }
+      res.codigos = codigos;
+      var ambiguo = false;
+
+      cargadas.forEach(function (m) {
+        var datos = reportes[m].datos, hit = null, c, i;
+        if (codigos.length) {
+          for (i = 0; i < codigos.length; i++) {
+            c = codigos[i];
+            if (datos[c]) { hit = { cod: c, nombre: datos[c][0], bruta: datos[c][1] }; break; }
+          }
+          if (hit && !confiable) {
+            var ta = tokensNombre(nombre), tb = tokensNombre(hit.nombre);
+            var comun = ta.some(function (t) { return tb.indexOf(t) >= 0; });
+            if (ta.length && tb.length && !comun) {
+              res.dudosos.push({ moneda: m, codigo: hit.cod, nombreAtenas: hit.nombre });
+              hit = null;
+            }
+          }
+        } else {
+          var k = claveNombre(nombre);
+          var lista = k ? idxNombre[m][k] : null;
+          if (lista && lista.length === 1) { hit = { cod: lista[0], nombre: datos[lista[0]][0], bruta: datos[lista[0]][1] }; res.metodo = 'nombre'; }
+          else if (lista && lista.length > 1) ambiguo = true;
+        }
+        if (hit) { res.montos[m] = hit.bruta; res.codigos = res.metodo === 'nombre' ? (res.codigos.indexOf(hit.cod) < 0 ? res.codigos.concat([hit.cod]) : res.codigos) : res.codigos; }
+      });
+
+      var vendio = Object.keys(res.montos).some(function (m) { return res.montos[m] > 0; });
+      if (vendio) { res.estado = 'verde'; res.motivo = 'Registra ventas en la semana evaluada.'; return res; }
+      if (res.dudosos.length) {
+        res.estado = 'ambar';
+        res.motivo = 'El código coincide con otra agencia en Atenas (' + res.dudosos.map(function (d) { return ETIQ[d.moneda] + ': ' + d.codigo + ' "' + d.nombreAtenas + '"'; }).join('; ') + '). Confirma el vínculo en la pestaña Revisión.';
+        return res;
+      }
+      if (ambiguo) { res.estado = 'ambar'; res.motivo = 'El nombre coincide con varias agencias de Atenas. Indica su código en la pestaña Revisión.'; return res; }
+      if (!codigos.length) {
+        res.estado = 'ambar'; res.motivo = 'No se pudo identificar el código de esta agencia en Atenas. Indícalo en la pestaña Revisión para confirmar si vende.'; return res;
+      }
+      if (faltan.length) {
+        res.estado = 'ambar'; res.motivo = 'Sin ventas en los reportes cargados, pero faltan por cargar: ' + faltan.map(function (m) { return ETIQ[m]; }).join(', ') + '.'; return res;
+      }
+      res.estado = 'rojo';
+      res.motivo = 'No registra ventas en Pesos, Bolívares ni Dólares (código ' + codigos.join(', ') + ').';
+      return res;
+    }
+
+    return { evaluar: evaluar, cargadas: cargadas, faltan: faltan };
+  }
+
+  var memoTok = {};
+  function tokMemo(s) { return memoTok[s] || (memoTok[s] = tokensNombre(s)); }
+
+  /** Posibles agencias de Atenas para una agencia del inventario (solo sugerencias, nunca se aplican solas) */
+  function sugerencias(nombre, reportes, max) {
+    var ta = tokensNombre(nombre), out = {};
+    if (!ta.length) return [];
+    MONEDAS.forEach(function (m) {
+      var rep = reportes[m];
+      if (!rep || !rep.datos) return;
+      Object.keys(rep.datos).forEach(function (cod) {
+        var nom = rep.datos[cod][0], tb = tokMemo(nom);
+        if (!tb.length) return;
+        var inter = ta.filter(function (t) { return tb.indexOf(t) >= 0; }).length;
+        if (!inter) return;
+        var score = inter / (ta.length + tb.length - inter);
+        if (score < 0.5) return;
+        if (!out[cod] || out[cod].score < score) out[cod] = { cod: cod, nombre: nom, score: score, monedas: [] };
+        if (out[cod].monedas.indexOf(m) < 0) out[cod].monedas.push(m);
+      });
+    });
+    return Object.keys(out).map(function (k) { return out[k]; })
+      .sort(function (a, b) { return b.score - a.score; }).slice(0, max || 3);
+  }
+
+  var core = {
+    sugerencias: sugerencias,
+    normName: normName, tokensNombre: tokensNombre, claveNombre: claveNombre, normCodigo: normCodigo,
+    parseMonto: parseMonto, procesarFilas: procesarFilas, semanaEvaluada: semanaEvaluada,
+    avisoVigencia: avisoVigencia, codigosDeAgencia: codigosDeAgencia, crearContexto: crearContexto
+  };
+
+  if (typeof module !== 'undefined' && module.exports) { module.exports = { core: core }; }
+  if (typeof document === 'undefined') return;
+
+  /* =====================================================================
+   *  CAPA VISUAL (solo en el navegador)
+   * ===================================================================== */
+  var state = {
+    reportes: {}, vinculos: {}, soloRojo: false, pestana: 'importar', semanaModo: 'anterior', semanaDesde: '',
+    badges: [], pinned: null, busqueda: '', mensajes: {}
+  };
+
+  function leerLS(clave, defecto) {
+    try { var v = localStorage.getItem(clave); return v ? JSON.parse(v) : defecto; } catch (e) { return defecto; }
+  }
+  function escribirLS(clave, valor) {
+    try { localStorage.setItem(clave, typeof valor === 'string' ? valor : JSON.stringify(valor)); return true; } catch (e) { return false; }
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function getInventario() { return (typeof inventory !== 'undefined' && Array.isArray(inventory)) ? inventory : []; }
+  function getAgencias() { return (typeof agencies !== 'undefined' && Array.isArray(agencies)) ? agencies : []; }
+  function asignado(st) {
+    if (typeof isAssigned === 'function') return isAssigned(st);
+    return /asig|agencia|entreg/i.test(String(st || ''));
+  }
+  function estadoEquipoTxt(st) {
+    if (typeof isMaintenance === 'function' && isMaintenance(st)) return 'El equipo está en Mantenimiento.';
+    if (typeof isWarehouse === 'function' && isWarehouse(st)) return 'El equipo está en Depósito Central.';
+    return 'El equipo no está asignado a una agencia.';
+  }
+
+  function semana() { return semanaEvaluada(new Date(), state.semanaModo, state.semanaDesde); }
+
+  function isoFecha(d) {
+    var p = function (n) { return ('0' + n).slice(-2); };
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  function guardarSemana() { escribirLS(LS.semana, { modo: state.semanaModo, desde: state.semanaDesde }); }
+
+  function htmlSelectorSemana() {
+    var s = semana(), m = state.semanaModo;
+    return '<div class="at-row" style="padding:10px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc">' +
+      '<b style="font-size:12px">Semana a evaluar:</b>' +
+      '<select class="at-in" data-at-semana="1">' +
+      '<option value="anterior"' + (m === 'anterior' ? ' selected' : '') + '>Semana anterior (cerrada)</option>' +
+      '<option value="actual"' + (m === 'actual' ? ' selected' : '') + '>Esta semana (en curso)</option>' +
+      '<option value="custom"' + (m === 'custom' ? ' selected' : '') + '>Otra semana…</option></select>' +
+      (m === 'custom' ? '<input type="date" class="at-in" data-at-semana-fecha="1" value="' + isoFecha(s.desde) + '">' : '') +
+      '<span style="font-size:12px;color:#475569"><b>' + fmtFecha(s.desde) + ' – ' + fmtFecha(s.hasta) + '</b>' +
+      (s.enCurso ? ' · en curso: los montos son parciales' : '') + '</span></div>';
+  }
+
+  function contexto() {
+    return crearContexto({ reportes: state.reportes, vinculos: state.vinculos, agencias: getAgencias() });
+  }
+
+  /* ---------- estilos propios (no dependen de Tailwind) ---------- */
+  function inyectarCSS() {
+    if (document.getElementById('at-css')) return;
+    var css = [
+      '.at-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid #0f766e;background:#0d9488;color:#fff;font-weight:700;font-size:12px;cursor:pointer;line-height:1.2;font-family:inherit}',
+      '.at-btn:hover{background:#0f766e}',
+      '.at-btn.at-sec{background:#fff;color:#0f766e;border-color:#99f6e4}',
+      '.at-btn.at-sec:hover{background:#f0fdfa}',
+      '.at-btn.at-rojo{background:#fff1f2;color:#9f1239;border-color:#fda4af}',
+      '.at-btn.at-rojo:hover{background:#ffe4e6}',
+      '.at-btn.at-on{background:#e11d48;color:#fff;border-color:#be123c}',
+      '.at-btn[disabled]{opacity:.55;cursor:not-allowed}',
+      '.at-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:10px;font-weight:700;cursor:pointer;line-height:1.25;text-align:left;border:1px solid transparent;max-width:170px}',
+      '.at-dot{width:8px;height:8px;border-radius:50%;flex:none}',
+      '.at-v{background:#d1fae5;color:#065f46;border-color:#6ee7b7}.at-v .at-dot{background:#10b981}',
+      '.at-r{background:#ffe4e6;color:#9f1239;border-color:#fda4af}.at-r .at-dot{background:#e11d48}',
+      '.at-g{background:#f1f5f9;color:#64748b;border-color:#cbd5e1}.at-g .at-dot{background:#94a3b8}',
+      '.at-a{background:#fef3c7;color:#92400e;border-color:#fcd34d}.at-a .at-dot{background:#f59e0b}',
+      '.at-ov{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9998;display:flex;align-items:center;justify-content:center;padding:10px}',
+      '.at-box{background:#fff;border-radius:14px;max-width:900px;width:100%;max-height:94vh;display:flex;flex-direction:column;box-shadow:0 25px 60px rgba(0,0,0,.35);font-family:inherit;color:#1e293b}',
+      '.at-hd{padding:14px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}',
+      '.at-hd h3{margin:0;font-size:16px;font-weight:800}',
+      '.at-hd p{margin:2px 0 0;font-size:11px;color:#64748b}',
+      '.at-x{border:0;background:transparent;font-size:22px;line-height:1;cursor:pointer;color:#64748b}',
+      '.at-tabs{display:flex;gap:4px;padding:8px 14px 0;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}',
+      '.at-tab{padding:8px 12px;border:0;background:transparent;font-size:12px;font-weight:700;color:#64748b;border-bottom:3px solid transparent;cursor:pointer;font-family:inherit}',
+      '.at-tab.at-act{color:#0f766e;border-bottom-color:#0d9488}',
+      '.at-bd{padding:14px 18px;overflow:auto;font-size:12px}',
+      '.at-note{background:#f0fdfa;border:1px solid #99f6e4;color:#115e59;border-radius:8px;padding:8px 10px;margin:0 0 12px;line-height:1.45}',
+      '.at-warn{background:#fffbeb;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:6px 9px;margin-top:5px;line-height:1.4}',
+      '.at-err{background:#fff1f2;border:1px solid #fda4af;color:#9f1239;border-radius:8px;padding:6px 9px;margin-top:5px;line-height:1.4}',
+      '.at-ok{color:#047857;font-weight:600;margin-top:5px;line-height:1.4}',
+      '.at-slot{border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px}',
+      '.at-slot label{display:block;font-weight:800;margin-bottom:6px}',
+      '.at-slot input[type=file]{font-size:12px;max-width:100%}',
+      '.at-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}',
+      '.at-in{border:1px solid #cbd5e1;border-radius:8px;padding:7px 9px;font-size:12px;font-family:inherit;min-width:0}',
+      '.at-tbl{width:100%;border-collapse:collapse;font-size:11px}',
+      '.at-tbl th{background:#f8fafc;text-align:left;padding:6px 8px;border-bottom:1px solid #e2e8f0;position:sticky;top:0}',
+      '.at-tbl td{padding:6px 8px;border-bottom:1px solid #f1f5f9;vertical-align:top}',
+      '.at-sum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}',
+      '.at-chip{padding:6px 10px;border-radius:8px;font-weight:700;font-size:12px}',
+      '.at-pop{position:fixed;z-index:10000;background:#0f172a;color:#f8fafc;border-radius:10px;padding:10px 12px;font-size:11px;line-height:1.45;max-width:300px;box-shadow:0 10px 30px rgba(0,0,0,.4)}',
+      '.at-pop b{color:#fff}',
+      '.at-pop table{margin:6px 0;border-collapse:collapse;width:100%}',
+      '.at-pop td{padding:1px 0}.at-pop td:last-child{text-align:right;font-variant-numeric:tabular-nums;padding-left:12px}',
+      '.at-flot{position:fixed;left:12px;bottom:12px;z-index:9990;box-shadow:0 6px 18px rgba(0,0,0,.3)}',
+      '@media (max-width:520px){.at-bd{padding:12px}.at-box{max-height:97vh}}'
+    ].join('\n');
+    var st = document.createElement('style');
+    st.id = 'at-css'; st.textContent = css;
+    document.head.appendChild(st);
+  }
+
+  /* ---------- semáforo en las tablas ---------- */
+  var TEXTO = {
+    verde: 'VENDIENDO / ACTIVA',
+    rojo: 'SIN VENTAS / EQUIPO OCIOSO',
+    gris: 'NO APLICA / EN DEPÓSITO',
+    ambar: 'REVISAR VÍNCULO'
+  };
+  var CLASE = { verde: 'at-v', rojo: 'at-r', gris: 'at-g', ambar: 'at-a' };
+
+  function pill(res, agencia) {
+    var i = state.badges.push({ res: res, agencia: agencia }) - 1;
+    return '<span class="at-pill ' + CLASE[res.estado] + '" data-at-i="' + i + '" data-estado="' + res.estado + '" tabindex="0">' +
+      '<span class="at-dot"></span><span>' + TEXTO[res.estado] + '</span></span>';
+  }
+
+  function asegurarCabecera(tbody) {
+    var tabla = tbody.closest('table');
+    if (!tabla || !tabla.tHead || !tabla.tHead.rows[0]) return;
+    var fila = tabla.tHead.rows[0];
+    if (fila.querySelector('th[data-at]')) return;
+    var ths = fila.cells;
+    var th = ths[0].cloneNode(false);
+    th.textContent = 'Estatus Ventas Atenas';
+    th.setAttribute('data-at', '1');
+    fila.insertBefore(th, ths[ths.length - 1]);
+  }
+
+  function ponerCelda(tr, html) {
+    var td = tr.querySelector('td[data-at]');
+    if (!td) {
+      td = document.createElement('td');
+      td.setAttribute('data-at', '1');
+      td.className = 'px-3.5 py-2.5';
+      tr.insertBefore(td, tr.cells[tr.cells.length - 1]);
+    }
+    td.innerHTML = html;
+  }
+
+  function idDesdeBoton(tr, prefijo) {
+    var b = tr.querySelector('button[onclick^="' + prefijo + '("]');
+    if (!b) return null;
+    var m = /\('([^']*)'\)/.exec(b.getAttribute('onclick') || '');
+    return m ? m[1] : null;
+  }
+
+  function decorarInventario(ctx) {
+    var tbody = document.getElementById('inventoryTableBody');
+    if (!tbody) return;
+    asegurarCabecera(tbody);
+    var mapa = {};
+    getInventario().forEach(function (i) { mapa[String(i.id)] = i; });
+    Array.prototype.forEach.call(tbody.rows, function (tr) {
+      var id = idDesdeBoton(tr, 'openTagModal');
+      var item = id !== null ? mapa[id] : null;
+      var res, agencia = item ? item.agency : '';
+      if (!item) res = { estado: 'gris', motivo: 'No se pudo leer el equipo de esta fila.', montos: {}, codigos: [], dudosos: [] };
+      else if (!asignado(item.status)) res = { estado: 'gris', motivo: estadoEquipoTxt(item.status), montos: {}, codigos: [], dudosos: [] };
+      else res = ctx.evaluar(item.agency);
+      ponerCelda(tr, pill(res, agencia));
+      tr.style.display = (state.soloRojo && res.estado !== 'rojo') ? 'none' : '';
+    });
+  }
+
+  function decorarAgencias(ctx) {
+    var tbody = document.getElementById('agenciesTableBody');
+    if (!tbody) return;
+    asegurarCabecera(tbody);
+    var porId = {}, asig = {};
+    getAgencias().forEach(function (a) { porId[String(a.id)] = a; });
+    getInventario().forEach(function (i) { if (asignado(i.status)) asig[i.agency] = (asig[i.agency] || 0) + 1; });
+    Array.prototype.forEach.call(tbody.rows, function (tr) {
+      var id = idDesdeBoton(tr, 'shareAgencyWhatsApp');
+      var ag = id !== null ? porId[id] : null;
+      var res;
+      if (!ag) res = { estado: 'gris', motivo: 'No se pudo leer la agencia de esta fila.', montos: {}, codigos: [], dudosos: [] };
+      else if (!asig[ag.name]) res = { estado: 'gris', motivo: 'La agencia no tiene equipos asignados.', montos: {}, codigos: [], dudosos: [] };
+      else res = ctx.evaluar(ag.name);
+      ponerCelda(tr, pill(res, ag ? ag.name : ''));
+      tr.style.display = (state.soloRojo && res.estado !== 'rojo') ? 'none' : '';
+    });
+  }
+
+  function decorar() {
+    try {
+      state.badges = [];
+      var ctx = contexto();
+      decorarInventario(ctx);
+      decorarAgencias(ctx);
+      actualizarBotones();
+    } catch (e) { console.warn('[Atenas] No se pudo pintar el semáforo:', e); }
+  }
+
+  function envolver(nombre) {
+    var orig = root[nombre];
+    if (typeof orig !== 'function' || orig.__atenas) return;
+    var w = function () {
+      var r = orig.apply(this, arguments);
+      decorar();
+      return r;
+    };
+    w.__atenas = true;
+    root[nombre] = w;
+  }
+
+  /* ---------- resumen (equipos y agencias por color) ---------- */
+  function resumen() {
+    var ctx = contexto(), porAg = {}, eq = { verde: 0, rojo: 0, ambar: 0 };
+    getInventario().forEach(function (i) {
+      if (!asignado(i.status)) return;
+      var r = ctx.evaluar(i.agency);
+      if (r.estado === 'gris') return;
+      eq[r.estado]++;
+      porAg[i.agency] = r;
+    });
+    var ag = { verde: 0, rojo: 0, ambar: 0 }, ambar = [];
+    Object.keys(porAg).forEach(function (n) {
+      ag[porAg[n].estado]++;
+      if (porAg[n].estado === 'ambar') ambar.push({ nombre: n, res: porAg[n] });
+    });
+    ambar.sort(function (a, b) { return a.nombre < b.nombre ? -1 : 1; });
+    return { equipos: eq, agencias: ag, ambar: ambar, ctx: ctx };
+  }
+
+  /* ---------- globo con el desglose ---------- */
+  function cerrarPop() {
+    var p = document.getElementById('at-pop');
+    if (p) p.remove();
+    state.pinned = null;
+  }
+
+  function mostrarPop(el) {
+    var d = state.badges[parseInt(el.getAttribute('data-at-i'), 10)];
+    if (!d) return;
+    var s = semana(), res = d.res;
+    var filas = MONEDAS.map(function (m) {
+      var v = res.montos[m];
+      return '<tr><td>' + ETIQ[m] + '</td><td>' + (v == null ? '—' : fmtMonto(v)) + '</td></tr>';
+    }).join('');
+    var html = '<b>' + esc(d.agencia || 'Equipo') + '</b><br>' + esc(TEXTO[res.estado]) + '<br>';
+    if (res.estado === 'verde' || res.estado === 'rojo' || res.estado === 'ambar') {
+      html += '<span style="opacity:.75">Semana ' + fmtFecha(s.desde) + ' – ' + fmtFecha(s.hasta) + (s.enCurso ? ' (en curso, parcial)' : '') + '</span>' +
+        '<table>' + filas + '</table>';
+    }
+    html += '<span style="opacity:.85">' + esc(res.motivo) + '</span>';
+    if (res.metodo === 'nombre') html += '<br><span style="opacity:.7">Cruce por nombre.</span>';
+    cerrarPop();
+    var pop = document.createElement('div');
+    pop.id = 'at-pop'; pop.className = 'at-pop'; pop.innerHTML = html;
+    document.body.appendChild(pop);
+    var r = el.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    var left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left));
+    var top = r.bottom + 6; if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+
+  /* ---------- carga de reportes ---------- */
+  function ingestarFilas(moneda, filas, meta) {
+    var r = procesarFilas(filas);
+    state.reportes[moneda] = {
+      archivo: meta.archivo || '', modificado: meta.modificado || null, cargadoEn: Date.now(),
+      origen: meta.origen || 'manual', filas: r.filas, total: r.total, datos: r.datos
+    };
+    if (!escribirLS(LS.reportes, state.reportes)) {
+      state.mensajes.almacenamiento = 'No se pudo guardar el reporte en este navegador (almacenamiento lleno). Se usará solo mientras esta página esté abierta.';
+    }
+    refrescar();
+    return r;
+  }
+
+  function leerArchivo(file) {
+    var nombre = file.name || '';
+    if (/\.csv$/i.test(nombre)) {
+      return file.arrayBuffer().then(function (buf) {
+        var txt = new TextDecoder('utf-8').decode(buf);
+        if (txt.indexOf('�') >= 0) txt = new TextDecoder('windows-1252').decode(buf);
+        return parsearCsv(txt);
+      });
+    }
+    var cargar = typeof root.loadLib === 'function' ? root.loadLib('xlsx') : Promise.resolve(!!root.XLSX);
+    return cargar.then(function (ok) {
+      if (!ok || !root.XLSX) throw new Error('No se pudo cargar la librería de Excel (¿sin internet?). Prueba con un archivo .csv.');
+      return file.arrayBuffer().then(function (buf) {
+        var wb = root.XLSX.read(buf, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        return root.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+      });
+    });
+  }
+
+  function parsearCsv(texto) {
+    var muestra = texto.split(/\r?\n/, 1)[0] || '';
+    var delim = [';', '\t', ','].map(function (d) { return [d, muestra.split(d).length]; }).sort(function (a, b) { return b[1] - a[1]; })[0][0];
+    var filas = [], fila = [], campo = '', comillas = false;
+    for (var i = 0; i < texto.length; i++) {
+      var c = texto[i];
+      if (comillas) {
+        if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; } else if (c === '"') comillas = false; else campo += c;
+      } else if (c === '"') comillas = true;
+      else if (c === delim) { fila.push(campo); campo = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && texto[i + 1] === '\n') i++; fila.push(campo); filas.push(fila); fila = []; campo = ''; }
+      else campo += c;
+    }
+    if (campo !== '' || fila.length) { fila.push(campo); filas.push(fila); }
+    return filas.filter(function (f) { return f.some(function (x) { return String(x).trim() !== ''; }); });
+  }
+
+  function alElegirArchivo(moneda, input) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    state.mensajes[moneda] = { tipo: 'info', texto: 'Leyendo ' + file.name + '…' };
+    pintarModal();
+    leerArchivo(file).then(function (filas) {
+      var r = ingestarFilas(moneda, filas, { archivo: file.name, modificado: file.lastModified, origen: 'manual' });
+      state.mensajes[moneda] = { tipo: 'ok', texto: '' };
+      pintarModal();
+      return r;
+    }).catch(function (e) {
+      state.mensajes[moneda] = { tipo: 'err', texto: e.message || String(e) };
+      pintarModal();
+    });
+  }
+
+  function sincronizarPuente() {
+    var inp = document.getElementById('at-puente-url');
+    var base = ((inp && inp.value) || PUENTE_DEFECTO).trim().replace(/\/+$/, '');
+    escribirLS(LS.puente, base);
+    state.mensajes.puente = { tipo: 'info', texto: 'Conectando con el puente…' };
+    pintarModal();
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctl) ctl.abort(); }, 10000);
+    return fetch(base + '/datos', { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { if (!r.ok) throw new Error('El puente respondió ' + r.status); return r.json(); })
+      .then(function (j) {
+        clearTimeout(timer);
+        var errores = [], cargadas = 0;
+        MONEDAS.forEach(function (m) {
+          var v = j.monedas && j.monedas[m];
+          if (v && v.ok) {
+            try {
+              ingestarFilas(m, v.filas, { archivo: v.archivo, modificado: Date.parse(v.modificado), origen: 'puente' });
+              state.mensajes[m] = { tipo: 'ok', texto: '' }; cargadas++;
+            } catch (e) { errores.push(ETIQ[m] + ': ' + e.message); state.mensajes[m] = { tipo: 'err', texto: e.message }; }
+          } else {
+            var msg = (v && v.error) || 'Sin datos';
+            errores.push(ETIQ[m] + ': ' + msg); state.mensajes[m] = { tipo: 'err', texto: msg };
+          }
+        });
+        if (cargadas) escribirLS(LS.puenteActivo, '1');
+        state.mensajes.puente = errores.length
+          ? { tipo: cargadas ? 'warn' : 'err', texto: 'Se actualizaron ' + cargadas + ' de 3 monedas. ' + errores.join(' | ') }
+          : { tipo: 'ok', texto: 'Sincronización completa: los tres reportes se actualizaron desde el puente (' + fmtFechaHora(Date.now()) + ').' };
+        pintarModal();
+      })
+      .catch(function (e) {
+        clearTimeout(timer);
+        state.mensajes.puente = {
+          tipo: 'err',
+          texto: 'No se pudo conectar con el puente en ' + base + '. Verifica que la ventana "Puente Atenas" esté abierta en tu PC. ' +
+            'Si el navegador pregunta por acceso a dispositivos de la red local, permítelo. (' + (e && e.name === 'AbortError' ? 'tiempo agotado' : (e && e.message) || e) + ')'
+        };
+        pintarModal();
+      });
+  }
+
+  function borrarReportes() {
+    state.reportes = {};
+    try { localStorage.removeItem(LS.reportes); } catch (e) { /* nada */ }
+    state.mensajes = {};
+    refrescar();
+  }
+
+  /* ---------- vínculos manuales ---------- */
+  function guardarVinculos() { escribirLS(LS.vinculos, state.vinculos); }
+
+  function exportarVinculos() {
+    var blob = new Blob([JSON.stringify({ tipo: 'vinculos-atenas', version: 1, vinculos: state.vinculos }, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'vinculos-atenas.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+
+  function importarVinculos(file) {
+    file.text().then(function (t) {
+      var j = JSON.parse(t), v = j && j.vinculos;
+      if (!v || typeof v !== 'object') throw new Error('Archivo no válido');
+      Object.keys(v).forEach(function (k) { if (typeof v[k] === 'string') state.vinculos[k] = v[k]; });
+      guardarVinculos(); refrescar();
+    }).catch(function (e) { alert('No se pudo importar los vínculos: ' + e.message); });
+  }
+
+  /* ---------- ventana "Estatus Atenas" ---------- */
+  function abrirModal(pestana) {
+    if (pestana) state.pestana = pestana;
+    var ov = document.getElementById('at-ov');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'at-ov'; ov.className = 'at-ov';
+      ov.innerHTML = '<div class="at-box" role="dialog" aria-modal="true" aria-label="Estatus Atenas"></div>';
+      document.body.appendChild(ov);
+    }
+    pintarModal();
+  }
+
+  function cerrarModal() {
+    var ov = document.getElementById('at-ov');
+    if (ov) ov.remove();
+  }
+
+  function htmlSlot(m) {
+    var rep = state.reportes[m], msg = state.mensajes[m], s = semana(), h = '';
+    h += '<div class="at-slot"><label>Subir Excel/CSV de Atenas ' + ETIQ[m] + '</label>' +
+      '<input type="file" accept=".xlsx,.xls,.csv" data-at-file="' + m + '">';
+    if (msg && msg.tipo === 'info') h += '<div class="at-ok" style="color:#475569">' + esc(msg.texto) + '</div>';
+    if (msg && msg.tipo === 'err') h += '<div class="at-err">' + esc(msg.texto) + '</div>';
+    if (rep) {
+      h += '<div class="at-ok">✔ ' + esc(rep.archivo) + ' · ' + rep.filas.toLocaleString('es-VE') + ' agencias con ventas · total ' + fmtMonto(rep.total) +
+        (rep.modificado ? ' · generado ' + fmtFechaHora(rep.modificado) : '') + (rep.origen === 'puente' ? ' · vía puente' : '') + '</div>';
+      var av = avisoVigencia(rep.modificado, s, Date.now());
+      if (av) h += '<div class="at-warn">⚠ ' + esc(av) + '</div>';
+    }
+    return h + '</div>';
+  }
+
+  function htmlImportar() {
+    var s = semana();
+    return '<p class="at-note">Semana evaluada: <b>' + fmtFecha(s.desde) + ' – ' + fmtFecha(s.hasta) + '</b> (lunes a domingo). ' +
+      'El Excel de Atenas no trae las fechas: <b>elige arriba la semana</b> y exporta cada moneda en <i>Consultas → Reporte de Vtas. (Solo Agencia)</i> con <b>Desde ' + fmtFecha(s.desde) +
+      '</b> y <b>Hasta ' + fmtFecha(s.hasta) + '</b>, agrupado por Agencia. Los archivos se leen solo en este navegador: no se envían a la nube ni cambian el inventario.</p>' +
+      MONEDAS.map(htmlSlot).join('') +
+      '<div class="at-row"><button class="at-btn at-sec" data-at-act="borrar">Borrar reportes cargados</button></div>';
+  }
+
+  function htmlAuto() {
+    var url = leerLS(LS.puente, PUENTE_DEFECTO);
+    if (typeof url !== 'string') url = PUENTE_DEFECTO;
+    var m = state.mensajes.puente, h = '';
+    h += '<p class="at-note">El <b>Puente Atenas</b> es un programa pequeño (solo lectura) que corre en tu PC y entrega al inventario el Excel más reciente de las carpetas ' +
+      '<i>ADMINISTRATIVO\\PESOS, BOLIVARES y DOLARES</i>. No usa contraseñas y no toca el inventario ni la nube.</p>';
+    h += '<div class="at-slot"><label>Dirección del puente</label><div class="at-row">' +
+      '<input class="at-in" id="at-puente-url" style="flex:1;min-width:180px" value="' + esc(url) + '">' +
+      '<button class="at-btn" data-at-act="sync">Ejecutar Sincronización Automática</button></div>';
+    if (m) h += '<div class="' + ({ ok: 'at-ok', err: 'at-err', warn: 'at-warn', info: 'at-ok' }[m.tipo] || 'at-ok') + '">' + esc(m.texto) + '</div>';
+    h += '</div>';
+    h += '<div class="at-slot"><label>Estado de los reportes cargados</label>' +
+      MONEDAS.map(function (mm) {
+        var r = state.reportes[mm];
+        return '<div style="margin:3px 0"><b>' + ETIQ[mm] + ':</b> ' + (r ? esc(r.archivo) + ' · ' + r.filas.toLocaleString('es-VE') + ' agencias' + (r.modificado ? ' · ' + fmtFechaHora(r.modificado) : '') : 'sin cargar') + '</div>';
+      }).join('') + '</div>';
+    h += '<details class="at-slot"><summary style="cursor:pointer;font-weight:800">Cómo iniciar el puente</summary>' +
+      '<ol style="margin:8px 0 0 18px;padding:0;line-height:1.6"><li>Abre la carpeta <b>puente-atenas</b> y haz doble clic en <b>INICIAR-PUENTE.bat</b>.</li>' +
+      '<li>Deja esa ventana negra abierta mientras usas el inventario.</li>' +
+      '<li>Exporta en Atenas el reporte de cada moneda (se guarda solo en su carpeta) y pulsa aquí <b>Ejecutar Sincronización Automática</b>.</li></ol></details>';
+    h += '<p class="at-note" style="background:#f8fafc;border-color:#e2e8f0;color:#475569">Próxima fase: un robot que abra Atenas con su usuario y contraseña, ponga las fechas de la semana y exporte el reporte sin intervención manual. ' +
+      'Por ahora el puente lee el último Excel que ya exista en cada carpeta.</p>';
+    return h;
+  }
+
+  function htmlRevision() {
+    var rs = resumen(), q = normName(state.busqueda), h = '';
+    h += '<div class="at-sum">' +
+      '<span class="at-chip at-v">Vendiendo: ' + rs.agencias.verde + ' agencias · ' + rs.equipos.verde + ' equipos</span>' +
+      '<span class="at-chip at-r">Sin ventas: ' + rs.agencias.rojo + ' agencias · ' + rs.equipos.rojo + ' equipos</span>' +
+      '<span class="at-chip at-a">Por revisar: ' + rs.agencias.ambar + ' agencias · ' + rs.equipos.ambar + ' equipos</span></div>';
+    h += '<div class="at-row" style="margin-bottom:10px">' +
+      '<button class="at-btn at-rojo" data-at-act="ver-rojos">Ver equipos en agencias sin ventas</button>' +
+      '<button class="at-btn at-sec" data-at-act="exp-vinc">Exportar vínculos</button>' +
+      '<label class="at-btn at-sec" style="margin:0">Importar vínculos<input type="file" accept=".json" data-at-vinc style="display:none"></label></div>';
+    h += '<p class="at-note">Las agencias de esta lista tienen equipos asignados pero no se puede confirmar si venden: su nombre no trae un código de Atenas reconocible, ' +
+      'o ese código pertenece a otra agencia en alguna moneda. Escribe su <b>código de Atenas</b> (por ejemplo 2111; puedes poner varios separados por coma) o márcala como <b>No aplica</b>. ' +
+      'Esto se guarda solo en este navegador. Mientras no se confirme, <b>no se muestra en rojo</b> para evitar pedir la devolución de equipos de agencias que sí venden.</p>';
+    h += '<div class="at-row" style="margin-bottom:8px"><input class="at-in" id="at-busq" placeholder="Buscar agencia…" value="' + esc(state.busqueda) + '" style="flex:1"></div>';
+    var lista = rs.ambar.filter(function (x) { return !q || normName(x.nombre).indexOf(q) >= 0; });
+    if (!lista.length) h += '<div class="at-ok">' + (rs.ambar.length ? 'Sin coincidencias.' : 'No hay agencias por revisar.') + '</div>';
+    else {
+      h += '<table class="at-tbl"><thead><tr><th>Agencia en el inventario</th><th>Motivo</th><th>Código Atenas</th><th></th></tr></thead><tbody>' +
+        lista.slice(0, 200).map(function (x) {
+          var sug = sugerencias(x.nombre, state.reportes, 3).map(function (s) {
+            return '<button class="at-btn at-sec" style="margin:3px 4px 0 0;padding:3px 7px;font-size:10px" data-at-usar="' + esc(x.nombre) + '" data-at-codigo="' + esc(s.cod) + '">' +
+              '¿' + esc(s.cod) + ' · ' + esc(s.nombre) + '?</button>';
+          }).join('');
+          return '<tr><td><b>' + esc(x.nombre) + '</b></td><td>' + esc(x.res.motivo) + (sug ? '<div style="margin-top:4px"><i>Posibles:</i> ' + sug + '</div>' : '') + '</td>' +
+            '<td><input class="at-in" style="width:110px" data-at-cod="' + esc(x.nombre) + '" placeholder="Ej: 2111"></td>' +
+            '<td style="white-space:nowrap"><button class="at-btn" data-at-guardar="' + esc(x.nombre) + '">Guardar</button> ' +
+            '<button class="at-btn at-sec" data-at-na="' + esc(x.nombre) + '">No aplica</button></td></tr>';
+        }).join('') + '</tbody></table>';
+      if (lista.length > 200) h += '<div class="at-note" style="margin-top:8px">Se muestran 200 de ' + lista.length + '. Usa el buscador.</div>';
+    }
+    var vincs = Object.keys(state.vinculos);
+    if (vincs.length) {
+      h += '<h4 style="margin:16px 0 6px;font-size:12px">Vínculos guardados (' + vincs.length + ')</h4><table class="at-tbl"><tbody>' +
+        vincs.sort().map(function (k) {
+          return '<tr><td>' + esc(k) + '</td><td>' + (state.vinculos[k] === 'NA' ? 'No aplica' : esc(state.vinculos[k])) + '</td>' +
+            '<td><button class="at-btn at-sec" data-at-quitar="' + esc(k) + '">Quitar</button></td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+    return h;
+  }
+
+  function pintarModal() {
+    var ov = document.getElementById('at-ov');
+    if (!ov) return;
+    var box = ov.firstChild, s = semana();
+    var pest = state.pestana;
+    var foco = document.activeElement && document.activeElement.id;
+    var cuerpo = pest === 'auto' ? htmlAuto() : pest === 'revisar' ? htmlRevision() : htmlImportar();
+    box.innerHTML =
+      '<div class="at-hd"><div><h3>Estatus Atenas · ventas por agencia</h3><p>Capa informativa de solo lectura · semana ' +
+      fmtFecha(s.desde) + ' – ' + fmtFecha(s.hasta) + (s.enCurso ? ' (en curso)' : '') + '</p></div><button class="at-x" data-at-act="cerrar" aria-label="Cerrar">×</button></div>' +
+      htmlSelectorSemana() +
+      '<div class="at-tabs">' +
+      '<button class="at-tab' + (pest === 'importar' ? ' at-act' : '') + '" data-at-tab="importar">Importar Excel / CSV</button>' +
+      '<button class="at-tab' + (pest === 'auto' ? ' at-act' : '') + '" data-at-tab="auto">Automatización Atenas (Auto-Sync)</button>' +
+      '<button class="at-tab' + (pest === 'revisar' ? ' at-act' : '') + '" data-at-tab="revisar">Revisión / Vínculos</button></div>' +
+      '<div class="at-bd">' + cuerpo + '</div>';
+    if (foco === 'at-busq') { var b = document.getElementById('at-busq'); if (b) { b.focus(); b.setSelectionRange(b.value.length, b.value.length); } }
+  }
+
+  /* ---------- botones en la página ---------- */
+  function actualizarBotones() {
+    var nRojo = 0;
+    try { nRojo = resumen().equipos.rojo; } catch (e) { /* sin datos */ }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-at-filtro]'), function (b) {
+      var esAg = b.getAttribute('data-at-filtro') === 'agencias';
+      b.classList.toggle('at-on', state.soloRojo);
+      b.textContent = state.soloRojo
+        ? 'Quitar filtro (mostrando solo en rojo)'
+        : (esAg ? 'Agencias sin ventas' : 'Equipos en Agencias Sin Ventas (' + nRojo + ')');
+    });
+  }
+
+  function crearBoton(texto, atributos, clases) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'at-btn ' + (clases || '');
+    b.textContent = texto;
+    Object.keys(atributos || {}).forEach(function (k) { b.setAttribute(k, atributos[k]); });
+    return b;
+  }
+
+  function montarBotones() {
+    if (document.getElementById('at-btn-inv')) return true;
+    var ok = false;
+    var nuevo = document.getElementById('btnAddEquipment');
+    if (nuevo && nuevo.parentNode) {
+      var b = crearBoton('Estatus Atenas', { id: 'at-btn-inv', 'data-at-act': 'abrir' });
+      nuevo.parentNode.insertBefore(b, nuevo); ok = true;
+    }
+    var barra = document.getElementById('filterControlsBar');
+    var grid = barra && barra.querySelector('.grid');
+    if (grid) {
+      var d = document.createElement('div');
+      d.appendChild(crearBoton('Equipos en Agencias Sin Ventas', { 'data-at-act': 'filtro', 'data-at-filtro': 'equipos', style: 'width:100%' }, 'at-rojo'));
+      grid.appendChild(d); ok = true;
+    }
+    var nueva = document.getElementById('btnAddAgency');
+    if (nueva && nueva.parentNode) {
+      nueva.parentNode.insertBefore(crearBoton('Estatus Atenas', { 'data-at-act': 'abrir' }), nueva);
+      nueva.parentNode.insertBefore(crearBoton('Agencias sin ventas', { 'data-at-act': 'filtro', 'data-at-filtro': 'agencias' }, 'at-rojo'), nueva);
+      ok = true;
+    }
+    if (!ok && !document.getElementById('at-flot')) {
+      var f = crearBoton('Estatus Atenas', { id: 'at-flot', 'data-at-act': 'abrir' }, 'at-flot');
+      document.body.appendChild(f);
+    }
+    return ok;
+  }
+
+  function refrescar() {
+    decorar();
+    if (document.getElementById('at-ov')) pintarModal();
+  }
+
+  /* ---------- eventos ---------- */
+  function iniciarEventos() {
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t.closest) return;
+      var pill = t.closest('.at-pill');
+      if (pill) {
+        if (state.pinned === pill) { cerrarPop(); return; }
+        mostrarPop(pill); state.pinned = pill; return;
+      }
+      if (state.pinned && !t.closest('#at-pop')) cerrarPop();
+
+      var act = t.closest('[data-at-act]');
+      if (act) {
+        var a = act.getAttribute('data-at-act');
+        if (a === 'abrir') abrirModal();
+        else if (a === 'cerrar') cerrarModal();
+        else if (a === 'filtro') { state.soloRojo = !state.soloRojo; decorar(); }
+        else if (a === 'ver-rojos') { state.soloRojo = true; cerrarModal(); decorar(); }
+        else if (a === 'sync') sincronizarPuente();
+        else if (a === 'borrar') { if (confirm('¿Borrar los reportes de Atenas cargados en este navegador? (No afecta el inventario)')) borrarReportes(); }
+        else if (a === 'exp-vinc') exportarVinculos();
+        return;
+      }
+      var tab = t.closest('[data-at-tab]');
+      if (tab) { state.pestana = tab.getAttribute('data-at-tab'); pintarModal(); return; }
+
+      var g = t.closest('[data-at-guardar]');
+      if (g) {
+        var nom = g.getAttribute('data-at-guardar');
+        var inp = Array.prototype.filter.call(document.querySelectorAll('[data-at-cod]'), function (x) { return x.getAttribute('data-at-cod') === nom; })[0];
+        var val = inp ? inp.value.trim() : '';
+        if (!val) { if (inp) inp.focus(); return; }
+        state.vinculos[nom] = val; guardarVinculos(); refrescar(); return;
+      }
+      var us = t.closest('[data-at-usar]');
+      if (us) { state.vinculos[us.getAttribute('data-at-usar')] = us.getAttribute('data-at-codigo'); guardarVinculos(); refrescar(); return; }
+      var na = t.closest('[data-at-na]');
+      if (na) { state.vinculos[na.getAttribute('data-at-na')] = 'NA'; guardarVinculos(); refrescar(); return; }
+      var q = t.closest('[data-at-quitar]');
+      if (q) { delete state.vinculos[q.getAttribute('data-at-quitar')]; guardarVinculos(); refrescar(); return; }
+
+      if (t.id === 'at-ov') cerrarModal();
+    });
+
+    document.addEventListener('change', function (e) {
+      var t = e.target;
+      if (t && t.getAttribute) {
+        if (t.hasAttribute('data-at-semana')) {
+          state.semanaModo = t.value;
+          if (t.value === 'custom' && !state.semanaDesde) state.semanaDesde = isoFecha(semanaEvaluada(new Date(), 'anterior').desde);
+          guardarSemana(); refrescar(); return;
+        }
+        if (t.hasAttribute('data-at-semana-fecha')) {
+          if (t.value) { state.semanaDesde = t.value; guardarSemana(); refrescar(); }
+          return;
+        }
+        var m = t.getAttribute('data-at-file');
+        if (m) { alElegirArchivo(m, t); return; }
+        if (t.hasAttribute('data-at-vinc') && t.files && t.files[0]) importarVinculos(t.files[0]);
+      }
+    });
+
+    document.addEventListener('input', function (e) {
+      if (e.target && e.target.id === 'at-busq') { state.busqueda = e.target.value; pintarModal(); }
+    });
+
+    document.addEventListener('mouseover', function (e) {
+      var p = e.target.closest && e.target.closest('.at-pill');
+      if (p && !state.pinned) mostrarPop(p);
+    });
+    document.addEventListener('mouseout', function (e) {
+      var p = e.target.closest && e.target.closest('.at-pill');
+      if (p && !state.pinned) cerrarPop();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { cerrarPop(); cerrarModal(); }
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('at-pill')) { e.preventDefault(); e.target.click(); }
+    });
+    window.addEventListener('scroll', function () { if (state.pinned) cerrarPop(); }, true);
+  }
+
+  /* ---------- arranque ---------- */
+  function iniciar() {
+    inyectarCSS();
+    state.reportes = leerLS(LS.reportes, {}) || {};
+    state.vinculos = leerLS(LS.vinculos, {}) || {};
+    var sm = leerLS(LS.semana, null);
+    if (sm && (sm.modo === 'actual' || sm.modo === 'custom' || sm.modo === 'anterior')) { state.semanaModo = sm.modo; state.semanaDesde = sm.desde || ''; }
+    envolver('renderInventoryTable');
+    envolver('renderAgenciesTable');
+    if (!montarBotones()) setTimeout(montarBotones, 1500);
+    iniciarEventos();
+    decorar();
+    if (leerLS(LS.puenteActivo, '') === '1') {
+      setTimeout(function () {
+        var base = leerLS(LS.puente, PUENTE_DEFECTO);
+        if (typeof base !== 'string') base = PUENTE_DEFECTO;
+        // Intento silencioso: si el puente no está abierto no se muestra ningún error.
+        var prev = state.mensajes.puente;
+        sincronizarPuente().then(function () { if (state.mensajes.puente && state.mensajes.puente.tipo === 'err') state.mensajes.puente = prev; });
+      }, 3500);
+    }
+  }
+
+  root.AtenasEstatus = {
+    version: '1.0', abrir: abrirModal, refrescar: refrescar, ingestarFilas: ingestarFilas,
+    evaluar: function (nombre) { return contexto().evaluar(nombre); }, resumen: resumen, core: core
+  };
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
 </body>
 </html>
 
